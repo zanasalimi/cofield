@@ -13,8 +13,12 @@ export interface RenderScene {
   viewport: Viewport;
   /** Selected shape ids (local). */
   selection: string[];
+  /** Shape the pointer hovers — shows connection dots so a relation can start without selecting. */
+  hovered?: string | null;
   /** A connector being dragged from a connection dot to the pointer (world coords). */
   connecting?: { from: Point; to: Point } | null;
+  /** Shape under the pointer while dragging a connector — highlighted as the drop target. */
+  dropTarget?: string | null;
 }
 
 export interface Renderer {

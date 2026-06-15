@@ -41,31 +41,16 @@ export function createSelectTool(): Tool {
         const tol = HANDLE_HIT_PX / vp.zoom;
         const selected = ctx.getSelection();
 
+        // 1) Resize/rotate the selected shape via its handles.
         if (selected.length === 1) {
           const shape = ctx.getShape(selected[0]!);
           if (shape && shape.type !== "connector") {
             const cx = shape.x + shape.w / 2;
-            // Rotation handle.
             if (dist(event.world, { x: cx, y: shape.y - ROT_OFFSET_PX / vp.zoom }) <= tol) {
               mode = "rotate";
               activeId = shape.id;
               return;
             }
-            // Connection dots (just outside each edge midpoint).
-            const off = DOT_OFFSET_PX / vp.zoom;
-            const dots: Point[] = [
-              { x: cx, y: shape.y - off },
-              { x: shape.x + shape.w + off, y: shape.y + shape.h / 2 },
-              { x: cx, y: shape.y + shape.h + off },
-              { x: shape.x - off, y: shape.y + shape.h / 2 },
-            ];
-            if (dots.some((d) => dist(event.world, d) <= tol)) {
-              mode = "connect";
-              activeId = shape.id;
-              ctx.setConnecting({ from: shape.id, point: event.world });
-              return;
-            }
-            // Resize handles.
             const rect: Rect = { x: shape.x, y: shape.y, w: shape.w, h: shape.h };
             const pts = handlePoints(rect);
             for (const h of Object.keys(pts) as ResizeHandle[]) {
@@ -81,7 +66,30 @@ export function createSelectTool(): Tool {
           }
         }
 
-        // Otherwise: select + begin move.
+        // 2) Start a connector from a hovered shape's connection dot — works
+        //    whether or not the shape is selected, like Miro.
+        const hoveredId = ctx.getHovered();
+        if (hoveredId) {
+          const hs = ctx.getShape(hoveredId);
+          if (hs && hs.type !== "connector") {
+            const off = DOT_OFFSET_PX / vp.zoom;
+            const hcx = hs.x + hs.w / 2;
+            const dots: Point[] = [
+              { x: hcx, y: hs.y - off },
+              { x: hs.x + hs.w + off, y: hs.y + hs.h / 2 },
+              { x: hcx, y: hs.y + hs.h + off },
+              { x: hs.x - off, y: hs.y + hs.h / 2 },
+            ];
+            if (dots.some((d) => dist(event.world, d) <= tol)) {
+              mode = "connect";
+              activeId = hs.id;
+              ctx.setConnecting({ from: hs.id, point: event.world });
+              return;
+            }
+          }
+        }
+
+        // 3) Otherwise: select + begin move.
         const hit = ctx.hitTest(event.world);
         if (!hit) {
           if (!event.mods.shift) ctx.setSelection([]);

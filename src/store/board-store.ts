@@ -16,9 +16,18 @@ import {
 
 let bound: BoardDoc | null = null;
 let counter = 0;
+/**
+ * Globally-unique shape id. A plain per-session counter is unsafe: it resets to
+ * 0 on reload, so the first shape added to a *persisted* board would reuse an id
+ * already in the document and silently overwrite that shape. randomUUID avoids
+ * all collisions across sessions and clients.
+ */
 function nextId(): string {
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+    return `s_${crypto.randomUUID()}`;
+  }
   counter += 1;
-  return `s_${counter.toString(36)}_${Math.floor(counter)}`;
+  return `s_${Date.now().toString(36)}_${counter.toString(36)}`;
 }
 
 const DEFAULT_STYLE: Record<ShapeType, ShapeStyle> = {
@@ -96,8 +105,15 @@ export const useBoardStore = create<BoardState>((set, get) => ({
   },
 
   removeShape: (id) => {
-    if (bound) docRemoveShape(bound, id);
-    else set((s) => ({ shapes: s.shapes.filter((sh) => sh.id !== id) }));
+    // Cascade: a connector cannot outlive either endpoint it links.
+    const attached = get().shapes.filter((sh) => sh.type === "connector" && (sh.from === id || sh.to === id));
+    if (bound) {
+      docRemoveShape(bound, id);
+      for (const c of attached) docRemoveShape(bound, c.id);
+    } else {
+      const drop = new Set([id, ...attached.map((c) => c.id)]);
+      set((s) => ({ shapes: s.shapes.filter((sh) => !drop.has(sh.id)) }));
+    }
   },
 
   getShape: (id) => get().shapes.find((sh) => sh.id === id),

@@ -47,16 +47,36 @@ export class Canvas2DRenderer implements Renderer {
     ctx.setTransform(s, 0, 0, s, -vp.x * s, -vp.y * s);
     for (const shape of shapes) drawShape(ctx, shape);
 
-    // Ghost connector being dragged.
+    // Drop-target highlight: the shape a dragged connector would attach to.
+    if (scene.dropTarget) {
+      const t = shapes.find((sh) => sh.id === scene.dropTarget);
+      if (t) {
+        const m = 2.5 / vp.zoom;
+        ctx.strokeStyle = SELECT;
+        ctx.lineWidth = 2.5 / vp.zoom;
+        ctx.strokeRect(t.x - m, t.y - m, t.w + 2 * m, t.h + 2 * m);
+      }
+    }
+
+    // Ghost connector being dragged — a solid preview of the relation it will create.
     if (scene.connecting) {
       ctx.strokeStyle = SELECT;
-      ctx.lineWidth = 2 / vp.zoom;
-      ctx.setLineDash([6 / vp.zoom, 5 / vp.zoom]);
+      ctx.lineWidth = 2;
+      ctx.lineCap = "round";
       ctx.beginPath();
       ctx.moveTo(scene.connecting.from.x, scene.connecting.from.y);
       ctx.lineTo(scene.connecting.to.x, scene.connecting.to.y);
       ctx.stroke();
-      ctx.setLineDash([]);
+      drawArrowhead(ctx, scene.connecting.from.x, scene.connecting.from.y, scene.connecting.to.x, scene.connecting.to.y, SELECT);
+    }
+
+    // Hover affordance: connection dots on the hovered shape, so a relation can
+    // begin without selecting first (Miro behaviour). Skip if it's the single
+    // selected shape (its overlay already draws them).
+    const selectedOne = selection.length === 1 ? selection[0] : null;
+    if (scene.hovered && scene.hovered !== selectedOne) {
+      const hs = shapes.find((sh) => sh.id === scene.hovered);
+      if (hs && hs.type !== "connector") drawConnectionDots(ctx, hs, vp.x, vp.y, vp.zoom, dpr);
     }
 
     // Selection overlay in screen space (constant-size handles).
@@ -128,20 +148,39 @@ function drawSelection(
   }
 
   // Connection dots just outside each edge midpoint — drag one to link shapes.
-  if (shape.type !== "connector") {
-    const off = 14;
-    const dots: [number, number][] = [
-      [x + w / 2, y - off],
-      [x + w + off, y + h / 2],
-      [x + w / 2, y + h + off],
-      [x - off, y + h / 2],
-    ];
-    ctx.fillStyle = SELECT;
-    for (const [px, py] of dots) {
-      ctx.beginPath();
-      ctx.arc(px, py, 4, 0, Math.PI * 2);
-      ctx.fill();
-    }
+  if (shape.type !== "connector") drawConnectionDots(ctx, shape, vx, vy, zoom, dpr);
+}
+
+/** Four blue connection dots just outside a shape's edge midpoints (screen space,
+ *  constant size). White-filled with a blue ring so they read as grabbable. */
+function drawConnectionDots(
+  ctx: CanvasRenderingContext2D,
+  shape: Shape,
+  vx: number,
+  vy: number,
+  zoom: number,
+  dpr: number,
+): void {
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  const x = (shape.x - vx) * zoom;
+  const y = (shape.y - vy) * zoom;
+  const w = shape.w * zoom;
+  const h = shape.h * zoom;
+  const off = 14;
+  const dots: [number, number][] = [
+    [x + w / 2, y - off],
+    [x + w + off, y + h / 2],
+    [x + w / 2, y + h + off],
+    [x - off, y + h / 2],
+  ];
+  ctx.fillStyle = "#ffffff";
+  ctx.strokeStyle = SELECT;
+  ctx.lineWidth = 1.5;
+  for (const [px, py] of dots) {
+    ctx.beginPath();
+    ctx.arc(px, py, 4.5, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
   }
 }
 

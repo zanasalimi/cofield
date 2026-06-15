@@ -46,6 +46,24 @@ function edgePoint(s: Shape, toward: Point): Point {
   return { x: c.x + dx * t, y: c.y + dy * t };
 }
 
+/** Topmost non-connector shape whose body — expanded to include its connection
+ *  dots — contains the world point. Drives the hover-to-connect affordance. */
+function hoverTest(shapes: Shape[], world: Point, margin: number): string | null {
+  for (let i = shapes.length - 1; i >= 0; i--) {
+    const s = shapes[i]!;
+    if (s.type === "connector") continue;
+    if (
+      world.x >= s.x - margin &&
+      world.x <= s.x + s.w + margin &&
+      world.y >= s.y - margin &&
+      world.y <= s.y + s.h + margin
+    ) {
+      return s.id;
+    }
+  }
+  return null;
+}
+
 /** Resolve a connector's live endpoints from its linked shapes; null if dangling. */
 function resolveConnector(conn: Shape, byId: Map<string, Shape>): Shape | null {
   if (!conn.from || !conn.to) return null;
@@ -75,12 +93,14 @@ export function Canvas({ boardId }: CanvasProps) {
   const toolRef = useRef<Tool | null>(null);
   const spaceDown = useRef(false);
   const dragMode = useRef<"pan" | "tool" | null>(null);
+  const hoveredIdRef = useRef<string | null>(null);
 
+  // Only the chrome that is React-rendered subscribes here (grid, cursors,
+  // tool wiring). The canvas itself paints imperatively from store subscriptions
+  // below, so dragging a shape/connector never re-renders the React tree.
   const viewport = useUiStore((s) => s.viewport);
   const selection = useUiStore((s) => s.selection);
   const activeTool = useUiStore((s) => s.activeTool);
-  const connecting = useUiStore((s) => s.connecting);
-  const shapes = useBoardStore((s) => s.shapes);
 
   // Realtime: doc binding + presence + throttled publishers.
   const { presences, publishCursor, publishSelection } = useBoard(boardId);
@@ -101,6 +121,7 @@ export function Canvas({ boardId }: CanvasProps) {
       removeShape: (id) => useBoardStore.getState().removeShape(id),
       getShape: (id) => useBoardStore.getState().getShape(id),
       hitTest: (world: Point) => hitTestTopmost(useBoardStore.getState().shapes, world),
+      getHovered: () => hoveredIdRef.current,
       getViewport: () => useUiStore.getState().viewport,
       setConnecting: (c) => useUiStore.getState().setConnecting(c),
       setSelection: (ids) => useUiStore.getState().setSelection(ids),
@@ -132,11 +153,24 @@ export function Canvas({ boardId }: CanvasProps) {
 
       const connecting = useUiStore.getState().connecting;
       let ghost: { from: Point; to: Point } | null = null;
+      let dropTarget: string | null = null;
       if (connecting) {
         const from = byId.get(connecting.from);
         if (from) ghost = { from: center(from), to: connecting.point };
+        const t = hitTestTopmost(all, connecting.point);
+        if (t && t !== connecting.from) dropTarget = t;
       }
-      r.render({ shapes: culled, viewport: vp, selection: useUiStore.getState().selection, connecting: ghost });
+      // Hover dots only when idle with the select tool (not mid-drag).
+      const hovered =
+        !dragMode.current && useUiStore.getState().activeTool === "select" ? hoveredIdRef.current : null;
+      r.render({
+        shapes: culled,
+        viewport: vp,
+        selection: useUiStore.getState().selection,
+        hovered,
+        connecting: ghost,
+        dropTarget,
+      });
     });
   }
 
@@ -172,6 +206,11 @@ export function Canvas({ boardId }: CanvasProps) {
     ro.observe(el);
     resize();
 
+    // Paint imperatively: any document or UI change schedules a single rAF
+    // repaint. This keeps drags (move/resize/connect) off the React render path.
+    const unsubBoard = useBoardStore.subscribe(scheduleRender);
+    const unsubUi = useUiStore.subscribe(scheduleRender);
+
     const onWheel = (e: WheelEvent) => {
       e.preventDefault();
       const vp = ui().viewport;
@@ -201,6 +240,18 @@ export function Canvas({ boardId }: CanvasProps) {
         ui().setViewport(pan(ui().viewport, { x: e.movementX, y: e.movementY }));
       } else if (dragMode.current === "tool") {
         toolRef.current?.handle({ kind: "pointermove", world: worldAt(e), mods: modsOf(e) }, ctx);
+      } else if (ui().activeTool === "select") {
+        // Idle: update the hover affordance (connection dots on the shape under
+        // the cursor). Repaint only when the hovered shape actually changes.
+        const w = worldAt(e);
+        const next = hoverTest(useBoardStore.getState().shapes, w, 18 / ui().viewport.zoom);
+        if (next !== hoveredIdRef.current) {
+          hoveredIdRef.current = next;
+          scheduleRender();
+        }
+      } else if (hoveredIdRef.current) {
+        hoveredIdRef.current = null;
+        scheduleRender();
       }
     };
     const onPointerUp = (e: PointerEvent) => {
@@ -212,7 +263,13 @@ export function Canvas({ boardId }: CanvasProps) {
       }
       dragMode.current = null;
     };
-    const onPointerLeave = () => pubCursor.current(null);
+    const onPointerLeave = () => {
+      pubCursor.current(null);
+      if (hoveredIdRef.current) {
+        hoveredIdRef.current = null;
+        scheduleRender();
+      }
+    };
     const onDblClick = (e: MouseEvent) => {
       const rect = el.getBoundingClientRect();
       const world = screenToWorld(ui().viewport, { x: e.clientX - rect.left, y: e.clientY - rect.top });
@@ -263,6 +320,8 @@ export function Canvas({ boardId }: CanvasProps) {
 
     return () => {
       ro.disconnect();
+      unsubBoard();
+      unsubUi();
       el.removeEventListener("wheel", onWheel);
       el.removeEventListener("pointerdown", onPointerDown);
       el.removeEventListener("pointermove", onPointerMove);
@@ -276,8 +335,6 @@ export function Canvas({ boardId }: CanvasProps) {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [boardId]);
-
-  useEffect(scheduleRender, [viewport, selection, shapes, activeTool, connecting]);
 
   const dot = 24 * viewport.zoom;
   return (
