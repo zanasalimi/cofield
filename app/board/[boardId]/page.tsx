@@ -5,6 +5,7 @@
 import { redirect } from "next/navigation";
 import { Canvas } from "@/canvas/Canvas";
 import { Toolbar } from "@/ui/Toolbar";
+import { ShareButton } from "@/components/boards/ShareButton";
 import { getCurrentUser } from "@/auth/server";
 import { isMember } from "@/boards/server";
 
@@ -34,7 +35,11 @@ export default async function BoardPage({ params }: BoardPageProps) {
         <Toolbar />
       </div>
 
-      {/* TODO(M4): AvatarStack top-right, connection indicator, share dialog. */}
+      {boardId !== DEMO_BOARD && (
+        <div className="pointer-events-none absolute right-4 top-4 flex items-center gap-2">
+          <ShareButton boardId={boardId} />
+        </div>
+      )}
     </div>
   );
 }

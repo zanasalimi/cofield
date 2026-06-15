@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/auth/server";
 import { listBoardsForUser } from "@/boards/server";
 import { NewBoardForm } from "@/components/boards/NewBoardForm";
+import { InvitesPanel } from "@/components/boards/InvitesPanel";
 import { SignOutButton } from "@/components/auth/SignOutButton";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
@@ -22,6 +23,8 @@ export default async function BoardsPage() {
           <SignOutButton />
         </div>
       </header>
+
+      <InvitesPanel />
 
       <div className="mt-10 flex flex-wrap items-center justify-between gap-4">
         <h1 className="text-2xl font-semibold tracking-tight">Your boards</h1>
