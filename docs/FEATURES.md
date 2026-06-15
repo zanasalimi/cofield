@@ -8,6 +8,55 @@ The exhaustive specification. Every feature is broken into sub-features, interac
 
 ---
 
+## 0. Status snapshot — Cofield vs Miro
+
+Where we stand against Miro today. The goal is **not** to clone all of Miro (a
+1000-person product, hundreds of enterprise widgets and integrations) — it is to
+match the **core collaborative canvas** that proves the hard engineering (realtime
+CRDT, a smooth 60fps canvas, multiplayer presence, self-hosted infra) and skip the
+parts that add scope without strengthening that story. Detailed specs per area
+are in §1–§11 below.
+
+Legend: ✅ done · 🟡 partial · ❌ missing · ⛔ out of scope (won't build)
+
+**Canvas & nav** — ✅ infinite canvas · ✅ pan · ✅ zoom-to-cursor + readout + reset · ✅ dotted bg · ❌ zoom-to-fit · ❌ minimap · ❌ inertial zoom · ❌ frames + presentation
+
+**Objects** — ✅ sticky · ✅ rectangle · ✅ ellipse · ✅ text · ✅ freehand pen · ✅ connectors (hover-dot create, straight/elbow auto-route, follows shapes, selectable, delete-cascades) · ❌ more shapes (triangle/diamond/star/…) · ❌ connector labels/curved/endpoint styles · ❌ images/upload · ❌ links/embeds/cards · ❌ tables/Kanban/mind-map · ⛔ docs/video/app widgets
+
+**Editing** — ✅ select · ✅ shift multi-select · ✅ move · ✅ resize (8 handles) · ✅ rotate · 🟡 context toolbar (color + delete only; no font/line-style) · ❌ marquee select · ❌ **undo/redo** (biggest gap — Yjs UndoManager unwired) · ❌ copy/paste/duplicate · ❌ group/lock · ❌ z-order UI (`order` array exists) · ❌ align/distribute · ❌ snapping + smart guides · ❌ right-click menu
+
+**Realtime & collab** — ✅ live cursors (named, stable color) · ✅ CRDT simultaneous edit · ✅ offline cache + instant reopen · 🟡 presence (cursors yes, avatar stack no) · ❌ follow mode · ❌ comments/@mentions · ❌ reactions/voting/timer · ⛔ AI assist
+
+**Sharing & accounts** — ✅ email signup/signin · ✅ boards dashboard · ✅ invite by email + accept/reject + membership-gated (incl. the websocket) · 🟡 public link (demo board only) · ❌ roles (view/comment/edit) · ❌ folders/search/templates · ⛔ teams/orgs (cut by design — per-board sharing)
+
+**Output & history** — ✅ durable server persistence (survives restart) · ❌ version history · ❌ export (PNG/PDF/SVG) · ⛔ integrations (Jira/Slack/…)
+
+### Recommended build order (what moves the needle)
+
+**Tier 1 — canvas parity (feels finished, all core engineering):**
+1. Undo / redo (wire Yjs UndoManager) — table stakes
+2. Marquee select
+3. Copy / paste / duplicate
+4. Snapping + smart guides
+5. Right-click context menu + z-order controls
+6. Font controls in the context toolbar
+7. More shapes + connector color/width
+
+**Tier 2 — collaboration depth (the multiplayer "wow"):**
+8. Avatar stack + follow mode
+9. Comments + reactions
+10. Sharing roles (view / edit)
+
+**Tier 3 — showcase polish:**
+11. Frames + presentation mode
+12. Templates, board search
+13. Export to PNG/PDF, minimap
+
+Everything ⛔ is intentionally skipped: enterprise surface area that costs weeks and
+proves nothing a portfolio reviewer cares about.
+
+---
+
 ## 1. Canvas & Viewport
 
 ### 1.1 Infinite canvas surface — MVP
