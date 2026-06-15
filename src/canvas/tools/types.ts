@@ -41,6 +41,8 @@ export interface ToolContext {
   getShape: (id: string) => import("@/collab/types").Shape | undefined;
   /** Topmost shape id whose body contains the world point, or null. */
   hitTest: (world: Point) => string | null;
+  /** Connector whose line passes within a few px of the world point, or null. */
+  hitTestConnector: (world: Point) => string | null;
   /** Shape the pointer is hovering (drives hover-to-connect), or null. */
   getHovered: () => string | null;
   /** Current viewport — tools need the zoom to size screen-space hit tolerances. */

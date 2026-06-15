@@ -86,6 +86,16 @@ function orthogonalRoute(from: Shape, to: Shape): number[] {
   return [acx, ay, acx, midY, bcx, midY, bcx, by];
 }
 
+/** Shortest distance from point p to the segment a–b. */
+function distToSegment(p: Point, ax: number, ay: number, bx: number, by: number): number {
+  const dx = bx - ax;
+  const dy = by - ay;
+  const len2 = dx * dx + dy * dy;
+  let t = len2 ? ((p.x - ax) * dx + (p.y - ay) * dy) / len2 : 0;
+  t = Math.max(0, Math.min(1, t));
+  return Math.hypot(p.x - (ax + t * dx), p.y - (ay + t * dy));
+}
+
 /** Resolve a connector's live elbow path from its linked shapes; null if dangling. */
 function resolveConnector(conn: Shape, byId: Map<string, Shape>): Shape | null {
   if (!conn.from || !conn.to) return null;
@@ -145,6 +155,22 @@ export function Canvas({ boardId }: CanvasProps) {
       removeShape: (id) => useBoardStore.getState().removeShape(id),
       getShape: (id) => useBoardStore.getState().getShape(id),
       hitTest: (world: Point) => hitTestTopmost(useBoardStore.getState().shapes, world),
+      hitTestConnector: (world: Point) => {
+        const all = useBoardStore.getState().shapes;
+        const byId = new Map(all.map((sh) => [sh.id, sh]));
+        const tol = 7 / useUiStore.getState().viewport.zoom;
+        for (let i = all.length - 1; i >= 0; i--) {
+          const sh = all[i]!;
+          if (sh.type !== "connector") continue;
+          const rc = resolveConnector(sh, byId);
+          const p = rc?.points;
+          if (!p) continue;
+          for (let j = 0; j < p.length - 2; j += 2) {
+            if (distToSegment(world, p[j]!, p[j + 1]!, p[j + 2]!, p[j + 3]!) <= tol) return sh.id;
+          }
+        }
+        return null;
+      },
       getHovered: () => hoveredIdRef.current,
       getViewport: () => useUiStore.getState().viewport,
       setConnecting: (c) => useUiStore.getState().setConnecting(c),

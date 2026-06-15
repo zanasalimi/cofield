@@ -92,7 +92,21 @@ export function createSelectTool(): Tool {
         // 3) Otherwise: select + begin move.
         const hit = ctx.hitTest(event.world);
         if (!hit) {
-          if (!event.mods.shift) ctx.setSelection([]);
+          // A bare connector line is selectable (to delete/restyle); it follows
+          // its shapes, so there is nothing to move.
+          const conn = ctx.hitTestConnector(event.world);
+          if (conn) {
+            const cur = ctx.getSelection();
+            ctx.setSelection(
+              event.mods.shift
+                ? cur.includes(conn)
+                  ? cur.filter((id) => id !== conn)
+                  : [...cur, conn]
+                : [conn],
+            );
+          } else if (!event.mods.shift) {
+            ctx.setSelection([]);
+          }
           return;
         }
         const current = ctx.getSelection();

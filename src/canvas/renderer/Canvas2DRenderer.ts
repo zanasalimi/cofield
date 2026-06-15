@@ -107,6 +107,35 @@ function drawSelection(
 ): void {
   // Work in CSS px (device = css * dpr).
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+  // A connector selects as a highlighted line with endpoint handles — no box,
+  // resize or rotation handles (its geometry is its two anchored shapes).
+  if (shape.type === "connector") {
+    const pts = shape.points;
+    if (!pts || pts.length < 4) return;
+    ctx.strokeStyle = SELECT;
+    ctx.lineWidth = 2;
+    ctx.lineJoin = "round";
+    ctx.lineCap = "round";
+    ctx.beginPath();
+    ctx.moveTo((pts[0]! - vx) * zoom, (pts[1]! - vy) * zoom);
+    for (let i = 2; i < pts.length; i += 2) ctx.lineTo((pts[i]! - vx) * zoom, (pts[i + 1]! - vy) * zoom);
+    ctx.stroke();
+    ctx.fillStyle = "#ffffff";
+    ctx.lineWidth = 1.5;
+    const ends: [number, number][] = [
+      [pts[0]!, pts[1]!],
+      [pts[pts.length - 2]!, pts[pts.length - 1]!],
+    ];
+    for (const e of ends) {
+      ctx.beginPath();
+      ctx.arc((e[0] - vx) * zoom, (e[1] - vy) * zoom, 5, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+    }
+    return;
+  }
+
   const x = (shape.x - vx) * zoom;
   const y = (shape.y - vy) * zoom;
   const w = shape.w * zoom;
@@ -148,7 +177,8 @@ function drawSelection(
   }
 
   // Connection dots just outside each edge midpoint — drag one to link shapes.
-  if (shape.type !== "connector") drawConnectionDots(ctx, shape, vx, vy, zoom, dpr);
+  // (Connectors returned early above, so this shape always has real geometry.)
+  drawConnectionDots(ctx, shape, vx, vy, zoom, dpr);
 }
 
 /** Four blue connection dots just outside a shape's edge midpoints (screen space,
