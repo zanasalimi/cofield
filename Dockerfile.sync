@@ -1,0 +1,43 @@
+# syntax=docker/dockerfile:1
+# Yjs sync server — Node `ws` relay + y-leveldb durable store.
+# The leveldb directory is mounted as a named volume (see docker-compose.yml),
+# so boards survive `docker compose restart`.
+
+# --- deps ---------------------------------------------------------------
+FROM node:24-alpine AS deps
+WORKDIR /app
+RUN corepack enable
+COPY package.json pnpm-lock.yaml* ./
+RUN pnpm install --frozen-lockfile
+
+# --- build --------------------------------------------------------------
+FROM node:24-alpine AS build
+WORKDIR /app
+RUN corepack enable
+COPY --from=deps /app/node_modules ./node_modules
+COPY tsconfig.server.json ./
+COPY server ./server
+COPY src/collab/types.ts ./src/collab/types.ts
+RUN pnpm sync:build
+
+# --- runtime ------------------------------------------------------------
+FROM node:24-alpine AS runtime
+WORKDIR /app
+ENV NODE_ENV=production
+ENV PORT=1234
+ENV YPERSISTENCE=/data
+RUN corepack enable && \
+    addgroup -g 1001 -S nodejs && adduser -S sync -u 1001
+
+COPY package.json pnpm-lock.yaml* ./
+# Only the deps the sync server needs at runtime.
+RUN pnpm install --frozen-lockfile --prod
+COPY --from=build /app/dist/server ./server
+
+# Durable store lives here; compose mounts the canvas-data volume on it.
+RUN mkdir -p /data && chown -R sync:nodejs /data
+VOLUME ["/data"]
+
+USER sync
+EXPOSE 1234
+CMD ["node", "server/index.js"]

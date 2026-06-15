@@ -1,0 +1,47 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.*
+.yarn/*
+
+# Next.js
+.next/
+out/
+next-env.d.ts.bak
+
+# Production builds
+build/
+dist/
+
+# Sync server durable store (leveldb) — never commit board data
+/data/
+*.ldb
+
+# Testing
+coverage/
+
+# Environment — never commit real values
+.env
+.env.local
+.env.*.local
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# Editor / OS
+.vscode/*
+!.vscode/extensions.json
+.idea/
+.DS_Store
+Thumbs.db
+
+# TypeScript build info
+*.tsbuildinfo
+
+# Vercel
+.vercel
+.claude/
+CLAUDE.md
+data/

@@ -1,0 +1,35 @@
+# Keep the build context (and image) lean.
+node_modules
+.next
+out
+build
+dist
+coverage
+
+# Durable store — board data must not leak into an image layer
+data
+
+# Git / CI
+.git
+.github
+.gitignore
+
+# Local env
+.env
+.env.local
+.env.*.local
+
+# Editor / OS noise
+.vscode
+.idea
+.DS_Store
+Thumbs.db
+
+# Docs and media bloat the context for no runtime benefit
+docs/media
+*.md
+!README.md
+
+# Engineering setup — not needed at runtime
+.claude
+CLAUDE.md

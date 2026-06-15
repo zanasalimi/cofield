@@ -1,0 +1,36 @@
+# syntax=docker/dockerfile:1
+# Next.js client — multi-stage, ships the standalone server output only.
+
+# --- deps ---------------------------------------------------------------
+FROM node:24-alpine AS deps
+WORKDIR /app
+RUN corepack enable
+COPY package.json pnpm-lock.yaml* ./
+RUN pnpm install --frozen-lockfile
+
+# --- build --------------------------------------------------------------
+FROM node:24-alpine AS build
+WORKDIR /app
+RUN corepack enable
+COPY --from=deps /app/node_modules ./node_modules
+COPY . .
+# NEXT_PUBLIC_* is inlined at build time; pass the real WS URL for the image.
+ARG NEXT_PUBLIC_WS_URL=ws://localhost:1234
+ENV NEXT_PUBLIC_WS_URL=$NEXT_PUBLIC_WS_URL
+RUN pnpm build
+
+# --- runtime ------------------------------------------------------------
+FROM node:24-alpine AS runtime
+WORKDIR /app
+ENV NODE_ENV=production
+ENV PORT=3000
+RUN addgroup -g 1001 -S nodejs && adduser -S nextjs -u 1001
+
+# Standalone output bundles only the server + traced deps it actually uses.
+COPY --from=build /app/public ./public
+COPY --from=build --chown=nextjs:nodejs /app/.next/standalone ./
+COPY --from=build --chown=nextjs:nodejs /app/.next/static ./.next/static
+
+USER nextjs
+EXPOSE 3000
+CMD ["node", "server.js"]

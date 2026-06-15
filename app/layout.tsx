@@ -1,0 +1,25 @@
+import type { Metadata } from "next";
+import "./globals.css";
+import { Geist } from "next/font/google";
+import { cn } from "@/lib/utils";
+
+const geist = Geist({ subsets: ["latin"], variable: "--font-geist-sans" });
+
+export const metadata: Metadata = {
+  title: "Cofield — realtime collaborative canvas",
+  description:
+    "An infinite collaborative canvas. Multiple teams, one board, edited in real time on CRDTs — live cursors, presence, offline-safe merge.",
+};
+
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  return (
+    <html lang="en" className={cn("font-sans", geist.variable)}>
+      {/* font-sans / font-hand are wired to next/font in M0 polish */}
+      <body className="min-h-dvh bg-paper text-ink antialiased">{children}</body>
+    </html>
+  );
+}
