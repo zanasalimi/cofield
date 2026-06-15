@@ -6,15 +6,18 @@
  * either way, so the tools and ToolContext never know which is active.
  */
 import { create } from "zustand";
+import type * as Y from "yjs";
 import type { Shape, ShapeType, ShapeStyle, Side } from "@/collab/types";
 import {
   addShape as docAddShape,
   updateShape as docUpdateShape,
   removeShape as docRemoveShape,
+  createUndoManager,
   type BoardDoc,
 } from "@/collab/doc";
 
 let bound: BoardDoc | null = null;
+let undoMgr: Y.UndoManager | null = null;
 let counter = 0;
 /**
  * Globally-unique shape id. A plain per-session counter is unsafe: it resets to
@@ -63,6 +66,11 @@ export interface BoardState {
   updateShape: (id: string, patch: Partial<Shape>) => void;
   removeShape: (id: string) => void;
   getShape: (id: string) => Shape | undefined;
+  /** Per-user undo / redo of document edits. */
+  undo: () => void;
+  redo: () => void;
+  /** Close the current undo step so the next edit starts a fresh one. */
+  commitHistory: () => void;
   /** Bind/unbind the Yjs document. */
   bindDoc: (board: BoardDoc) => void;
   unbindDoc: () => void;
@@ -120,12 +128,20 @@ export const useBoardStore = create<BoardState>((set, get) => ({
 
   getShape: (id) => get().shapes.find((sh) => sh.id === id),
 
+  undo: () => undoMgr?.undo(),
+  redo: () => undoMgr?.redo(),
+  commitHistory: () => undoMgr?.stopCapturing(),
+
   bindDoc: (board) => {
     bound = board;
+    undoMgr?.destroy();
+    undoMgr = createUndoManager(board);
     set({ shapes: [] });
   },
   unbindDoc: () => {
     bound = null;
+    undoMgr?.destroy();
+    undoMgr = null;
   },
   _setShapes: (shapes) => set({ shapes }),
 }));

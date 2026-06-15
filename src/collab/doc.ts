@@ -110,6 +110,17 @@ export function readShapesInOrder(board: BoardDoc): Shape[] {
   return out;
 }
 
+/**
+ * An undo manager scoped to the document's shapes and z-order. It tracks only
+ * locally-originated transactions (origin `null`); updates applied by the
+ * websocket provider carry the provider as origin and are ignored — so undo is
+ * per-user and never reverts a collaborator's edit. `captureTimeout` groups a
+ * rapid burst (e.g. a drag) into a single undo step.
+ */
+export function createUndoManager(board: BoardDoc): Y.UndoManager {
+  return new Y.UndoManager([board.shapes, board.order], { captureTimeout: 400 });
+}
+
 /** Reorder a shape in the z-stack (bring forward / send back / to front/back). */
 export function reorderShape(board: BoardDoc, id: ShapeId, toIndex: number): void {
   board.doc.transact(() => {

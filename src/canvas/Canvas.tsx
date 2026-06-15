@@ -384,6 +384,7 @@ export function Canvas({ boardId }: CanvasProps) {
         el.style.cursor = spaceDown.current || ui().activeTool === "pan" ? "grab" : CURSOR_FOR_TOOL[ui().activeTool] ?? "crosshair";
       } else if (dragMode.current === "tool") {
         toolRef.current?.handle({ kind: "pointerup", world: worldAt(e), mods: modsOf(e) }, ctx);
+        useBoardStore.getState().commitHistory(); // each completed gesture = one undo step
       }
       dragMode.current = null;
     };
@@ -408,6 +409,18 @@ export function Canvas({ boardId }: CanvasProps) {
 
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+      // Undo / redo.
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "z") {
+        e.preventDefault();
+        if (e.shiftKey) useBoardStore.getState().redo();
+        else useBoardStore.getState().undo();
+        return;
+      }
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "y") {
+        e.preventDefault();
+        useBoardStore.getState().redo();
+        return;
+      }
       if (e.code === "Space" && !spaceDown.current) {
         spaceDown.current = true;
         if (!dragMode.current) el.style.cursor = "grab";
