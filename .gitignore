@@ -46,3 +46,8 @@ Thumbs.db
 CLAUDE.md
 data/
 /*.png
+cofield.db
+cofield.db-*
+*.db
+*.db-shm
+*.db-wal
