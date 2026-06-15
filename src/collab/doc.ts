@@ -11,7 +11,7 @@
  * different fields of the same shape merge without clobbering.
  */
 import * as Y from "yjs";
-import type { Shape, ShapeId } from "./types";
+import type { Shape, ShapeId, ShapeType, ShapeStyle } from "./types";
 
 export interface BoardDoc {
   doc: Y.Doc;
@@ -20,52 +20,99 @@ export interface BoardDoc {
   meta: Y.Map<unknown>;
 }
 
+const FIELDS: (keyof Shape)[] = ["id", "type", "x", "y", "w", "h", "rotation", "style", "content", "points", "createdBy"];
+
 /** Create (or wrap) the typed top-level structures on a Y.Doc. */
-export function createBoardDoc(_doc: Y.Doc = new Y.Doc()): BoardDoc {
-  // TODO(M3): return the typed handles to shapes / order / meta.
-  throw new Error("not implemented");
+export function createBoardDoc(doc: Y.Doc = new Y.Doc()): BoardDoc {
+  return {
+    doc,
+    shapes: doc.getMap<Y.Map<unknown>>("shapes"),
+    order: doc.getArray<ShapeId>("order"),
+    meta: doc.getMap("meta"),
+  };
+}
+
+function toYMap(shape: Shape): Y.Map<unknown> {
+  const ym = new Y.Map<unknown>();
+  for (const f of FIELDS) {
+    const v = shape[f];
+    if (v !== undefined) ym.set(f, v);
+  }
+  return ym;
+}
+
+function fromYMap(ym: Y.Map<unknown>): Shape | null {
+  const id = ym.get("id") as ShapeId | undefined;
+  if (!id) return null;
+  return {
+    id,
+    type: ym.get("type") as ShapeType,
+    x: ym.get("x") as number,
+    y: ym.get("y") as number,
+    w: ym.get("w") as number,
+    h: ym.get("h") as number,
+    rotation: (ym.get("rotation") as number) ?? 0,
+    style: ym.get("style") as ShapeStyle,
+    content: ym.get("content") as string | undefined,
+    points: ym.get("points") as number[] | undefined,
+    createdBy: ym.get("createdBy") as string,
+  };
 }
 
 /** Insert a shape as a nested Y.Map and append it to the z-order. */
-export function addShape(_board: BoardDoc, _shape: Shape): void {
-  // TODO(M3): nested Y.Map per field; push id onto `order` in one transaction.
-  throw new Error("not implemented");
+export function addShape(board: BoardDoc, shape: Shape): void {
+  board.doc.transact(() => {
+    board.shapes.set(shape.id, toYMap(shape));
+    board.order.push([shape.id]);
+  });
 }
 
 /** Patch one or more fields of an existing shape (per-field, merge-safe). */
-export function updateShape(
-  _board: BoardDoc,
-  _id: ShapeId,
-  _patch: Partial<Shape>,
-): void {
-  // TODO(M3): set only the changed fields on the shape's nested Y.Map.
-  throw new Error("not implemented");
+export function updateShape(board: BoardDoc, id: ShapeId, patch: Partial<Shape>): void {
+  const ym = board.shapes.get(id);
+  if (!ym) return;
+  board.doc.transact(() => {
+    for (const [k, v] of Object.entries(patch)) {
+      if (v !== undefined) ym.set(k, v);
+    }
+  });
 }
 
 /** Remove a shape and its z-order entry (produces a tombstone — expected). */
-export function removeShape(_board: BoardDoc, _id: ShapeId): void {
-  // TODO(M3)
-  throw new Error("not implemented");
+export function removeShape(board: BoardDoc, id: ShapeId): void {
+  board.doc.transact(() => {
+    board.shapes.delete(id);
+    const idx = board.order.toArray().indexOf(id);
+    if (idx >= 0) board.order.delete(idx, 1);
+  });
 }
 
 /** Project a shape's nested Y.Map back to a plain Shape. */
-export function readShape(_board: BoardDoc, _id: ShapeId): Shape | null {
-  // TODO(M3)
-  throw new Error("not implemented");
+export function readShape(board: BoardDoc, id: ShapeId): Shape | null {
+  const ym = board.shapes.get(id);
+  return ym ? fromYMap(ym) : null;
 }
 
-/** Snapshot all shapes in z-order — used by the renderer's cull pass input. */
-export function readShapesInOrder(_board: BoardDoc): Shape[] {
-  // TODO(M3)
-  throw new Error("not implemented");
+/** Snapshot all shapes in z-order — the renderer's cull-pass input. */
+export function readShapesInOrder(board: BoardDoc): Shape[] {
+  const out: Shape[] = [];
+  for (const id of board.order.toArray()) {
+    const ym = board.shapes.get(id);
+    if (ym) {
+      const s = fromYMap(ym);
+      if (s) out.push(s);
+    }
+  }
+  return out;
 }
 
 /** Reorder a shape in the z-stack (bring forward / send back / to front/back). */
-export function reorderShape(
-  _board: BoardDoc,
-  _id: ShapeId,
-  _toIndex: number,
-): void {
-  // TODO(M2): mutate the `order` Y.Array.
-  throw new Error("not implemented");
+export function reorderShape(board: BoardDoc, id: ShapeId, toIndex: number): void {
+  board.doc.transact(() => {
+    const arr = board.order.toArray();
+    const from = arr.indexOf(id);
+    if (from < 0) return;
+    board.order.delete(from, 1);
+    board.order.insert(Math.max(0, Math.min(toIndex, board.order.length)), [id]);
+  });
 }

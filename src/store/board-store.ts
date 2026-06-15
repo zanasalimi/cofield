@@ -1,16 +1,24 @@
 /**
- * LOCAL board store — the shape list for single-player M1. In M2 this is
- * replaced by the Yjs document (the source of truth); the surface (add/update/
- * remove/shapes) is kept deliberately close to what the Yjs helpers will expose
- * so the swap is mechanical.
+ * Board store — the reactive shape cache the renderer reads from. When a Yjs
+ * BoardDoc is bound (multiplayer), mutations are written to the document (the
+ * source of truth) and the cache is refreshed by the doc observer; unbound, it
+ * falls back to a local list (single-player / SSR). The surface is identical
+ * either way, so the tools and ToolContext never know which is active.
  */
 import { create } from "zustand";
 import type { Shape, ShapeType, ShapeStyle } from "@/collab/types";
+import {
+  addShape as docAddShape,
+  updateShape as docUpdateShape,
+  removeShape as docRemoveShape,
+  type BoardDoc,
+} from "@/collab/doc";
 
+let bound: BoardDoc | null = null;
 let counter = 0;
 function nextId(): string {
   counter += 1;
-  return `s_${counter.toString(36)}_${counter}`;
+  return `s_${counter.toString(36)}_${Math.floor(counter)}`;
 }
 
 const DEFAULT_STYLE: Record<ShapeType, ShapeStyle> = {
@@ -22,10 +30,21 @@ const DEFAULT_STYLE: Record<ShapeType, ShapeStyle> = {
   draw: { fill: "transparent", stroke: "#1A1A1A", strokeWidth: 3 },
 };
 
-const SEED: Shape[] = [
-  { id: "seed_sticky", type: "sticky", x: 360, y: 120, w: 180, h: 180, rotation: 0, style: DEFAULT_STYLE.sticky, content: "pick a tool,\ndrag to draw", createdBy: "seed" },
-  { id: "seed_rect", type: "rect", x: 80, y: 90, w: 220, h: 140, rotation: 0, style: DEFAULT_STYLE.rect, createdBy: "seed" },
-];
+/** Build a fully-formed shape with per-type defaults. */
+export function makeShape(type: ShapeType, rect: { x: number; y: number; w: number; h: number }): Shape {
+  return {
+    id: nextId(),
+    type,
+    x: rect.x,
+    y: rect.y,
+    w: rect.w,
+    h: rect.h,
+    rotation: 0,
+    style: DEFAULT_STYLE[type],
+    content: type === "sticky" ? "" : type === "text" ? "Text" : undefined,
+    createdBy: "me",
+  };
+}
 
 export interface BoardState {
   shapes: Shape[];
@@ -33,33 +52,41 @@ export interface BoardState {
   updateShape: (id: string, patch: Partial<Shape>) => void;
   removeShape: (id: string) => void;
   getShape: (id: string) => Shape | undefined;
+  /** Bind/unbind the Yjs document. */
+  bindDoc: (board: BoardDoc) => void;
+  unbindDoc: () => void;
+  /** Replace the cache — called by the doc observer. */
+  _setShapes: (shapes: Shape[]) => void;
 }
 
 export const useBoardStore = create<BoardState>((set, get) => ({
-  shapes: SEED,
+  shapes: [],
 
   addShape: (type, rect) => {
-    const id = nextId();
-    const shape: Shape = {
-      id,
-      type,
-      x: rect.x,
-      y: rect.y,
-      w: rect.w,
-      h: rect.h,
-      rotation: 0,
-      style: DEFAULT_STYLE[type],
-      content: type === "sticky" ? "" : type === "text" ? "Text" : undefined,
-      createdBy: "me",
-    };
-    set((s) => ({ shapes: [...s.shapes, shape] }));
-    return id;
+    const shape = makeShape(type, rect);
+    if (bound) docAddShape(bound, shape);
+    else set((s) => ({ shapes: [...s.shapes, shape] }));
+    return shape.id;
   },
 
-  updateShape: (id, patch) =>
-    set((s) => ({ shapes: s.shapes.map((sh) => (sh.id === id ? { ...sh, ...patch } : sh)) })),
+  updateShape: (id, patch) => {
+    if (bound) docUpdateShape(bound, id, patch);
+    else set((s) => ({ shapes: s.shapes.map((sh) => (sh.id === id ? { ...sh, ...patch } : sh)) }));
+  },
 
-  removeShape: (id) => set((s) => ({ shapes: s.shapes.filter((sh) => sh.id !== id) })),
+  removeShape: (id) => {
+    if (bound) docRemoveShape(bound, id);
+    else set((s) => ({ shapes: s.shapes.filter((sh) => sh.id !== id) }));
+  },
 
   getShape: (id) => get().shapes.find((sh) => sh.id === id),
+
+  bindDoc: (board) => {
+    bound = board;
+    set({ shapes: [] });
+  },
+  unbindDoc: () => {
+    bound = null;
+  },
+  _setShapes: (shapes) => set({ shapes }),
 }));

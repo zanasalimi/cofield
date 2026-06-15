@@ -4,17 +4,14 @@
  * one file — see ADR-002.
  */
 import type * as Y from "yjs";
+import { WebsocketProvider } from "y-websocket";
 import type { Awareness } from "y-protocols/awareness";
 import type { ConnectionState } from "./types";
 
 export interface SyncProvider {
-  /** The Awareness instance bound to this provider's socket. */
   readonly awareness: Awareness;
-  /** Current connection lifecycle state. */
   readonly state: ConnectionState;
-  /** Subscribe to connection-state transitions. Returns an unsubscribe fn. */
   onStateChange(handler: (state: ConnectionState) => void): () => void;
-  /** Tear down the socket and listeners. */
   destroy(): void;
 }
 
@@ -27,11 +24,35 @@ export interface ProviderOptions {
   doc: Y.Doc;
 }
 
-/**
- * Construct the default y-websocket-backed provider.
- * TODO(M3): wire WebsocketProvider, map its events to ConnectionState,
- * and apply reconnect backoff.
- */
-export function createWebsocketProvider(_opts: ProviderOptions): SyncProvider {
-  throw new Error("not implemented");
+/** Construct the default y-websocket-backed provider. */
+export function createWebsocketProvider(opts: ProviderOptions): SyncProvider {
+  const wsp = new WebsocketProvider(opts.url, opts.room, opts.doc, { connect: true });
+  const handlers = new Set<(state: ConnectionState) => void>();
+  let state: ConnectionState = "connecting";
+
+  const set = (next: ConnectionState) => {
+    state = next;
+    handlers.forEach((h) => h(next));
+  };
+
+  wsp.on("status", ({ status }: { status: string }) => {
+    set(status === "connected" ? "connected" : status === "connecting" ? "connecting" : "disconnected");
+  });
+  wsp.on("connection-close", () => set("reconnecting"));
+  wsp.on("connection-error", () => set("error"));
+
+  return {
+    awareness: wsp.awareness,
+    get state() {
+      return state;
+    },
+    onStateChange(handler) {
+      handlers.add(handler);
+      return () => handlers.delete(handler);
+    },
+    destroy() {
+      handlers.clear();
+      wsp.destroy();
+    },
+  };
 }

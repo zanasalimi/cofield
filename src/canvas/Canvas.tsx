@@ -1,8 +1,8 @@
 /**
  * The canvas surface. Owns the <canvas> element, wires the Renderer, routes
  * pan/zoom, and dispatches pointer/keyboard events to the active tool through a
- * ToolContext. Shapes come from the board store (Yjs-backed in M2); presence
- * from Awareness (M2). Tool/UI state from Zustand.
+ * ToolContext. Shapes come from the board store (Yjs-backed via useBoard);
+ * presence cursors ride Awareness. Tool/UI state from Zustand.
  */
 "use client";
 
@@ -16,6 +16,8 @@ import { createTool, TOOL_SHORTCUTS } from "./tools";
 import type { Tool, ToolContext, ToolModifiers } from "./tools/types";
 import { useUiStore } from "@/store/ui-store";
 import { useBoardStore } from "@/store/board-store";
+import { useBoard } from "@/collab/use-board";
+import { CursorsLayer } from "@/presence/CursorsLayer";
 import type { Point, Shape, ShapeType } from "@/collab/types";
 
 const CURSOR_FOR_TOOL: Record<string, string> = {
@@ -37,13 +39,21 @@ export function Canvas({ boardId }: CanvasProps) {
   const spaceDown = useRef(false);
   const dragMode = useRef<"pan" | "tool" | null>(null);
 
-  // Re-run the paint loop when the viewport, selection, or shape set changes.
   const viewport = useUiStore((s) => s.viewport);
   const selection = useUiStore((s) => s.selection);
   const activeTool = useUiStore((s) => s.activeTool);
   const shapes = useBoardStore((s) => s.shapes);
 
-  // Stable tool context — reads fresh state via getState() so no stale closures.
+  // Realtime: doc binding + presence + throttled publishers.
+  const { presences, publishCursor, publishSelection } = useBoard(boardId);
+  const pubCursor = useRef(publishCursor);
+  pubCursor.current = publishCursor;
+
+  // Broadcast selection changes to other clients.
+  useEffect(() => {
+    publishSelection(selection);
+  }, [selection, publishSelection]);
+
   const ctxRef = useRef<ToolContext>(null as unknown as ToolContext);
   if (!ctxRef.current) {
     ctxRef.current = {
@@ -71,7 +81,6 @@ export function Canvas({ boardId }: CanvasProps) {
     });
   }
 
-  // Swap the active tool instance, cancelling any in-progress op on the old one.
   useEffect(() => {
     toolRef.current?.cancel(ctxRef.current);
     toolRef.current = createTool(activeTool);
@@ -79,7 +88,6 @@ export function Canvas({ boardId }: CanvasProps) {
     if (el) el.style.cursor = CURSOR_FOR_TOOL[activeTool] ?? "crosshair";
   }, [activeTool]);
 
-  // Mount: renderer + resize observer + input listeners.
   useEffect(() => {
     const el = canvasRef.current;
     if (!el) return;
@@ -129,6 +137,7 @@ export function Canvas({ boardId }: CanvasProps) {
       toolRef.current?.handle({ kind: "pointerdown", world: worldAt(e), mods: modsOf(e) }, ctx);
     };
     const onPointerMove = (e: PointerEvent) => {
+      pubCursor.current(worldAt(e)); // always broadcast the cursor
       if (dragMode.current === "pan") {
         ui().setViewport(pan(ui().viewport, { x: e.movementX, y: e.movementY }));
       } else if (dragMode.current === "tool") {
@@ -144,6 +153,7 @@ export function Canvas({ boardId }: CanvasProps) {
       }
       dragMode.current = null;
     };
+    const onPointerLeave = () => pubCursor.current(null);
 
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
@@ -176,6 +186,7 @@ export function Canvas({ boardId }: CanvasProps) {
     el.addEventListener("pointerdown", onPointerDown);
     el.addEventListener("pointermove", onPointerMove);
     el.addEventListener("pointerup", onPointerUp);
+    el.addEventListener("pointerleave", onPointerLeave);
     window.addEventListener("keydown", onKeyDown);
     window.addEventListener("keyup", onKeyUp);
 
@@ -185,6 +196,7 @@ export function Canvas({ boardId }: CanvasProps) {
       el.removeEventListener("pointerdown", onPointerDown);
       el.removeEventListener("pointermove", onPointerMove);
       el.removeEventListener("pointerup", onPointerUp);
+      el.removeEventListener("pointerleave", onPointerLeave);
       window.removeEventListener("keydown", onKeyDown);
       window.removeEventListener("keyup", onKeyUp);
       if (rafRef.current != null) cancelAnimationFrame(rafRef.current);
@@ -196,10 +208,9 @@ export function Canvas({ boardId }: CanvasProps) {
   useEffect(scheduleRender, [viewport, selection, shapes, activeTool]);
 
   return (
-    <canvas
-      ref={canvasRef}
-      className="block h-full w-full touch-none bg-paper"
-      aria-label="Collaborative canvas"
-    />
+    <div className="absolute inset-0">
+      <canvas ref={canvasRef} className="block h-full w-full touch-none bg-paper" aria-label="Collaborative canvas" />
+      <CursorsLayer presences={presences} viewport={viewport} />
+    </div>
   );
 }
