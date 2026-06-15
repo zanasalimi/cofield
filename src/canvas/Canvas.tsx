@@ -33,19 +33,6 @@ function center(s: Shape): Point {
   return { x: s.x + s.w / 2, y: s.y + s.h / 2 };
 }
 
-/** Point on a shape's edge along the direction of `toward` (so a connector
- *  touches the box, not the center). */
-function edgePoint(s: Shape, toward: Point): Point {
-  const c = center(s);
-  const dx = toward.x - c.x;
-  const dy = toward.y - c.y;
-  if (dx === 0 && dy === 0) return c;
-  const sx = dx !== 0 ? s.w / 2 / Math.abs(dx) : Infinity;
-  const sy = dy !== 0 ? s.h / 2 / Math.abs(dy) : Infinity;
-  const t = Math.min(sx, sy);
-  return { x: c.x + dx * t, y: c.y + dy * t };
-}
-
 /** Topmost non-connector shape whose body — expanded to include its connection
  *  dots — contains the world point. Drives the hover-to-connect affordance. */
 function hoverTest(shapes: Shape[], world: Point, margin: number): string | null {
@@ -64,22 +51,48 @@ function hoverTest(shapes: Shape[], world: Point, margin: number): string | null
   return null;
 }
 
-/** Resolve a connector's live endpoints from its linked shapes; null if dangling. */
+/** Right-angle (elbow) route between two shapes — anchored at the edge midpoints
+ *  of whichever sides face each other, with one orthogonal jog between them. This
+ *  is how Miro draws relations; a flat [x,y,...] polyline the renderer rounds. */
+function orthogonalRoute(from: Shape, to: Shape): number[] {
+  const acx = from.x + from.w / 2;
+  const acy = from.y + from.h / 2;
+  const bcx = to.x + to.w / 2;
+  const bcy = to.y + to.h / 2;
+  const dx = bcx - acx;
+  const dy = bcy - acy;
+  if (Math.abs(dx) >= Math.abs(dy)) {
+    // Side-by-side: exit left/right, jog vertically, enter the opposite side.
+    const ax = dx >= 0 ? from.x + from.w : from.x;
+    const bx = dx >= 0 ? to.x : to.x + to.w;
+    const midX = (ax + bx) / 2;
+    return [ax, acy, midX, acy, midX, bcy, bx, bcy];
+  }
+  // Stacked: exit top/bottom, jog horizontally, enter the opposite side.
+  const ay = dy >= 0 ? from.y + from.h : from.y;
+  const by = dy >= 0 ? to.y : to.y + to.h;
+  const midY = (ay + by) / 2;
+  return [acx, ay, acx, midY, bcx, midY, bcx, by];
+}
+
+/** Resolve a connector's live elbow path from its linked shapes; null if dangling. */
 function resolveConnector(conn: Shape, byId: Map<string, Shape>): Shape | null {
   if (!conn.from || !conn.to) return null;
   const from = byId.get(conn.from);
   const to = byId.get(conn.to);
   if (!from || !to) return null;
-  const p1 = edgePoint(from, center(to));
-  const p2 = edgePoint(to, center(from));
-  return {
-    ...conn,
-    points: [p1.x, p1.y, p2.x, p2.y],
-    x: Math.min(p1.x, p2.x),
-    y: Math.min(p1.y, p2.y),
-    w: Math.abs(p2.x - p1.x),
-    h: Math.abs(p2.y - p1.y),
-  };
+  const points = orthogonalRoute(from, to);
+  let minX = Infinity;
+  let minY = Infinity;
+  let maxX = -Infinity;
+  let maxY = -Infinity;
+  for (let i = 0; i < points.length; i += 2) {
+    minX = Math.min(minX, points[i]!);
+    maxX = Math.max(maxX, points[i]!);
+    minY = Math.min(minY, points[i + 1]!);
+    maxY = Math.max(maxY, points[i + 1]!);
+  }
+  return { ...conn, points, x: minX, y: minY, w: maxX - minX, h: maxY - minY };
 }
 
 export interface CanvasProps {

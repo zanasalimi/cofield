@@ -256,13 +256,20 @@ function drawShape(ctx: CanvasRenderingContext2D, shape: Shape): void {
         break;
       case "connector":
         if (shape.points && shape.points.length >= 4) {
-          const [x1, y1, x2, y2] = shape.points as [number, number, number, number];
+          const pts = shape.points;
+          const n = pts.length;
           ctx.lineCap = "round";
+          ctx.lineJoin = "round";
+          // Rounded elbow: line through the waypoints, each interior corner arced.
           ctx.beginPath();
-          ctx.moveTo(x1, y1);
-          ctx.lineTo(x2, y2);
+          ctx.moveTo(pts[0]!, pts[1]!);
+          const r = 12;
+          for (let i = 2; i < n - 2; i += 2) {
+            ctx.arcTo(pts[i]!, pts[i + 1]!, pts[i + 2]!, pts[i + 3]!, r);
+          }
+          ctx.lineTo(pts[n - 2]!, pts[n - 1]!);
           ctx.stroke();
-          drawArrowhead(ctx, x1, y1, x2, y2, style.stroke);
+          drawArrowhead(ctx, pts[n - 4]!, pts[n - 3]!, pts[n - 2]!, pts[n - 1]!, style.stroke);
         }
         break;
     }
@@ -271,7 +278,7 @@ function drawShape(ctx: CanvasRenderingContext2D, shape: Shape): void {
 
 function drawArrowhead(ctx: CanvasRenderingContext2D, fx: number, fy: number, tx: number, ty: number, color: string): void {
   const angle = Math.atan2(ty - fy, tx - fx);
-  const size = 9;
+  const size = 11;
   ctx.fillStyle = color;
   ctx.beginPath();
   ctx.moveTo(tx, ty);
