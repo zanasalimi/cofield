@@ -175,6 +175,17 @@ function drawSelection(
     return;
   }
 
+  // A locked shape shows a muted dashed outline and no handles — it can't be
+  // transformed until unlocked.
+  if (shape.locked) {
+    ctx.strokeStyle = "#9A9A93";
+    ctx.lineWidth = 1.5;
+    ctx.setLineDash([4, 3]);
+    ctx.strokeRect((shape.x - vx) * zoom, (shape.y - vy) * zoom, shape.w * zoom, shape.h * zoom);
+    ctx.setLineDash([]);
+    return;
+  }
+
   const x = (shape.x - vx) * zoom;
   const y = (shape.y - vy) * zoom;
   const w = shape.w * zoom;

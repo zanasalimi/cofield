@@ -20,7 +20,7 @@ export interface BoardDoc {
   meta: Y.Map<unknown>;
 }
 
-const FIELDS: (keyof Shape)[] = ["id", "type", "x", "y", "w", "h", "rotation", "style", "content", "points", "from", "to", "fromSide", "toSide", "createdBy"];
+const FIELDS: (keyof Shape)[] = ["id", "type", "x", "y", "w", "h", "rotation", "style", "content", "points", "from", "to", "fromSide", "toSide", "locked", "createdBy"];
 
 /** Create (or wrap) the typed top-level structures on a Y.Doc. */
 export function createBoardDoc(doc: Y.Doc = new Y.Doc()): BoardDoc {
@@ -59,6 +59,7 @@ function fromYMap(ym: Y.Map<unknown>): Shape | null {
     to: ym.get("to") as string | undefined,
     fromSide: ym.get("fromSide") as Side | undefined,
     toSide: ym.get("toSide") as Side | undefined,
+    locked: ym.get("locked") as boolean | undefined,
     createdBy: ym.get("createdBy") as string,
   };
 }
@@ -129,5 +130,35 @@ export function reorderShape(board: BoardDoc, id: ShapeId, toIndex: number): voi
     if (from < 0) return;
     board.order.delete(from, 1);
     board.order.insert(Math.max(0, Math.min(toIndex, board.order.length)), [id]);
+  });
+}
+
+/** Move a set of shapes in the z-stack, preserving their relative order. */
+export function reorderShapes(
+  board: BoardDoc,
+  ids: string[],
+  where: "front" | "back" | "forward" | "backward",
+): void {
+  const sel = new Set(ids);
+  board.doc.transact(() => {
+    const arr = board.order.toArray();
+    let next: string[];
+    if (where === "front") {
+      next = [...arr.filter((id) => !sel.has(id)), ...arr.filter((id) => sel.has(id))];
+    } else if (where === "back") {
+      next = [...arr.filter((id) => sel.has(id)), ...arr.filter((id) => !sel.has(id))];
+    } else if (where === "forward") {
+      next = [...arr];
+      for (let i = next.length - 2; i >= 0; i--) {
+        if (sel.has(next[i]!) && !sel.has(next[i + 1]!)) [next[i], next[i + 1]] = [next[i + 1]!, next[i]!];
+      }
+    } else {
+      next = [...arr];
+      for (let i = 1; i < next.length; i++) {
+        if (sel.has(next[i]!) && !sel.has(next[i - 1]!)) [next[i], next[i - 1]] = [next[i - 1]!, next[i]!];
+      }
+    }
+    board.order.delete(0, board.order.length);
+    board.order.insert(0, next);
   });
 }

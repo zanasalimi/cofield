@@ -50,6 +50,8 @@ export interface Shape {
   /** the edge each connector endpoint is anchored to (which dot was grabbed/dropped) */
   fromSide?: Side;
   toSide?: Side;
+  /** a locked shape cannot be moved, resized or rotated until unlocked */
+  locked?: boolean;
   createdBy: UserId;
 }
 

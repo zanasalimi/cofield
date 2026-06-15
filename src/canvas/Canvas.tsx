@@ -21,6 +21,7 @@ import { useBoard } from "@/collab/use-board";
 import { CursorsLayer } from "@/presence/CursorsLayer";
 import { TextOverlay } from "./TextOverlay";
 import { SelectionToolbar } from "./SelectionToolbar";
+import { ContextMenu } from "./ContextMenu";
 import type { Point, Shape, ShapeType, Side } from "@/collab/types";
 
 const CURSOR_FOR_TOOL: Record<string, string> = {
@@ -412,6 +413,20 @@ export function Canvas({ boardId }: CanvasProps) {
       }
       dragMode.current = null;
     };
+    const onContextMenu = (e: MouseEvent) => {
+      e.preventDefault();
+      const rect = el.getBoundingClientRect();
+      const sx = e.clientX - rect.left;
+      const sy = e.clientY - rect.top;
+      const world = screenToWorld(ui().viewport, { x: sx, y: sy });
+      const hit = ctx.hitTest(world) ?? ctx.hitTestConnector(world);
+      if (!hit) {
+        ui().setContextMenu(null);
+        return;
+      }
+      if (!ui().selection.includes(hit)) ui().setSelection([hit]);
+      ui().setContextMenu({ x: sx, y: sy });
+    };
     const onPointerLeave = () => {
       pubCursor.current(null);
       if (hoveredIdRef.current) {
@@ -466,6 +481,16 @@ export function Canvas({ boardId }: CanvasProps) {
         if (sel.length) useUiStore.getState().setSelection(useBoardStore.getState().duplicate(sel));
         return;
       }
+      // Z-order: Cmd/Ctrl + ] / [ (Shift = all the way to front/back).
+      if ((e.metaKey || e.ctrlKey) && (e.key === "]" || e.key === "[")) {
+        e.preventDefault();
+        const sel = useUiStore.getState().selection;
+        if (sel.length) {
+          const fwd = e.key === "]";
+          useBoardStore.getState().reorder(sel, e.shiftKey ? (fwd ? "front" : "back") : fwd ? "forward" : "backward");
+        }
+        return;
+      }
       if (e.code === "Space" && !spaceDown.current) {
         spaceDown.current = true;
         if (!dragMode.current) el.style.cursor = "grab";
@@ -474,6 +499,7 @@ export function Canvas({ boardId }: CanvasProps) {
       if (e.key === "Escape") {
         toolRef.current?.cancel(ctx);
         ui().setSelection([]);
+        ui().setContextMenu(null);
         return;
       }
       if (e.key === "Delete" || e.key === "Backspace") {
@@ -497,6 +523,7 @@ export function Canvas({ boardId }: CanvasProps) {
     el.addEventListener("pointerup", onPointerUp);
     el.addEventListener("pointerleave", onPointerLeave);
     el.addEventListener("dblclick", onDblClick);
+    el.addEventListener("contextmenu", onContextMenu);
     window.addEventListener("keydown", onKeyDown);
     window.addEventListener("keyup", onKeyUp);
 
@@ -510,6 +537,7 @@ export function Canvas({ boardId }: CanvasProps) {
       el.removeEventListener("pointerup", onPointerUp);
       el.removeEventListener("pointerleave", onPointerLeave);
       el.removeEventListener("dblclick", onDblClick);
+      el.removeEventListener("contextmenu", onContextMenu);
       window.removeEventListener("keydown", onKeyDown);
       window.removeEventListener("keyup", onKeyUp);
       if (rafRef.current != null) cancelAnimationFrame(rafRef.current);
@@ -533,6 +561,7 @@ export function Canvas({ boardId }: CanvasProps) {
       <CursorsLayer presences={presences} viewport={viewport} />
       <TextOverlay />
       <SelectionToolbar />
+      <ContextMenu />
     </div>
   );
 }

@@ -73,7 +73,7 @@ export function createSelectTool(): Tool {
         // 1) Resize/rotate the selected shape via its handles.
         if (selected.length === 1) {
           const shape = ctx.getShape(selected[0]!);
-          if (shape && shape.type !== "connector") {
+          if (shape && shape.type !== "connector" && !shape.locked) {
             const cx = shape.x + shape.w / 2;
             if (dist(event.world, { x: cx, y: shape.y - ROT_OFFSET_PX / vp.zoom }) <= tol) {
               mode = "rotate";
@@ -154,12 +154,14 @@ export function createSelectTool(): Tool {
             ? current
             : [hit];
         ctx.setSelection(next);
+        // A locked shape can be selected (to unlock it) but not dragged.
+        if (ctx.getShape(hit)?.locked) return;
         mode = "move";
         startWorld = event.world;
         origins = new Map();
         for (const id of next) {
           const s = ctx.getShape(id);
-          if (s) origins.set(id, { x: s.x, y: s.y });
+          if (s && !s.locked) origins.set(id, { x: s.x, y: s.y });
         }
       } else if (event.kind === "pointermove") {
         if (mode === "move" && startWorld && origins) {

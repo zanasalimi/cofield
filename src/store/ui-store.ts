@@ -22,6 +22,8 @@ export interface UiState {
   marquee: Rect | null;
   /** alignment guide lines shown while dragging, world coords */
   guides: SnapGuide[];
+  /** open right-click menu position (screen coords in the canvas wrapper), or null */
+  contextMenu: { x: number; y: number } | null;
   connection: ConnectionState;
 
   setActiveTool: (tool: ToolId) => void;
@@ -31,6 +33,7 @@ export interface UiState {
   setConnecting: (connecting: { from: string; fromSide?: Side; point: Point } | null) => void;
   setMarquee: (marquee: Rect | null) => void;
   setGuides: (guides: SnapGuide[]) => void;
+  setContextMenu: (menu: { x: number; y: number } | null) => void;
   setConnection: (state: ConnectionState) => void;
 }
 
@@ -42,6 +45,7 @@ export const useUiStore = create<UiState>((set) => ({
   connecting: null,
   marquee: null,
   guides: [],
+  contextMenu: null,
   connection: "connecting",
 
   setActiveTool: (activeTool) => set({ activeTool }),
@@ -51,5 +55,6 @@ export const useUiStore = create<UiState>((set) => ({
   setConnecting: (connecting) => set({ connecting }),
   setMarquee: (marquee) => set({ marquee }),
   setGuides: (guides) => set({ guides }),
+  setContextMenu: (contextMenu) => set({ contextMenu }),
   setConnection: (connection) => set({ connection }),
 }));

@@ -12,6 +12,7 @@ import {
   addShape as docAddShape,
   updateShape as docUpdateShape,
   removeShape as docRemoveShape,
+  reorderShapes as docReorderShapes,
   createUndoManager,
   type BoardDoc,
 } from "@/collab/doc";
@@ -116,6 +117,10 @@ export interface BoardState {
   copy: (ids: string[]) => void;
   /** Paste the clipboard (staggered offset per paste); returns the new ids. */
   paste: () => string[];
+  /** Move shapes in the z-stack. */
+  reorder: (ids: string[], where: "front" | "back" | "forward" | "backward") => void;
+  /** Lock / unlock shapes (locked = not movable). */
+  setLocked: (ids: string[], locked: boolean) => void;
   getShape: (id: string) => Shape | undefined;
   /** Per-user undo / redo of document edits. */
   undo: () => void;
@@ -198,6 +203,19 @@ export const useBoardStore = create<BoardState>((set, get) => ({
     if (clipboard.length === 0) return [];
     pasteCount += 1;
     return cloneShapes(clipboard, 16 * pasteCount, 16 * pasteCount);
+  },
+  reorder: (ids, where) => {
+    if (bound) docReorderShapes(bound, ids, where);
+    else
+      set((s) => {
+        const sel = new Set(ids);
+        const kept = s.shapes.filter((sh) => !sel.has(sh.id));
+        const moved = s.shapes.filter((sh) => sel.has(sh.id));
+        return { shapes: where === "back" ? [...moved, ...kept] : [...kept, ...moved] };
+      });
+  },
+  setLocked: (ids, locked) => {
+    for (const id of ids) get().updateShape(id, { locked });
   },
 
   undo: () => undoMgr?.undo(),
