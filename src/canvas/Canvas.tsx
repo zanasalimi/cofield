@@ -18,6 +18,7 @@ import { useUiStore } from "@/store/ui-store";
 import { useBoardStore } from "@/store/board-store";
 import { useBoard } from "@/collab/use-board";
 import { CursorsLayer } from "@/presence/CursorsLayer";
+import { TextOverlay } from "./TextOverlay";
 import type { Point, Shape, ShapeType } from "@/collab/types";
 
 const CURSOR_FOR_TOOL: Record<string, string> = {
@@ -154,6 +155,17 @@ export function Canvas({ boardId }: CanvasProps) {
       dragMode.current = null;
     };
     const onPointerLeave = () => pubCursor.current(null);
+    const onDblClick = (e: MouseEvent) => {
+      const rect = el.getBoundingClientRect();
+      const world = screenToWorld(ui().viewport, { x: e.clientX - rect.left, y: e.clientY - rect.top });
+      const hit = ctx.hitTest(world);
+      if (!hit) return;
+      const shape = useBoardStore.getState().getShape(hit);
+      if (shape && (shape.type === "sticky" || shape.type === "text")) {
+        ui().setSelection([hit]);
+        ui().setEditingId(hit);
+      }
+    };
 
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
@@ -187,6 +199,7 @@ export function Canvas({ boardId }: CanvasProps) {
     el.addEventListener("pointermove", onPointerMove);
     el.addEventListener("pointerup", onPointerUp);
     el.addEventListener("pointerleave", onPointerLeave);
+    el.addEventListener("dblclick", onDblClick);
     window.addEventListener("keydown", onKeyDown);
     window.addEventListener("keyup", onKeyUp);
 
@@ -197,6 +210,7 @@ export function Canvas({ boardId }: CanvasProps) {
       el.removeEventListener("pointermove", onPointerMove);
       el.removeEventListener("pointerup", onPointerUp);
       el.removeEventListener("pointerleave", onPointerLeave);
+      el.removeEventListener("dblclick", onDblClick);
       window.removeEventListener("keydown", onKeyDown);
       window.removeEventListener("keyup", onKeyUp);
       if (rafRef.current != null) cancelAnimationFrame(rafRef.current);
@@ -211,6 +225,7 @@ export function Canvas({ boardId }: CanvasProps) {
     <div className="absolute inset-0">
       <canvas ref={canvasRef} className="block h-full w-full touch-none bg-paper" aria-label="Collaborative canvas" />
       <CursorsLayer presences={presences} viewport={viewport} />
+      <TextOverlay />
     </div>
   );
 }

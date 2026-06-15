@@ -6,6 +6,7 @@
  * vectors and merges the diff both ways with zero data loss.
  */
 import type * as Y from "yjs";
+import { IndexeddbPersistence } from "y-indexeddb";
 
 export interface OfflineCache {
   /** Resolves once the local doc has hydrated from IndexedDB. */
@@ -14,11 +15,15 @@ export interface OfflineCache {
   destroy(): void;
 }
 
-/**
- * Bind a Y.Doc to IndexedDB under the given board key.
- * TODO(M5): wire IndexeddbPersistence; resolve whenSynced on its 'synced'
- * event; degrade to in-memory with a warning if IndexedDB is unavailable.
- */
-export function bindOfflineCache(_doc: Y.Doc, _boardKey: string): OfflineCache {
-  throw new Error("not implemented");
+/** Bind a Y.Doc to IndexedDB under the given board key. Degrades to a no-op
+ *  (resolved immediately) where IndexedDB is unavailable. */
+export function bindOfflineCache(doc: Y.Doc, boardKey: string): OfflineCache {
+  if (typeof indexedDB === "undefined") {
+    return { whenSynced: Promise.resolve(), destroy: () => {} };
+  }
+  const idb = new IndexeddbPersistence(`cofield:${boardKey}`, doc);
+  return {
+    whenSynced: new Promise<void>((resolve) => idb.once("synced", () => resolve())),
+    destroy: () => void idb.destroy(),
+  };
 }

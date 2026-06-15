@@ -9,6 +9,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import * as Y from "yjs";
 import { createBoardDoc, readShapesInOrder } from "./doc";
+import { bindOfflineCache } from "./offline";
 import { createWebsocketProvider, type SyncProvider } from "./provider";
 import {
   setLocalIdentity,
@@ -33,6 +34,7 @@ export function useBoard(boardId: string) {
   useEffect(() => {
     const doc = new Y.Doc();
     const board = createBoardDoc(doc);
+    const offline = bindOfflineCache(doc, boardId); // instant load + offline edits
     const provider = createWebsocketProvider({ url: WS_URL, room: boardId, doc });
     providerRef.current = provider;
 
@@ -64,6 +66,7 @@ export function useBoard(boardId: string) {
       offState();
       useBoardStore.getState().unbindDoc();
       provider.destroy();
+      offline.destroy();
       doc.destroy();
       providerRef.current = null;
     };
