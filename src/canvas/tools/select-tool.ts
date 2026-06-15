@@ -1,29 +1,30 @@
 /**
  * Select tool: click-select (topmost-wins), additive Shift-select, move by drag,
- * and handle-based resize/rotate. When a single shape is selected, pointerdowns
- * near its handles begin a resize (corner/edge) or rotation instead of a move.
- * All math is world-space.
+ * handle-based resize/rotate, and connector creation. When a single shape is
+ * selected, pointerdowns near its handles resize/rotate it, near its connection
+ * dots start a connector drag, and elsewhere select + move. All math world-space.
  */
 import type { Point, Rect } from "@/collab/types";
 import type { Tool, ToolContext, ToolEvent } from "./types";
 import { handlePoints, applyResize, applyRotation, type ResizeHandle } from "@/canvas/geometry/transform";
 
-const HANDLE_HIT_PX = 11; // screen-space grab radius for a handle
-const ROT_OFFSET_PX = 22; // matches the renderer's rotation-handle distance
+const HANDLE_HIT_PX = 11;
+const ROT_OFFSET_PX = 22;
+const DOT_OFFSET_PX = 14;
 
 function dist(a: Point, b: Point): number {
   return Math.hypot(a.x - b.x, a.y - b.y);
 }
 
 export function createSelectTool(): Tool {
-  let mode: "move" | "resize" | "rotate" | null = null;
+  let mode: "move" | "resize" | "rotate" | "connect" | null = null;
   let startWorld: Point | null = null;
-  let origins: Map<string, Point> | null = null; // move
+  let origins: Map<string, Point> | null = null;
   let resizeHandle: ResizeHandle | null = null;
   let origRect: Rect | null = null;
   let activeId: string | null = null;
 
-  function end(): void {
+  function reset(): void {
     mode = null;
     startWorld = null;
     origins = null;
@@ -40,17 +41,31 @@ export function createSelectTool(): Tool {
         const tol = HANDLE_HIT_PX / vp.zoom;
         const selected = ctx.getSelection();
 
-        // Handle/rotation grab on a single selected shape.
         if (selected.length === 1) {
           const shape = ctx.getShape(selected[0]!);
-          if (shape) {
+          if (shape && shape.type !== "connector") {
             const cx = shape.x + shape.w / 2;
-            const rotPt = { x: cx, y: shape.y - ROT_OFFSET_PX / vp.zoom };
-            if (dist(event.world, rotPt) <= tol) {
+            // Rotation handle.
+            if (dist(event.world, { x: cx, y: shape.y - ROT_OFFSET_PX / vp.zoom }) <= tol) {
               mode = "rotate";
               activeId = shape.id;
               return;
             }
+            // Connection dots (just outside each edge midpoint).
+            const off = DOT_OFFSET_PX / vp.zoom;
+            const dots: Point[] = [
+              { x: cx, y: shape.y - off },
+              { x: shape.x + shape.w + off, y: shape.y + shape.h / 2 },
+              { x: cx, y: shape.y + shape.h + off },
+              { x: shape.x - off, y: shape.y + shape.h / 2 },
+            ];
+            if (dots.some((d) => dist(event.world, d) <= tol)) {
+              mode = "connect";
+              activeId = shape.id;
+              ctx.setConnecting({ from: shape.id, point: event.world });
+              return;
+            }
+            // Resize handles.
             const rect: Rect = { x: shape.x, y: shape.y, w: shape.w, h: shape.h };
             const pts = handlePoints(rect);
             for (const h of Object.keys(pts) as ResizeHandle[]) {
@@ -100,13 +115,24 @@ export function createSelectTool(): Tool {
         } else if (mode === "rotate" && activeId) {
           const shape = ctx.getShape(activeId);
           if (shape) ctx.updateShape(activeId, { rotation: applyRotation(shape, event.world, event.mods.shift ? 15 : undefined) });
+        } else if (mode === "connect" && activeId) {
+          ctx.setConnecting({ from: activeId, point: event.world });
         }
-      } else if (event.kind === "pointerup" || event.kind === "cancel") {
-        end();
+      } else if (event.kind === "pointerup") {
+        if (mode === "connect" && activeId) {
+          const target = ctx.hitTest(event.world);
+          if (target && target !== activeId) ctx.addConnector(activeId, target);
+          ctx.setConnecting(null);
+        }
+        reset();
+      } else if (event.kind === "cancel") {
+        ctx.setConnecting(null);
+        reset();
       }
     },
-    cancel(): void {
-      end();
+    cancel(ctx: ToolContext): void {
+      ctx.setConnecting(null);
+      reset();
     },
   };
 }

@@ -47,6 +47,18 @@ export class Canvas2DRenderer implements Renderer {
     ctx.setTransform(s, 0, 0, s, -vp.x * s, -vp.y * s);
     for (const shape of shapes) drawShape(ctx, shape);
 
+    // Ghost connector being dragged.
+    if (scene.connecting) {
+      ctx.strokeStyle = SELECT;
+      ctx.lineWidth = 2 / vp.zoom;
+      ctx.setLineDash([6 / vp.zoom, 5 / vp.zoom]);
+      ctx.beginPath();
+      ctx.moveTo(scene.connecting.from.x, scene.connecting.from.y);
+      ctx.lineTo(scene.connecting.to.x, scene.connecting.to.y);
+      ctx.stroke();
+      ctx.setLineDash([]);
+    }
+
     // Selection overlay in screen space (constant-size handles).
     if (selection.length === 1) {
       const shape = shapes.find((sh) => sh.id === selection[0]);
@@ -113,6 +125,23 @@ function drawSelection(
     ctx.rect(px - HANDLE / 2, py - HANDLE / 2, HANDLE, HANDLE);
     ctx.fill();
     ctx.stroke();
+  }
+
+  // Connection dots just outside each edge midpoint — drag one to link shapes.
+  if (shape.type !== "connector") {
+    const off = 14;
+    const dots: [number, number][] = [
+      [x + w / 2, y - off],
+      [x + w + off, y + h / 2],
+      [x + w / 2, y + h + off],
+      [x - off, y + h / 2],
+    ];
+    ctx.fillStyle = SELECT;
+    for (const [px, py] of dots) {
+      ctx.beginPath();
+      ctx.arc(px, py, 4, 0, Math.PI * 2);
+      ctx.fill();
+    }
   }
 }
 
@@ -186,8 +215,31 @@ function drawShape(ctx: CanvasRenderingContext2D, shape: Shape): void {
           ctx.stroke();
         }
         break;
+      case "connector":
+        if (shape.points && shape.points.length >= 4) {
+          const [x1, y1, x2, y2] = shape.points as [number, number, number, number];
+          ctx.lineCap = "round";
+          ctx.beginPath();
+          ctx.moveTo(x1, y1);
+          ctx.lineTo(x2, y2);
+          ctx.stroke();
+          drawArrowhead(ctx, x1, y1, x2, y2, style.stroke);
+        }
+        break;
     }
   });
+}
+
+function drawArrowhead(ctx: CanvasRenderingContext2D, fx: number, fy: number, tx: number, ty: number, color: string): void {
+  const angle = Math.atan2(ty - fy, tx - fx);
+  const size = 9;
+  ctx.fillStyle = color;
+  ctx.beginPath();
+  ctx.moveTo(tx, ty);
+  ctx.lineTo(tx - size * Math.cos(angle - 0.42), ty - size * Math.sin(angle - 0.42));
+  ctx.lineTo(tx - size * Math.cos(angle + 0.42), ty - size * Math.sin(angle + 0.42));
+  ctx.closePath();
+  ctx.fill();
 }
 
 function wrapText(ctx: CanvasRenderingContext2D, text: string, x: number, y: number, maxW: number, lineH: number): void {

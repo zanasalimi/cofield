@@ -14,7 +14,8 @@ export type ShapeType =
   | "arrow"
   | "draw"
   | "sticky"
-  | "text";
+  | "text"
+  | "connector";
 
 export interface ShapeStyle {
   fill: string;
@@ -40,6 +41,9 @@ export interface Shape {
   content?: string;
   /** freehand point pairs [x0, y0, x1, y1, ...] in world coords */
   points?: number[];
+  /** connector endpoints — the ids of the shapes it links (re-routes as they move) */
+  from?: ShapeId;
+  to?: ShapeId;
   createdBy: UserId;
 }
 

@@ -19,6 +19,7 @@ import { useBoardStore } from "@/store/board-store";
 import { useBoard } from "@/collab/use-board";
 import { CursorsLayer } from "@/presence/CursorsLayer";
 import { TextOverlay } from "./TextOverlay";
+import { SelectionToolbar } from "./SelectionToolbar";
 import type { Point, Shape, ShapeType } from "@/collab/types";
 
 const CURSOR_FOR_TOOL: Record<string, string> = {
@@ -27,6 +28,41 @@ const CURSOR_FOR_TOOL: Record<string, string> = {
   text: "text",
   sticky: "copy",
 };
+
+function center(s: Shape): Point {
+  return { x: s.x + s.w / 2, y: s.y + s.h / 2 };
+}
+
+/** Point on a shape's edge along the direction of `toward` (so a connector
+ *  touches the box, not the center). */
+function edgePoint(s: Shape, toward: Point): Point {
+  const c = center(s);
+  const dx = toward.x - c.x;
+  const dy = toward.y - c.y;
+  if (dx === 0 && dy === 0) return c;
+  const sx = dx !== 0 ? s.w / 2 / Math.abs(dx) : Infinity;
+  const sy = dy !== 0 ? s.h / 2 / Math.abs(dy) : Infinity;
+  const t = Math.min(sx, sy);
+  return { x: c.x + dx * t, y: c.y + dy * t };
+}
+
+/** Resolve a connector's live endpoints from its linked shapes; null if dangling. */
+function resolveConnector(conn: Shape, byId: Map<string, Shape>): Shape | null {
+  if (!conn.from || !conn.to) return null;
+  const from = byId.get(conn.from);
+  const to = byId.get(conn.to);
+  if (!from || !to) return null;
+  const p1 = edgePoint(from, center(to));
+  const p2 = edgePoint(to, center(from));
+  return {
+    ...conn,
+    points: [p1.x, p1.y, p2.x, p2.y],
+    x: Math.min(p1.x, p2.x),
+    y: Math.min(p1.y, p2.y),
+    w: Math.abs(p2.x - p1.x),
+    h: Math.abs(p2.y - p1.y),
+  };
+}
 
 export interface CanvasProps {
   boardId: string;
@@ -43,6 +79,7 @@ export function Canvas({ boardId }: CanvasProps) {
   const viewport = useUiStore((s) => s.viewport);
   const selection = useUiStore((s) => s.selection);
   const activeTool = useUiStore((s) => s.activeTool);
+  const connecting = useUiStore((s) => s.connecting);
   const shapes = useBoardStore((s) => s.shapes);
 
   // Realtime: doc binding + presence + throttled publishers.
@@ -59,11 +96,13 @@ export function Canvas({ boardId }: CanvasProps) {
   if (!ctxRef.current) {
     ctxRef.current = {
       addShape: (type, rect) => useBoardStore.getState().addShape(type as ShapeType, rect),
+      addConnector: (from, to) => useBoardStore.getState().addConnector(from, to),
       updateShape: (id, patch) => useBoardStore.getState().updateShape(id, patch as Partial<Shape>),
       removeShape: (id) => useBoardStore.getState().removeShape(id),
       getShape: (id) => useBoardStore.getState().getShape(id),
       hitTest: (world: Point) => hitTestTopmost(useBoardStore.getState().shapes, world),
       getViewport: () => useUiStore.getState().viewport,
+      setConnecting: (c) => useUiStore.getState().setConnecting(c),
       setSelection: (ids) => useUiStore.getState().setSelection(ids),
       getSelection: () => useUiStore.getState().selection,
     };
@@ -77,9 +116,27 @@ export function Canvas({ boardId }: CanvasProps) {
       const el = canvasRef.current;
       if (!r || !el) return;
       const vp = useUiStore.getState().viewport;
+      const all = useBoardStore.getState().shapes;
+      const byId = new Map(all.map((sh) => [sh.id, sh]));
+      const resolved: Shape[] = [];
+      for (const sh of all) {
+        if (sh.type === "connector") {
+          const rc = resolveConnector(sh, byId);
+          if (rc) resolved.push(rc);
+        } else {
+          resolved.push(sh);
+        }
+      }
       const visible = visibleWorldRect(vp, el.clientWidth, el.clientHeight);
-      const culled = cullToViewport(useBoardStore.getState().shapes, visible);
-      r.render({ shapes: culled, viewport: vp, selection: useUiStore.getState().selection });
+      const culled = cullToViewport(resolved, visible);
+
+      const connecting = useUiStore.getState().connecting;
+      let ghost: { from: Point; to: Point } | null = null;
+      if (connecting) {
+        const from = byId.get(connecting.from);
+        if (from) ghost = { from: center(from), to: connecting.point };
+      }
+      r.render({ shapes: culled, viewport: vp, selection: useUiStore.getState().selection, connecting: ghost });
     });
   }
 
@@ -220,7 +277,7 @@ export function Canvas({ boardId }: CanvasProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [boardId]);
 
-  useEffect(scheduleRender, [viewport, selection, shapes, activeTool]);
+  useEffect(scheduleRender, [viewport, selection, shapes, activeTool, connecting]);
 
   const dot = 24 * viewport.zoom;
   return (
@@ -236,6 +293,7 @@ export function Canvas({ boardId }: CanvasProps) {
       <canvas ref={canvasRef} className="block h-full w-full touch-none" aria-label="Collaborative canvas" />
       <CursorsLayer presences={presences} viewport={viewport} />
       <TextOverlay />
+      <SelectionToolbar />
     </div>
   );
 }

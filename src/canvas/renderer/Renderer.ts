@@ -3,7 +3,7 @@
  * implements the same interface later for 10k+ shapes (ADR-004). Tools and
  * geometry never depend on a concrete renderer.
  */
-import type { Shape } from "@/collab/types";
+import type { Point, Shape } from "@/collab/types";
 import type { Viewport } from "@/canvas/viewport/viewport";
 
 export interface RenderScene {
@@ -13,6 +13,8 @@ export interface RenderScene {
   viewport: Viewport;
   /** Selected shape ids (local). */
   selection: string[];
+  /** A connector being dragged from a connection dot to the pointer (world coords). */
+  connecting?: { from: Point; to: Point } | null;
 }
 
 export interface Renderer {

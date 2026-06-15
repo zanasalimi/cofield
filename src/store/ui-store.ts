@@ -6,7 +6,7 @@ import { create } from "zustand";
 import type { ToolId } from "@/canvas/tools/types";
 import type { Viewport } from "@/canvas/viewport/viewport";
 import { createViewport } from "@/canvas/viewport/viewport";
-import type { ConnectionState } from "@/collab/types";
+import type { ConnectionState, Point } from "@/collab/types";
 
 export interface UiState {
   activeTool: ToolId;
@@ -15,12 +15,15 @@ export interface UiState {
   selection: string[];
   /** id of the shape currently being text-edited, or null */
   editingId: string | null;
+  /** in-progress connector drag (from a connection dot to the pointer), or null */
+  connecting: { from: string; point: Point } | null;
   connection: ConnectionState;
 
   setActiveTool: (tool: ToolId) => void;
   setViewport: (viewport: Viewport) => void;
   setSelection: (ids: string[]) => void;
   setEditingId: (id: string | null) => void;
+  setConnecting: (connecting: { from: string; point: Point } | null) => void;
   setConnection: (state: ConnectionState) => void;
 }
 
@@ -29,11 +32,13 @@ export const useUiStore = create<UiState>((set) => ({
   viewport: createViewport(),
   selection: [],
   editingId: null,
+  connecting: null,
   connection: "connecting",
 
   setActiveTool: (activeTool) => set({ activeTool }),
   setViewport: (viewport) => set({ viewport }),
   setSelection: (selection) => set({ selection }),
   setEditingId: (editingId) => set({ editingId }),
+  setConnecting: (connecting) => set({ connecting }),
   setConnection: (connection) => set({ connection }),
 }));

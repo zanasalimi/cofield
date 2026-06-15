@@ -28,6 +28,7 @@ const DEFAULT_STYLE: Record<ShapeType, ShapeStyle> = {
   text: { fill: "transparent", stroke: "#1A1A1A", strokeWidth: 0 },
   arrow: { fill: "transparent", stroke: "#1A1A1A", strokeWidth: 2 },
   draw: { fill: "transparent", stroke: "#1A1A1A", strokeWidth: 3 },
+  connector: { fill: "transparent", stroke: "#6B6B66", strokeWidth: 2 },
 };
 
 /** Build a fully-formed shape with per-type defaults. */
@@ -49,6 +50,7 @@ export function makeShape(type: ShapeType, rect: { x: number; y: number; w: numb
 export interface BoardState {
   shapes: Shape[];
   addShape: (type: ShapeType, rect: { x: number; y: number; w: number; h: number }) => string;
+  addConnector: (from: string, to: string) => string;
   updateShape: (id: string, patch: Partial<Shape>) => void;
   removeShape: (id: string) => void;
   getShape: (id: string) => Shape | undefined;
@@ -64,6 +66,25 @@ export const useBoardStore = create<BoardState>((set, get) => ({
 
   addShape: (type, rect) => {
     const shape = makeShape(type, rect);
+    if (bound) docAddShape(bound, shape);
+    else set((s) => ({ shapes: [...s.shapes, shape] }));
+    return shape.id;
+  },
+
+  addConnector: (from, to) => {
+    const shape: Shape = {
+      id: nextId(),
+      type: "connector",
+      x: 0,
+      y: 0,
+      w: 0,
+      h: 0,
+      rotation: 0,
+      style: DEFAULT_STYLE.connector,
+      from,
+      to,
+      createdBy: "me",
+    };
     if (bound) docAddShape(bound, shape);
     else set((s) => ({ shapes: [...s.shapes, shape] }));
     return shape.id;

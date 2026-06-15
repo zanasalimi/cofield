@@ -20,7 +20,7 @@ export interface BoardDoc {
   meta: Y.Map<unknown>;
 }
 
-const FIELDS: (keyof Shape)[] = ["id", "type", "x", "y", "w", "h", "rotation", "style", "content", "points", "createdBy"];
+const FIELDS: (keyof Shape)[] = ["id", "type", "x", "y", "w", "h", "rotation", "style", "content", "points", "from", "to", "createdBy"];
 
 /** Create (or wrap) the typed top-level structures on a Y.Doc. */
 export function createBoardDoc(doc: Y.Doc = new Y.Doc()): BoardDoc {
@@ -55,6 +55,8 @@ function fromYMap(ym: Y.Map<unknown>): Shape | null {
     style: ym.get("style") as ShapeStyle,
     content: ym.get("content") as string | undefined,
     points: ym.get("points") as number[] | undefined,
+    from: ym.get("from") as string | undefined,
+    to: ym.get("to") as string | undefined,
     createdBy: ym.get("createdBy") as string,
   };
 }
