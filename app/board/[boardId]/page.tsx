@@ -5,6 +5,7 @@
 import { redirect } from "next/navigation";
 import { Canvas } from "@/canvas/Canvas";
 import { Toolbar } from "@/ui/Toolbar";
+import { ZoomControl } from "@/ui/ZoomControl";
 import { ShareButton } from "@/components/boards/ShareButton";
 import { getCurrentUser } from "@/auth/server";
 import { isMember } from "@/boards/server";
@@ -27,12 +28,16 @@ export default async function BoardPage({ params }: BoardPageProps) {
   }
 
   return (
-    <div className="relative h-dvh w-dvw overflow-hidden bg-paper">
+    <div className="relative h-dvh w-dvw overflow-hidden">
       <Canvas boardId={boardId} />
 
-      {/* Floating chrome over the canvas — not a dashboard frame. */}
-      <div className="pointer-events-none absolute inset-x-0 bottom-6 flex justify-center">
+      {/* Floating chrome over the canvas — Miro layout. */}
+      <div className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2">
         <Toolbar />
+      </div>
+
+      <div className="pointer-events-none absolute bottom-4 right-4">
+        <ZoomControl />
       </div>
 
       {boardId !== DEMO_BOARD && (

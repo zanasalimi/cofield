@@ -39,6 +39,8 @@ export interface ToolContext {
   getShape: (id: string) => import("@/collab/types").Shape | undefined;
   /** Topmost shape id whose body contains the world point, or null. */
   hitTest: (world: Point) => string | null;
+  /** Current viewport — tools need the zoom to size screen-space hit tolerances. */
+  getViewport: () => import("@/canvas/viewport/viewport").Viewport;
   setSelection: (ids: string[]) => void;
   getSelection: () => string[];
 }

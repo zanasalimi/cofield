@@ -63,6 +63,7 @@ export function Canvas({ boardId }: CanvasProps) {
       removeShape: (id) => useBoardStore.getState().removeShape(id),
       getShape: (id) => useBoardStore.getState().getShape(id),
       hitTest: (world: Point) => hitTestTopmost(useBoardStore.getState().shapes, world),
+      getViewport: () => useUiStore.getState().viewport,
       setSelection: (ids) => useUiStore.getState().setSelection(ids),
       getSelection: () => useUiStore.getState().selection,
     };
@@ -221,9 +222,18 @@ export function Canvas({ boardId }: CanvasProps) {
 
   useEffect(scheduleRender, [viewport, selection, shapes, activeTool]);
 
+  const dot = 24 * viewport.zoom;
   return (
-    <div className="absolute inset-0">
-      <canvas ref={canvasRef} className="block h-full w-full touch-none bg-paper" aria-label="Collaborative canvas" />
+    <div
+      className="absolute inset-0"
+      style={{
+        backgroundColor: "#F7F7F5",
+        backgroundImage: "radial-gradient(circle, #d4d3cd 1.1px, transparent 1.2px)",
+        backgroundSize: `${dot}px ${dot}px`,
+        backgroundPosition: `${-viewport.x * viewport.zoom}px ${-viewport.y * viewport.zoom}px`,
+      }}
+    >
+      <canvas ref={canvasRef} className="block h-full w-full touch-none" aria-label="Collaborative canvas" />
       <CursorsLayer presences={presences} viewport={viewport} />
       <TextOverlay />
     </div>
