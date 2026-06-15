@@ -20,7 +20,7 @@ import { useBoard } from "@/collab/use-board";
 import { CursorsLayer } from "@/presence/CursorsLayer";
 import { TextOverlay } from "./TextOverlay";
 import { SelectionToolbar } from "./SelectionToolbar";
-import type { Point, Shape, ShapeType } from "@/collab/types";
+import type { Point, Shape, ShapeType, Side } from "@/collab/types";
 
 const CURSOR_FOR_TOOL: Record<string, string> = {
   select: "default",
@@ -51,9 +51,79 @@ function hoverTest(shapes: Shape[], world: Point, margin: number): string | null
   return null;
 }
 
+/** The edge-midpoint anchor of a shape's side, plus that side's outward normal. */
+function sideAnchor(s: Shape, side: Side): { p: Point; dir: Point } {
+  const cx = s.x + s.w / 2;
+  const cy = s.y + s.h / 2;
+  switch (side) {
+    case "top":
+      return { p: { x: cx, y: s.y }, dir: { x: 0, y: -1 } };
+    case "right":
+      return { p: { x: s.x + s.w, y: cy }, dir: { x: 1, y: 0 } };
+    case "bottom":
+      return { p: { x: cx, y: s.y + s.h }, dir: { x: 0, y: 1 } };
+    case "left":
+      return { p: { x: s.x, y: cy }, dir: { x: -1, y: 0 } };
+  }
+}
+
+/** Drop consecutive-duplicate and collinear midpoints so aligned routes collapse
+ *  to a clean straight line and no zero-length jog survives to curl a corner. */
+function simplifyOrtho(flat: number[]): number[] {
+  const pts: Point[] = [];
+  for (let i = 0; i < flat.length; i += 2) {
+    const p = { x: flat[i]!, y: flat[i + 1]! };
+    const last = pts[pts.length - 1];
+    if (!last || Math.abs(last.x - p.x) > 0.5 || Math.abs(last.y - p.y) > 0.5) pts.push(p);
+  }
+  const out: Point[] = [];
+  for (let i = 0; i < pts.length; i++) {
+    const a = pts[i - 1];
+    const b = pts[i]!;
+    const c = pts[i + 1];
+    if (a && c) {
+      const collinearH = Math.abs(a.y - b.y) < 0.5 && Math.abs(b.y - c.y) < 0.5;
+      const collinearV = Math.abs(a.x - b.x) < 0.5 && Math.abs(b.x - c.x) < 0.5;
+      if (collinearH || collinearV) continue;
+    }
+    out.push(b);
+  }
+  const res: number[] = [];
+  for (const p of out) res.push(p.x, p.y);
+  return res;
+}
+
+/** Elbow route that EXITS the grabbed side and ENTERS the dropped side: each end
+ *  leaves perpendicular to its edge (a short stub), then jogs orthogonally to meet. */
+function routeSides(from: Shape, fromSide: Side, to: Shape, toSide: Side): number[] {
+  const STUB = 22;
+  const a = sideAnchor(from, fromSide);
+  const b = sideAnchor(to, toSide);
+  const ap = { x: a.p.x + a.dir.x * STUB, y: a.p.y + a.dir.y * STUB };
+  const bp = { x: b.p.x + b.dir.x * STUB, y: b.p.y + b.dir.y * STUB };
+  const pts = [a.p.x, a.p.y, ap.x, ap.y];
+  if (a.dir.x !== 0) {
+    if (b.dir.x !== 0) {
+      const mx = (ap.x + bp.x) / 2;
+      pts.push(mx, ap.y, mx, bp.y);
+    } else {
+      pts.push(bp.x, ap.y);
+    }
+  } else {
+    if (b.dir.y !== 0) {
+      const my = (ap.y + bp.y) / 2;
+      pts.push(ap.x, my, bp.x, my);
+    } else {
+      pts.push(ap.x, bp.y);
+    }
+  }
+  pts.push(bp.x, bp.y, b.p.x, b.p.y);
+  return simplifyOrtho(pts);
+}
+
 /** Right-angle (elbow) route between two shapes — anchored at the edge midpoints
- *  of whichever sides face each other, with one orthogonal jog between them. This
- *  is how Miro draws relations; a flat [x,y,...] polyline the renderer rounds. */
+ *  of whichever sides face each other, with one orthogonal jog between them. Used
+ *  when a connector carries no explicit anchor sides (legacy connectors). */
 const ALIGN_EPS = 8; // shapes this close to aligned get a clean straight line
 
 function orthogonalRoute(from: Shape, to: Shape): number[] {
@@ -102,7 +172,8 @@ function resolveConnector(conn: Shape, byId: Map<string, Shape>): Shape | null {
   const from = byId.get(conn.from);
   const to = byId.get(conn.to);
   if (!from || !to) return null;
-  const points = orthogonalRoute(from, to);
+  const points =
+    conn.fromSide && conn.toSide ? routeSides(from, conn.fromSide, to, conn.toSide) : orthogonalRoute(from, to);
   let minX = Infinity;
   let minY = Infinity;
   let maxX = -Infinity;
@@ -150,7 +221,7 @@ export function Canvas({ boardId }: CanvasProps) {
   if (!ctxRef.current) {
     ctxRef.current = {
       addShape: (type, rect) => useBoardStore.getState().addShape(type as ShapeType, rect),
-      addConnector: (from, to) => useBoardStore.getState().addConnector(from, to),
+      addConnector: (from, to, fromSide, toSide) => useBoardStore.getState().addConnector(from, to, fromSide, toSide),
       updateShape: (id, patch) => useBoardStore.getState().updateShape(id, patch as Partial<Shape>),
       removeShape: (id) => useBoardStore.getState().removeShape(id),
       getShape: (id) => useBoardStore.getState().getShape(id),
@@ -206,7 +277,10 @@ export function Canvas({ boardId }: CanvasProps) {
       let dropTarget: string | null = null;
       if (connecting) {
         const from = byId.get(connecting.from);
-        if (from) ghost = { from: center(from), to: connecting.point };
+        if (from) {
+          const anchor = connecting.fromSide ? sideAnchor(from, connecting.fromSide).p : center(from);
+          ghost = { from: anchor, to: connecting.point };
+        }
         const t = hitTestTopmost(all, connecting.point);
         if (t && t !== connecting.from) dropTarget = t;
       }

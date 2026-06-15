@@ -11,7 +11,7 @@
  * different fields of the same shape merge without clobbering.
  */
 import * as Y from "yjs";
-import type { Shape, ShapeId, ShapeType, ShapeStyle } from "./types";
+import type { Shape, ShapeId, ShapeType, ShapeStyle, Side } from "./types";
 
 export interface BoardDoc {
   doc: Y.Doc;
@@ -20,7 +20,7 @@ export interface BoardDoc {
   meta: Y.Map<unknown>;
 }
 
-const FIELDS: (keyof Shape)[] = ["id", "type", "x", "y", "w", "h", "rotation", "style", "content", "points", "from", "to", "createdBy"];
+const FIELDS: (keyof Shape)[] = ["id", "type", "x", "y", "w", "h", "rotation", "style", "content", "points", "from", "to", "fromSide", "toSide", "createdBy"];
 
 /** Create (or wrap) the typed top-level structures on a Y.Doc. */
 export function createBoardDoc(doc: Y.Doc = new Y.Doc()): BoardDoc {
@@ -57,6 +57,8 @@ function fromYMap(ym: Y.Map<unknown>): Shape | null {
     points: ym.get("points") as number[] | undefined,
     from: ym.get("from") as string | undefined,
     to: ym.get("to") as string | undefined,
+    fromSide: ym.get("fromSide") as Side | undefined,
+    toSide: ym.get("toSide") as Side | undefined,
     createdBy: ym.get("createdBy") as string,
   };
 }

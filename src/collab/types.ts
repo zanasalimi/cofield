@@ -23,6 +23,9 @@ export interface ShapeStyle {
   strokeWidth: number;
 }
 
+/** A shape edge a connector can anchor to. */
+export type Side = "top" | "right" | "bottom" | "left";
+
 /**
  * The persistent shape record. In the Yjs document each shape is a nested
  * Y.Map keyed by these fields, so concurrent edits to different fields merge
@@ -44,6 +47,9 @@ export interface Shape {
   /** connector endpoints — the ids of the shapes it links (re-routes as they move) */
   from?: ShapeId;
   to?: ShapeId;
+  /** the edge each connector endpoint is anchored to (which dot was grabbed/dropped) */
+  fromSide?: Side;
+  toSide?: Side;
   createdBy: UserId;
 }
 

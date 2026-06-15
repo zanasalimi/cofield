@@ -4,16 +4,41 @@
  * selected, pointerdowns near its handles resize/rotate it, near its connection
  * dots start a connector drag, and elsewhere select + move. All math world-space.
  */
-import type { Point, Rect } from "@/collab/types";
+import type { Point, Rect, Shape, Side } from "@/collab/types";
 import type { Tool, ToolContext, ToolEvent } from "./types";
 import { handlePoints, applyResize, applyRotation, type ResizeHandle } from "@/canvas/geometry/transform";
 
 const HANDLE_HIT_PX = 11;
 const ROT_OFFSET_PX = 22;
 const DOT_OFFSET_PX = 14;
+/** Connection-dot order, matching the four edges checked below. */
+const DOT_SIDES: Side[] = ["top", "right", "bottom", "left"];
 
 function dist(a: Point, b: Point): number {
   return Math.hypot(a.x - b.x, a.y - b.y);
+}
+
+/** Side of a shape whose edge midpoint is nearest a world point — the side a user
+ *  "selects" by dropping a connector onto it. */
+function nearestSide(s: Shape, p: Point): Side {
+  const cx = s.x + s.w / 2;
+  const cy = s.y + s.h / 2;
+  const mids: [Side, Point][] = [
+    ["top", { x: cx, y: s.y }],
+    ["right", { x: s.x + s.w, y: cy }],
+    ["bottom", { x: cx, y: s.y + s.h }],
+    ["left", { x: s.x, y: cy }],
+  ];
+  let best: Side = "top";
+  let bd = Infinity;
+  for (const [side, m] of mids) {
+    const d = dist(p, m);
+    if (d < bd) {
+      bd = d;
+      best = side;
+    }
+  }
+  return best;
 }
 
 export function createSelectTool(): Tool {
@@ -23,6 +48,7 @@ export function createSelectTool(): Tool {
   let resizeHandle: ResizeHandle | null = null;
   let origRect: Rect | null = null;
   let activeId: string | null = null;
+  let connectFromSide: Side | null = null;
 
   function reset(): void {
     mode = null;
@@ -31,6 +57,7 @@ export function createSelectTool(): Tool {
     resizeHandle = null;
     origRect = null;
     activeId = null;
+    connectFromSide = null;
   }
 
   return {
@@ -80,10 +107,12 @@ export function createSelectTool(): Tool {
               { x: hcx, y: hs.y + hs.h + off },
               { x: hs.x - off, y: hs.y + hs.h / 2 },
             ];
-            if (dots.some((d) => dist(event.world, d) <= tol)) {
+            const grabbed = dots.findIndex((d) => dist(event.world, d) <= tol);
+            if (grabbed >= 0) {
               mode = "connect";
               activeId = hs.id;
-              ctx.setConnecting({ from: hs.id, point: event.world });
+              connectFromSide = DOT_SIDES[grabbed]!;
+              ctx.setConnecting({ from: hs.id, fromSide: connectFromSide, point: event.world });
               return;
             }
           }
@@ -138,12 +167,16 @@ export function createSelectTool(): Tool {
           const shape = ctx.getShape(activeId);
           if (shape) ctx.updateShape(activeId, { rotation: applyRotation(shape, event.world, event.mods.shift ? 15 : undefined) });
         } else if (mode === "connect" && activeId) {
-          ctx.setConnecting({ from: activeId, point: event.world });
+          ctx.setConnecting({ from: activeId, fromSide: connectFromSide ?? undefined, point: event.world });
         }
       } else if (event.kind === "pointerup") {
         if (mode === "connect" && activeId) {
           const target = ctx.hitTest(event.world);
-          if (target && target !== activeId) ctx.addConnector(activeId, target);
+          if (target && target !== activeId) {
+            const t = ctx.getShape(target);
+            const toSide = t ? nearestSide(t, event.world) : undefined;
+            ctx.addConnector(activeId, target, connectFromSide ?? undefined, toSide);
+          }
           ctx.setConnecting(null);
         }
         reset();

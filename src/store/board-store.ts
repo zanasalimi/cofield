@@ -6,7 +6,7 @@
  * either way, so the tools and ToolContext never know which is active.
  */
 import { create } from "zustand";
-import type { Shape, ShapeType, ShapeStyle } from "@/collab/types";
+import type { Shape, ShapeType, ShapeStyle, Side } from "@/collab/types";
 import {
   addShape as docAddShape,
   updateShape as docUpdateShape,
@@ -59,7 +59,7 @@ export function makeShape(type: ShapeType, rect: { x: number; y: number; w: numb
 export interface BoardState {
   shapes: Shape[];
   addShape: (type: ShapeType, rect: { x: number; y: number; w: number; h: number }) => string;
-  addConnector: (from: string, to: string) => string;
+  addConnector: (from: string, to: string, fromSide?: Side, toSide?: Side) => string;
   updateShape: (id: string, patch: Partial<Shape>) => void;
   removeShape: (id: string) => void;
   getShape: (id: string) => Shape | undefined;
@@ -80,7 +80,7 @@ export const useBoardStore = create<BoardState>((set, get) => ({
     return shape.id;
   },
 
-  addConnector: (from, to) => {
+  addConnector: (from, to, fromSide, toSide) => {
     const shape: Shape = {
       id: nextId(),
       type: "connector",
@@ -92,6 +92,8 @@ export const useBoardStore = create<BoardState>((set, get) => ({
       style: DEFAULT_STYLE.connector,
       from,
       to,
+      fromSide,
+      toSide,
       createdBy: "me",
     };
     if (bound) docAddShape(bound, shape);

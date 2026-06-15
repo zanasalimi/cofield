@@ -33,8 +33,8 @@ export type ToolEvent =
  */
 export interface ToolContext {
   addShape: (type: ToolId, rect: { x: number; y: number; w: number; h: number }) => string;
-  /** Create a connector linking two shapes (re-routes as they move). */
-  addConnector: (from: string, to: string) => string;
+  /** Create a connector linking two shapes, anchored to the given edges. */
+  addConnector: (from: string, to: string, fromSide?: import("@/collab/types").Side, toSide?: import("@/collab/types").Side) => string;
   updateShape: (id: string, patch: Record<string, unknown>) => void;
   removeShape: (id: string) => void;
   /** Current plain-object projection of a shape (for reading position during a drag). */
@@ -48,7 +48,7 @@ export interface ToolContext {
   /** Current viewport — tools need the zoom to size screen-space hit tolerances. */
   getViewport: () => import("@/canvas/viewport/viewport").Viewport;
   /** Drive the in-progress connector ghost (null clears it). */
-  setConnecting: (connecting: { from: string; point: Point } | null) => void;
+  setConnecting: (connecting: { from: string; fromSide?: import("@/collab/types").Side; point: Point } | null) => void;
   setSelection: (ids: string[]) => void;
   getSelection: () => string[];
 }
