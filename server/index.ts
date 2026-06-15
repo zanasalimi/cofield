@@ -15,6 +15,7 @@ import { WebSocketServer } from "ws";
 // y-websocket ships its server helpers as CJS without type declarations.
 // @ts-expect-error -- no types for the server utils entrypoint
 import { setupWSConnection } from "y-websocket/bin/utils";
+import { authorizeBoard } from "./auth";
 
 const PORT = Number(process.env.PORT ?? 1234);
 
@@ -22,6 +23,13 @@ function start(): void {
   const wss = new WebSocketServer({ port: PORT });
 
   wss.on("connection", (socket, request) => {
+    // The room name is the URL path; gate the join on session + membership.
+    const path = (request.url ?? "/").split("?")[0] ?? "/";
+    const boardId = decodeURIComponent(path.replace(/^\/+/, ""));
+    if (!authorizeBoard(request.headers.cookie, boardId)) {
+      socket.close(1008, "unauthorized");
+      return;
+    }
     setupWSConnection(socket, request);
   });
 
