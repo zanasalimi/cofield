@@ -54,6 +54,8 @@ function hoverTest(shapes: Shape[], world: Point, margin: number): string | null
 /** Right-angle (elbow) route between two shapes — anchored at the edge midpoints
  *  of whichever sides face each other, with one orthogonal jog between them. This
  *  is how Miro draws relations; a flat [x,y,...] polyline the renderer rounds. */
+const ALIGN_EPS = 8; // shapes this close to aligned get a clean straight line
+
 function orthogonalRoute(from: Shape, to: Shape): number[] {
   const acx = from.x + from.w / 2;
   const acy = from.y + from.h / 2;
@@ -62,15 +64,24 @@ function orthogonalRoute(from: Shape, to: Shape): number[] {
   const dx = bcx - acx;
   const dy = bcy - acy;
   if (Math.abs(dx) >= Math.abs(dy)) {
-    // Side-by-side: exit left/right, jog vertically, enter the opposite side.
+    // Side-by-side: exit left/right.
     const ax = dx >= 0 ? from.x + from.w : from.x;
     const bx = dx >= 0 ? to.x : to.x + to.w;
+    // Roughly level → straight line; no zero-length jog to curl.
+    if (Math.abs(dy) <= ALIGN_EPS) {
+      const y = (acy + bcy) / 2;
+      return [ax, y, bx, y];
+    }
     const midX = (ax + bx) / 2;
     return [ax, acy, midX, acy, midX, bcy, bx, bcy];
   }
-  // Stacked: exit top/bottom, jog horizontally, enter the opposite side.
+  // Stacked: exit top/bottom.
   const ay = dy >= 0 ? from.y + from.h : from.y;
   const by = dy >= 0 ? to.y : to.y + to.h;
+  if (Math.abs(dx) <= ALIGN_EPS) {
+    const x = (acx + bcx) / 2;
+    return [x, ay, x, by];
+  }
   const midY = (ay + by) / 2;
   return [acx, ay, acx, midY, bcx, midY, bcx, by];
 }

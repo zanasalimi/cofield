@@ -263,8 +263,12 @@ function drawShape(ctx: CanvasRenderingContext2D, shape: Shape): void {
           // Rounded elbow: line through the waypoints, each interior corner arced.
           ctx.beginPath();
           ctx.moveTo(pts[0]!, pts[1]!);
-          const r = 12;
           for (let i = 2; i < n - 2; i += 2) {
+            // Clamp the corner radius to half the shorter adjacent segment so a
+            // short jog rounds cleanly instead of curling back on itself.
+            const d1 = Math.hypot(pts[i]! - pts[i - 2]!, pts[i + 1]! - pts[i - 1]!);
+            const d2 = Math.hypot(pts[i + 2]! - pts[i]!, pts[i + 3]! - pts[i + 1]!);
+            const r = Math.min(12, d1 / 2, d2 / 2);
             ctx.arcTo(pts[i]!, pts[i + 1]!, pts[i + 2]!, pts[i + 3]!, r);
           }
           ctx.lineTo(pts[n - 2]!, pts[n - 1]!);
