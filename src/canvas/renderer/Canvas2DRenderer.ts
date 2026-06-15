@@ -79,15 +79,34 @@ export class Canvas2DRenderer implements Renderer {
       if (hs && hs.type !== "connector") drawConnectionDots(ctx, hs, vp.x, vp.y, vp.zoom, dpr);
     }
 
+    // Marquee selection rectangle (screen space).
+    if (scene.marquee) {
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      const m = scene.marquee;
+      const mx = (m.x - vp.x) * vp.zoom;
+      const my = (m.y - vp.y) * vp.zoom;
+      const mw = m.w * vp.zoom;
+      const mh = m.h * vp.zoom;
+      ctx.fillStyle = "rgba(66, 98, 255, 0.08)";
+      ctx.fillRect(mx, my, mw, mh);
+      ctx.strokeStyle = SELECT;
+      ctx.lineWidth = 1;
+      ctx.strokeRect(mx, my, mw, mh);
+    }
+
     // Selection overlay in screen space (constant-size handles).
     if (selection.length === 1) {
       const shape = shapes.find((sh) => sh.id === selection[0]);
       if (shape) drawSelection(ctx, shape, vp.x, vp.y, vp.zoom, dpr);
     } else if (selection.length > 1) {
-      ctx.lineWidth = 1.5 / vp.zoom;
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       ctx.strokeStyle = SELECT;
+      ctx.lineWidth = 1.5;
       const sel = new Set(selection);
-      for (const shape of shapes) if (sel.has(shape.id)) ctx.strokeRect(shape.x, shape.y, shape.w, shape.h);
+      for (const shape of shapes) {
+        if (!sel.has(shape.id) || shape.type === "connector") continue;
+        ctx.strokeRect((shape.x - vp.x) * vp.zoom, (shape.y - vp.y) * vp.zoom, shape.w * vp.zoom, shape.h * vp.zoom);
+      }
     }
   }
 

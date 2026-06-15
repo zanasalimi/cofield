@@ -49,6 +49,10 @@ export interface ToolContext {
   getViewport: () => import("@/canvas/viewport/viewport").Viewport;
   /** Drive the in-progress connector ghost (null clears it). */
   setConnecting: (connecting: { from: string; fromSide?: import("@/collab/types").Side; point: Point } | null) => void;
+  /** Drive the in-progress marquee rectangle (null clears it). */
+  setMarquee: (rect: import("@/collab/types").Rect | null) => void;
+  /** Select every shape intersecting the marquee; unions with `base` when additive. */
+  selectInMarquee: (rect: import("@/collab/types").Rect, base: string[], additive: boolean) => void;
   setSelection: (ids: string[]) => void;
   getSelection: () => string[];
 }

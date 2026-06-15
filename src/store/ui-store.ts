@@ -6,7 +6,7 @@ import { create } from "zustand";
 import type { ToolId } from "@/canvas/tools/types";
 import type { Viewport } from "@/canvas/viewport/viewport";
 import { createViewport } from "@/canvas/viewport/viewport";
-import type { ConnectionState, Point, Side } from "@/collab/types";
+import type { ConnectionState, Point, Rect, Side } from "@/collab/types";
 
 export interface UiState {
   activeTool: ToolId;
@@ -17,6 +17,8 @@ export interface UiState {
   editingId: string | null;
   /** in-progress connector drag (from a connection dot to the pointer), or null */
   connecting: { from: string; fromSide?: Side; point: Point } | null;
+  /** in-progress marquee selection rectangle (world coords), or null */
+  marquee: Rect | null;
   connection: ConnectionState;
 
   setActiveTool: (tool: ToolId) => void;
@@ -24,6 +26,7 @@ export interface UiState {
   setSelection: (ids: string[]) => void;
   setEditingId: (id: string | null) => void;
   setConnecting: (connecting: { from: string; fromSide?: Side; point: Point } | null) => void;
+  setMarquee: (marquee: Rect | null) => void;
   setConnection: (state: ConnectionState) => void;
 }
 
@@ -33,6 +36,7 @@ export const useUiStore = create<UiState>((set) => ({
   selection: [],
   editingId: null,
   connecting: null,
+  marquee: null,
   connection: "connecting",
 
   setActiveTool: (activeTool) => set({ activeTool }),
@@ -40,5 +44,6 @@ export const useUiStore = create<UiState>((set) => ({
   setSelection: (selection) => set({ selection }),
   setEditingId: (editingId) => set({ editingId }),
   setConnecting: (connecting) => set({ connecting }),
+  setMarquee: (marquee) => set({ marquee }),
   setConnection: (connection) => set({ connection }),
 }));

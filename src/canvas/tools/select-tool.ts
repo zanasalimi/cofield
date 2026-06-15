@@ -42,13 +42,14 @@ function nearestSide(s: Shape, p: Point): Side {
 }
 
 export function createSelectTool(): Tool {
-  let mode: "move" | "resize" | "rotate" | "connect" | null = null;
+  let mode: "move" | "resize" | "rotate" | "connect" | "marquee" | null = null;
   let startWorld: Point | null = null;
   let origins: Map<string, Point> | null = null;
   let resizeHandle: ResizeHandle | null = null;
   let origRect: Rect | null = null;
   let activeId: string | null = null;
   let connectFromSide: Side | null = null;
+  let marqueeBase: string[] = [];
 
   function reset(): void {
     mode = null;
@@ -58,6 +59,7 @@ export function createSelectTool(): Tool {
     origRect = null;
     activeId = null;
     connectFromSide = null;
+    marqueeBase = [];
   }
 
   return {
@@ -133,9 +135,14 @@ export function createSelectTool(): Tool {
                   : [...cur, conn]
                 : [conn],
             );
-          } else if (!event.mods.shift) {
-            ctx.setSelection([]);
+            return;
           }
+          // Empty canvas → marquee-select by dragging a rectangle.
+          marqueeBase = event.mods.shift ? ctx.getSelection() : [];
+          if (!event.mods.shift) ctx.setSelection([]);
+          mode = "marquee";
+          startWorld = event.world;
+          ctx.setMarquee({ x: event.world.x, y: event.world.y, w: 0, h: 0 });
           return;
         }
         const current = ctx.getSelection();
@@ -168,6 +175,15 @@ export function createSelectTool(): Tool {
           if (shape) ctx.updateShape(activeId, { rotation: applyRotation(shape, event.world, event.mods.shift ? 15 : undefined) });
         } else if (mode === "connect" && activeId) {
           ctx.setConnecting({ from: activeId, fromSide: connectFromSide ?? undefined, point: event.world });
+        } else if (mode === "marquee" && startWorld) {
+          const rect: Rect = {
+            x: Math.min(startWorld.x, event.world.x),
+            y: Math.min(startWorld.y, event.world.y),
+            w: Math.abs(event.world.x - startWorld.x),
+            h: Math.abs(event.world.y - startWorld.y),
+          };
+          ctx.setMarquee(rect);
+          ctx.selectInMarquee(rect, marqueeBase, event.mods.shift);
         }
       } else if (event.kind === "pointerup") {
         if (mode === "connect" && activeId) {
@@ -178,15 +194,19 @@ export function createSelectTool(): Tool {
             ctx.addConnector(activeId, target, connectFromSide ?? undefined, toSide);
           }
           ctx.setConnecting(null);
+        } else if (mode === "marquee") {
+          ctx.setMarquee(null);
         }
         reset();
       } else if (event.kind === "cancel") {
         ctx.setConnecting(null);
+        ctx.setMarquee(null);
         reset();
       }
     },
     cancel(ctx: ToolContext): void {
       ctx.setConnecting(null);
+      ctx.setMarquee(null);
       reset();
     },
   };

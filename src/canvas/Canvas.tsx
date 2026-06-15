@@ -11,7 +11,7 @@ import { Canvas2DRenderer } from "./renderer/Canvas2DRenderer";
 import type { Renderer } from "./renderer/Renderer";
 import { pan, zoomAt, screenToWorld, visibleWorldRect } from "./viewport/viewport";
 import { cullToViewport } from "./viewport/culling";
-import { hitTestTopmost } from "./geometry/hit-test";
+import { hitTestTopmost, shapeBounds, rectsIntersect } from "./geometry/hit-test";
 import { createTool, TOOL_SHORTCUTS } from "./tools";
 import type { Tool, ToolContext, ToolModifiers } from "./tools/types";
 import { useUiStore } from "@/store/ui-store";
@@ -245,6 +245,16 @@ export function Canvas({ boardId }: CanvasProps) {
       getHovered: () => hoveredIdRef.current,
       getViewport: () => useUiStore.getState().viewport,
       setConnecting: (c) => useUiStore.getState().setConnecting(c),
+      setMarquee: (rect) => useUiStore.getState().setMarquee(rect),
+      selectInMarquee: (rect, base, additive) => {
+        const ids: string[] = [];
+        for (const s of useBoardStore.getState().shapes) {
+          if (s.type === "connector") continue;
+          if (rectsIntersect(rect, shapeBounds(s))) ids.push(s.id);
+        }
+        const next = additive ? Array.from(new Set([...base, ...ids])) : ids;
+        useUiStore.getState().setSelection(next);
+      },
       setSelection: (ids) => useUiStore.getState().setSelection(ids),
       getSelection: () => useUiStore.getState().selection,
     };
@@ -294,6 +304,7 @@ export function Canvas({ boardId }: CanvasProps) {
         hovered,
         connecting: ghost,
         dropTarget,
+        marquee: useUiStore.getState().marquee,
       });
     });
   }
