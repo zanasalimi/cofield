@@ -432,6 +432,27 @@ export function Canvas({ boardId }: CanvasProps) {
         useBoardStore.getState().redo();
         return;
       }
+      // Copy / paste / duplicate.
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "c") {
+        const sel = useUiStore.getState().selection;
+        if (sel.length) {
+          useBoardStore.getState().copy(sel);
+          e.preventDefault();
+        }
+        return;
+      }
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "v") {
+        const ids = useBoardStore.getState().paste();
+        if (ids.length) useUiStore.getState().setSelection(ids);
+        e.preventDefault();
+        return;
+      }
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "d") {
+        e.preventDefault();
+        const sel = useUiStore.getState().selection;
+        if (sel.length) useUiStore.getState().setSelection(useBoardStore.getState().duplicate(sel));
+        return;
+      }
       if (e.code === "Space" && !spaceDown.current) {
         spaceDown.current = true;
         if (!dragMode.current) el.style.cursor = "grab";

@@ -18,6 +18,9 @@ import {
 
 let bound: BoardDoc | null = null;
 let undoMgr: Y.UndoManager | null = null;
+/** Internal clipboard for copy/paste (snapshots, not live shapes). */
+let clipboard: Shape[] = [];
+let pasteCount = 0;
 let counter = 0;
 /**
  * Globally-unique shape id. A plain per-session counter is unsafe: it resets to
@@ -59,12 +62,60 @@ export function makeShape(type: ShapeType, rect: { x: number; y: number; w: numb
   };
 }
 
+/** Write a fully-formed shape (used for clone/paste, which carry their own id). */
+function putShape(shape: Shape): void {
+  if (bound) docAddShape(bound, shape);
+  else useBoardStore.setState((s) => ({ shapes: [...s.shapes, shape] }));
+}
+
+/**
+ * Clone shapes with fresh ids, offset by (dx, dy), as one atomic step. A
+ * connector is cloned only when BOTH endpoints are in the set (re-linked to the
+ * clones); a connector to an outside shape is dropped, like Miro.
+ */
+function cloneShapes(sources: Shape[], dx: number, dy: number): string[] {
+  const idMap = new Map<string, string>();
+  for (const s of sources) idMap.set(s.id, nextId());
+  const created: string[] = [];
+  const run = () => {
+    for (const s of sources) {
+      if (s.type === "connector") continue;
+      putShape({
+        ...s,
+        id: idMap.get(s.id)!,
+        x: s.x + dx,
+        y: s.y + dy,
+        style: { ...s.style },
+        points: s.points ? s.points.map((v, i) => v + (i % 2 === 0 ? dx : dy)) : undefined,
+      });
+      created.push(idMap.get(s.id)!);
+    }
+    for (const s of sources) {
+      if (s.type !== "connector" || !s.from || !s.to) continue;
+      const nf = idMap.get(s.from);
+      const nt = idMap.get(s.to);
+      if (!nf || !nt) continue;
+      putShape({ ...s, id: idMap.get(s.id)!, from: nf, to: nt, style: { ...s.style } });
+      created.push(idMap.get(s.id)!);
+    }
+  };
+  if (bound) bound.doc.transact(run);
+  else run();
+  return created;
+}
+
 export interface BoardState {
   shapes: Shape[];
   addShape: (type: ShapeType, rect: { x: number; y: number; w: number; h: number }) => string;
   addConnector: (from: string, to: string, fromSide?: Side, toSide?: Side) => string;
   updateShape: (id: string, patch: Partial<Shape>) => void;
   removeShape: (id: string) => void;
+  /** Clone shapes in place (fresh ids, small offset); returns the new ids. */
+  duplicate: (ids: string[]) => string[];
+  /** Snapshot shapes to the clipboard. */
+  copy: (ids: string[]) => void;
+  /** Paste the clipboard (staggered offset per paste); returns the new ids. */
+  paste: () => string[];
   getShape: (id: string) => Shape | undefined;
   /** Per-user undo / redo of document edits. */
   undo: () => void;
@@ -127,6 +178,27 @@ export const useBoardStore = create<BoardState>((set, get) => ({
   },
 
   getShape: (id) => get().shapes.find((sh) => sh.id === id),
+
+  duplicate: (ids) => {
+    const set = new Set(ids);
+    return cloneShapes(
+      get().shapes.filter((s) => set.has(s.id)),
+      16,
+      16,
+    );
+  },
+  copy: (ids) => {
+    const set = new Set(ids);
+    clipboard = get()
+      .shapes.filter((s) => set.has(s.id))
+      .map((s) => ({ ...s, style: { ...s.style }, points: s.points ? [...s.points] : undefined }));
+    pasteCount = 0;
+  },
+  paste: () => {
+    if (clipboard.length === 0) return [];
+    pasteCount += 1;
+    return cloneShapes(clipboard, 16 * pasteCount, 16 * pasteCount);
+  },
 
   undo: () => undoMgr?.undo(),
   redo: () => undoMgr?.redo(),
