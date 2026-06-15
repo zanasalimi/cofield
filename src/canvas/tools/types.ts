@@ -53,6 +53,13 @@ export interface ToolContext {
   setMarquee: (rect: import("@/collab/types").Rect | null) => void;
   /** Select every shape intersecting the marquee; unions with `base` when additive. */
   selectInMarquee: (rect: import("@/collab/types").Rect, base: string[], additive: boolean) => void;
+  /** Snap a moving bounds box against the other shapes; returns the delta + guides. */
+  snapMove: (
+    box: import("@/collab/types").Rect,
+    excludeIds: string[],
+  ) => { dx: number; dy: number; guides: import("@/canvas/geometry/snapping").SnapGuide[] };
+  /** Set the alignment guide lines to render (empty clears). */
+  setGuides: (guides: import("@/canvas/geometry/snapping").SnapGuide[]) => void;
   setSelection: (ids: string[]) => void;
   getSelection: () => string[];
 }

@@ -12,6 +12,7 @@ import type { Renderer } from "./renderer/Renderer";
 import { pan, zoomAt, screenToWorld, visibleWorldRect } from "./viewport/viewport";
 import { cullToViewport } from "./viewport/culling";
 import { hitTestTopmost, shapeBounds, rectsIntersect } from "./geometry/hit-test";
+import { computeSnap, SNAP_THRESHOLD } from "./geometry/snapping";
 import { createTool, TOOL_SHORTCUTS } from "./tools";
 import type { Tool, ToolContext, ToolModifiers } from "./tools/types";
 import { useUiStore } from "@/store/ui-store";
@@ -255,6 +256,17 @@ export function Canvas({ boardId }: CanvasProps) {
         const next = additive ? Array.from(new Set([...base, ...ids])) : ids;
         useUiStore.getState().setSelection(next);
       },
+      snapMove: (box, excludeIds) => {
+        const exclude = new Set(excludeIds);
+        const others = [];
+        for (const s of useBoardStore.getState().shapes) {
+          if (s.type === "connector" || exclude.has(s.id)) continue;
+          others.push(shapeBounds(s));
+        }
+        const threshold = SNAP_THRESHOLD / useUiStore.getState().viewport.zoom;
+        return computeSnap(box, others, threshold);
+      },
+      setGuides: (guides) => useUiStore.getState().setGuides(guides),
       setSelection: (ids) => useUiStore.getState().setSelection(ids),
       getSelection: () => useUiStore.getState().selection,
     };
@@ -305,6 +317,7 @@ export function Canvas({ boardId }: CanvasProps) {
         connecting: ghost,
         dropTarget,
         marquee: useUiStore.getState().marquee,
+        guides: useUiStore.getState().guides,
       });
     });
   }

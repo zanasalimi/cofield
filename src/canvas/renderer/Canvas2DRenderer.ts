@@ -79,6 +79,26 @@ export class Canvas2DRenderer implements Renderer {
       if (hs && hs.type !== "connector") drawConnectionDots(ctx, hs, vp.x, vp.y, vp.zoom, dpr);
     }
 
+    // Alignment guides (screen space, magenta — Miro convention).
+    if (scene.guides && scene.guides.length) {
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.strokeStyle = "#F24E9C";
+      ctx.lineWidth = 1;
+      for (const g of scene.guides) {
+        ctx.beginPath();
+        if (g.axis === "x") {
+          const x = (g.pos - vp.x) * vp.zoom;
+          ctx.moveTo(x, (g.start - vp.y) * vp.zoom);
+          ctx.lineTo(x, (g.end - vp.y) * vp.zoom);
+        } else {
+          const y = (g.pos - vp.y) * vp.zoom;
+          ctx.moveTo((g.start - vp.x) * vp.zoom, y);
+          ctx.lineTo((g.end - vp.x) * vp.zoom, y);
+        }
+        ctx.stroke();
+      }
+    }
+
     // Marquee selection rectangle (screen space).
     if (scene.marquee) {
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);

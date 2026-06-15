@@ -5,6 +5,7 @@
  */
 import type { Point, Rect, Shape } from "@/collab/types";
 import type { Viewport } from "@/canvas/viewport/viewport";
+import type { SnapGuide } from "@/canvas/geometry/snapping";
 
 export interface RenderScene {
   /** Shapes already culled to the viewport, in z-order. */
@@ -21,6 +22,8 @@ export interface RenderScene {
   dropTarget?: string | null;
   /** In-progress marquee selection rectangle (world coords), or null. */
   marquee?: Rect | null;
+  /** Alignment guide lines shown while dragging (world coords). */
+  guides?: SnapGuide[];
 }
 
 export interface Renderer {

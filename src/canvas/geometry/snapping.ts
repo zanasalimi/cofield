@@ -1,28 +1,90 @@
 /**
- * Edge/center snapping + alignment guides (v1). Pure, world-space.
+ * Alignment snapping for drag-move. Pure functions in world coordinates — no
+ * DOM, unit-tested. A moving rectangle snaps its left / centre / right edges to
+ * any other rectangle's left / centre / right (and likewise on Y), within a
+ * pixel threshold, and reports guide lines to draw where it aligned.
  */
 import type { Rect } from "@/collab/types";
 
+/** A snap guide line. For axis "x" it is vertical at world x = `pos`, spanning
+ *  `start`..`end` on Y; for axis "y" it is horizontal at world y = `pos`. */
 export interface SnapGuide {
-  /** "x" = vertical guide line at world x; "y" = horizontal at world y */
   axis: "x" | "y";
-  position: number;
+  pos: number;
+  start: number;
+  end: number;
 }
 
 export interface SnapResult {
-  /** the rect after snapping */
-  rect: Rect;
-  /** guide lines to render while snapped */
+  dx: number;
+  dy: number;
   guides: SnapGuide[];
 }
 
-/** Snap distance threshold in world units. */
+/** Snap distance threshold in world units (callers scale by zoom). */
 export const SNAP_THRESHOLD = 6;
 
 /**
- * Snap a moving rect against the edges/centers of nearby static rects.
- * TODO(v1): collect candidate edges within SNAP_THRESHOLD, snap, emit guides.
+ * Find the nearest edge/centre alignment of `moving` to any of `others`, within
+ * `threshold` (world units). Returns the delta to apply so the alignment is
+ * exact, plus a guide line per snapped axis.
  */
-export function snapRect(_moving: Rect, _others: Rect[]): SnapResult {
-  throw new Error("not implemented");
+export function computeSnap(moving: Rect, others: Rect[], threshold: number): SnapResult {
+  const mXs = [moving.x, moving.x + moving.w / 2, moving.x + moving.w];
+  const mYs = [moving.y, moving.y + moving.h / 2, moving.y + moving.h];
+
+  let bestX = Number.POSITIVE_INFINITY;
+  let oxRect: Rect | null = null;
+  let oxPos = 0;
+  let bestY = Number.POSITIVE_INFINITY;
+  let oyRect: Rect | null = null;
+  let oyPos = 0;
+
+  for (const o of others) {
+    const oXs = [o.x, o.x + o.w / 2, o.x + o.w];
+    const oYs = [o.y, o.y + o.h / 2, o.y + o.h];
+    for (const m of mXs) {
+      for (const ox of oXs) {
+        const d = ox - m;
+        if (Math.abs(d) < Math.abs(bestX)) {
+          bestX = d;
+          oxRect = o;
+          oxPos = ox;
+        }
+      }
+    }
+    for (const m of mYs) {
+      for (const oy of oYs) {
+        const d = oy - m;
+        if (Math.abs(d) < Math.abs(bestY)) {
+          bestY = d;
+          oyRect = o;
+          oyPos = oy;
+        }
+      }
+    }
+  }
+
+  const guides: SnapGuide[] = [];
+  let dx = 0;
+  let dy = 0;
+  if (oxRect && Math.abs(bestX) <= threshold) {
+    dx = bestX;
+    guides.push({
+      axis: "x",
+      pos: oxPos,
+      start: Math.min(moving.y + dy, oxRect.y),
+      end: Math.max(moving.y + moving.h + dy, oxRect.y + oxRect.h),
+    });
+  }
+  if (oyRect && Math.abs(bestY) <= threshold) {
+    dy = bestY;
+    guides.push({
+      axis: "y",
+      pos: oyPos,
+      start: Math.min(moving.x + dx, oyRect.x),
+      end: Math.max(moving.x + moving.w + dx, oyRect.x + oyRect.w),
+    });
+  }
+  return { dx, dy, guides };
 }

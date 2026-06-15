@@ -163,8 +163,31 @@ export function createSelectTool(): Tool {
         }
       } else if (event.kind === "pointermove") {
         if (mode === "move" && startWorld && origins) {
-          const dx = event.world.x - startWorld.x;
-          const dy = event.world.y - startWorld.y;
+          let dx = event.world.x - startWorld.x;
+          let dy = event.world.y - startWorld.y;
+          // Snap the moving selection's bounds to other shapes (skip with Alt).
+          if (!event.mods.alt) {
+            let minX = Infinity;
+            let minY = Infinity;
+            let maxX = -Infinity;
+            let maxY = -Infinity;
+            for (const [id, origin] of origins) {
+              const s = ctx.getShape(id);
+              if (!s || s.type === "connector") continue;
+              minX = Math.min(minX, origin.x + dx);
+              minY = Math.min(minY, origin.y + dy);
+              maxX = Math.max(maxX, origin.x + dx + s.w);
+              maxY = Math.max(maxY, origin.y + dy + s.h);
+            }
+            if (minX !== Infinity) {
+              const snap = ctx.snapMove({ x: minX, y: minY, w: maxX - minX, h: maxY - minY }, [...origins.keys()]);
+              dx += snap.dx;
+              dy += snap.dy;
+              ctx.setGuides(snap.guides);
+            }
+          } else {
+            ctx.setGuides([]);
+          }
           for (const [id, origin] of origins) ctx.updateShape(id, { x: origin.x + dx, y: origin.y + dy });
         } else if (mode === "resize" && startWorld && origRect && resizeHandle && activeId) {
           const delta = { x: event.world.x - startWorld.x, y: event.world.y - startWorld.y };
@@ -197,16 +220,19 @@ export function createSelectTool(): Tool {
         } else if (mode === "marquee") {
           ctx.setMarquee(null);
         }
+        ctx.setGuides([]);
         reset();
       } else if (event.kind === "cancel") {
         ctx.setConnecting(null);
         ctx.setMarquee(null);
+        ctx.setGuides([]);
         reset();
       }
     },
     cancel(ctx: ToolContext): void {
       ctx.setConnecting(null);
       ctx.setMarquee(null);
+      ctx.setGuides([]);
       reset();
     },
   };
