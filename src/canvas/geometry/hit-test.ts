@@ -12,19 +12,48 @@ export function shapeContainsPoint(_shape: Shape, _point: Point): boolean {
 }
 
 /** The axis-aligned world bounds of a shape (post-rotation). */
-export function shapeBounds(_shape: Shape): Rect {
-  // TODO(M2)
-  throw new Error("not implemented");
+export function shapeBounds(shape: Shape): Rect {
+  if (!shape.rotation) {
+    return { x: shape.x, y: shape.y, w: shape.w, h: shape.h };
+  }
+  // Rotate the four corners about the shape's center, then take their AABB.
+  const cx = shape.x + shape.w / 2;
+  const cy = shape.y + shape.h / 2;
+  const cos = Math.cos(shape.rotation);
+  const sin = Math.sin(shape.rotation);
+  const hw = shape.w / 2;
+  const hh = shape.h / 2;
+  let minX = Infinity;
+  let minY = Infinity;
+  let maxX = -Infinity;
+  let maxY = -Infinity;
+  for (const [dx, dy] of [
+    [-hw, -hh],
+    [hw, -hh],
+    [hw, hh],
+    [-hw, hh],
+  ] as const) {
+    const x = cx + dx * cos - dy * sin;
+    const y = cy + dx * sin + dy * cos;
+    minX = Math.min(minX, x);
+    minY = Math.min(minY, y);
+    maxX = Math.max(maxX, x);
+    maxY = Math.max(maxY, y);
+  }
+  return { x: minX, y: minY, w: maxX - minX, h: maxY - minY };
 }
 
 /** True if two world rects intersect (boundary-inclusive). */
-export function rectsIntersect(_a: Rect, _b: Rect): boolean {
-  // TODO(M1)
-  throw new Error("not implemented");
+export function rectsIntersect(a: Rect, b: Rect): boolean {
+  return a.x <= b.x + b.w && b.x <= a.x + a.w && a.y <= b.y + b.h && b.y <= a.y + a.h;
 }
 
 /** True if rect `outer` fully contains rect `inner`. */
-export function rectContainsRect(_outer: Rect, _inner: Rect): boolean {
-  // TODO(M2)
-  throw new Error("not implemented");
+export function rectContainsRect(outer: Rect, inner: Rect): boolean {
+  return (
+    inner.x >= outer.x &&
+    inner.y >= outer.y &&
+    inner.x + inner.w <= outer.x + outer.w &&
+    inner.y + inner.h <= outer.y + outer.h
+  );
 }

@@ -4,12 +4,12 @@
  * the cull set must equal exactly the shapes intersecting the viewport rect.
  */
 import type { Rect, Shape } from "@/collab/types";
+import { shapeBounds, rectsIntersect } from "@/canvas/geometry/hit-test";
 
 /**
  * Return the subset of `shapes` that intersect `visibleRect`, preserving input
  * (z-) order. Off-screen shapes cost nothing downstream.
- * TODO(M1): use shapeBounds + rectsIntersect from geometry.
  */
-export function cullToViewport(_shapes: Shape[], _visibleRect: Rect): Shape[] {
-  throw new Error("not implemented");
+export function cullToViewport(shapes: Shape[], visibleRect: Rect): Shape[] {
+  return shapes.filter((s) => rectsIntersect(shapeBounds(s), visibleRect));
 }
