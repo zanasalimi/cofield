@@ -34,6 +34,11 @@ export type ToolEvent =
 export interface ToolContext {
   addShape: (type: ToolId, rect: { x: number; y: number; w: number; h: number }) => string;
   updateShape: (id: string, patch: Record<string, unknown>) => void;
+  removeShape: (id: string) => void;
+  /** Current plain-object projection of a shape (for reading position during a drag). */
+  getShape: (id: string) => import("@/collab/types").Shape | undefined;
+  /** Topmost shape id whose body contains the world point, or null. */
+  hitTest: (world: Point) => string | null;
   setSelection: (ids: string[]) => void;
   getSelection: () => string[];
 }

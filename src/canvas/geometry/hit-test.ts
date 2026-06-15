@@ -6,9 +6,29 @@
 import type { Point, Rect, Shape } from "@/collab/types";
 
 /** True if a world point lies inside a shape, accounting for its rotation. */
-export function shapeContainsPoint(_shape: Shape, _point: Point): boolean {
-  // TODO(M2): rotate the point into the shape's local frame, then test bounds.
-  throw new Error("not implemented");
+export function shapeContainsPoint(shape: Shape, point: Point): boolean {
+  let px = point.x;
+  let py = point.y;
+  if (shape.rotation) {
+    // Rotate the point into the shape's unrotated local frame.
+    const cx = shape.x + shape.w / 2;
+    const cy = shape.y + shape.h / 2;
+    const cos = Math.cos(-shape.rotation);
+    const sin = Math.sin(-shape.rotation);
+    const dx = px - cx;
+    const dy = py - cy;
+    px = cx + dx * cos - dy * sin;
+    py = cy + dx * sin + dy * cos;
+  }
+  return px >= shape.x && px <= shape.x + shape.w && py >= shape.y && py <= shape.y + shape.h;
+}
+
+/** Topmost shape (last in z-order) whose body contains the point, or null. */
+export function hitTestTopmost(shapes: Shape[], point: Point): string | null {
+  for (let i = shapes.length - 1; i >= 0; i--) {
+    if (shapeContainsPoint(shapes[i]!, point)) return shapes[i]!.id;
+  }
+  return null;
 }
 
 /** The axis-aligned world bounds of a shape (post-rotation). */

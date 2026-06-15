@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { Geist } from "next/font/google";
 import { cn } from "@/lib/utils";
+import { TooltipProvider } from "@/components/ui/tooltip";
 
 const geist = Geist({ subsets: ["latin"], variable: "--font-geist-sans" });
 
@@ -19,7 +20,9 @@ export default function RootLayout({
   return (
     <html lang="en" className={cn("font-sans", geist.variable)}>
       {/* font-sans / font-hand are wired to next/font in M0 polish */}
-      <body className="min-h-dvh bg-paper text-ink antialiased">{children}</body>
+      <body className="min-h-dvh bg-paper text-ink antialiased">
+        <TooltipProvider delayDuration={300}>{children}</TooltipProvider>
+      </body>
     </html>
   );
 }

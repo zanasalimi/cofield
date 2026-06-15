@@ -1,26 +1,29 @@
 /**
- * The canvas surface. Owns the <canvas> element, wires the Renderer, and routes
- * pointer/keyboard events to pan/zoom. Holds no document data of its own — in M2
- * the local demo shapes are replaced by the Yjs doc, presence by Awareness.
+ * The canvas surface. Owns the <canvas> element, wires the Renderer, routes
+ * pan/zoom, and dispatches pointer/keyboard events to the active tool through a
+ * ToolContext. Shapes come from the board store (Yjs-backed in M2); presence
+ * from Awareness (M2). Tool/UI state from Zustand.
  */
 "use client";
 
 import { useEffect, useRef } from "react";
 import { Canvas2DRenderer } from "./renderer/Canvas2DRenderer";
 import type { Renderer } from "./renderer/Renderer";
-import { pan, zoomAt, visibleWorldRect } from "./viewport/viewport";
+import { pan, zoomAt, screenToWorld, visibleWorldRect } from "./viewport/viewport";
 import { cullToViewport } from "./viewport/culling";
+import { hitTestTopmost } from "./geometry/hit-test";
+import { createTool, TOOL_SHORTCUTS } from "./tools";
+import type { Tool, ToolContext, ToolModifiers } from "./tools/types";
 import { useUiStore } from "@/store/ui-store";
-import type { Shape } from "@/collab/types";
+import { useBoardStore } from "@/store/board-store";
+import type { Point, Shape, ShapeType } from "@/collab/types";
 
-// M1 placeholder content so pan/zoom has something to move over. Removed in M2
-// when shapes come from the Yjs document.
-const DEMO_SHAPES: Shape[] = [
-  { id: "r1", type: "rect", x: 80, y: 80, w: 220, h: 140, rotation: 0, style: { fill: "#FFE8A3", stroke: "#1A1A1A", strokeWidth: 2 }, createdBy: "seed" },
-  { id: "s1", type: "sticky", x: 360, y: 120, w: 180, h: 180, rotation: 0, style: { fill: "#FF9F1C", stroke: "#1A1A1A", strokeWidth: 0 }, content: "drag space to pan,\nctrl+scroll to zoom", createdBy: "seed" },
-  { id: "e1", type: "ellipse", x: 120, y: 300, w: 200, h: 120, rotation: 0, style: { fill: "#1FB3A3", stroke: "#0E5750", strokeWidth: 3 }, createdBy: "seed" },
-  { id: "t1", type: "text", x: 380, y: 360, w: 320, h: 40, rotation: 0, style: { fill: "#1A1A1A", stroke: "#1A1A1A", strokeWidth: 0 }, content: "Cofield — infinite canvas", createdBy: "seed" },
-];
+const CURSOR_FOR_TOOL: Record<string, string> = {
+  select: "default",
+  pan: "grab",
+  text: "text",
+  sticky: "copy",
+};
 
 export interface CanvasProps {
   boardId: string;
@@ -30,14 +33,30 @@ export function Canvas({ boardId }: CanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const rendererRef = useRef<Renderer | null>(null);
   const rafRef = useRef<number | null>(null);
+  const toolRef = useRef<Tool | null>(null);
   const spaceDown = useRef(false);
-  const panning = useRef(false);
+  const dragMode = useRef<"pan" | "tool" | null>(null);
 
-  // Subscribe so the render loop re-runs when the viewport changes.
+  // Re-run the paint loop when the viewport, selection, or shape set changes.
   const viewport = useUiStore((s) => s.viewport);
   const selection = useUiStore((s) => s.selection);
+  const activeTool = useUiStore((s) => s.activeTool);
+  const shapes = useBoardStore((s) => s.shapes);
 
-  // Single rAF-coalesced paint of the culled scene.
+  // Stable tool context — reads fresh state via getState() so no stale closures.
+  const ctxRef = useRef<ToolContext>(null as unknown as ToolContext);
+  if (!ctxRef.current) {
+    ctxRef.current = {
+      addShape: (type, rect) => useBoardStore.getState().addShape(type as ShapeType, rect),
+      updateShape: (id, patch) => useBoardStore.getState().updateShape(id, patch as Partial<Shape>),
+      removeShape: (id) => useBoardStore.getState().removeShape(id),
+      getShape: (id) => useBoardStore.getState().getShape(id),
+      hitTest: (world: Point) => hitTestTopmost(useBoardStore.getState().shapes, world),
+      setSelection: (ids) => useUiStore.getState().setSelection(ids),
+      getSelection: () => useUiStore.getState().selection,
+    };
+  }
+
   function scheduleRender() {
     if (rafRef.current != null) return;
     rafRef.current = requestAnimationFrame(() => {
@@ -47,12 +66,20 @@ export function Canvas({ boardId }: CanvasProps) {
       if (!r || !el) return;
       const vp = useUiStore.getState().viewport;
       const visible = visibleWorldRect(vp, el.clientWidth, el.clientHeight);
-      const culled = cullToViewport(DEMO_SHAPES, visible);
+      const culled = cullToViewport(useBoardStore.getState().shapes, visible);
       r.render({ shapes: culled, viewport: vp, selection: useUiStore.getState().selection });
     });
   }
 
-  // Mount: renderer + resize observer + input listeners (wheel/pointer/keys).
+  // Swap the active tool instance, cancelling any in-progress op on the old one.
+  useEffect(() => {
+    toolRef.current?.cancel(ctxRef.current);
+    toolRef.current = createTool(activeTool);
+    const el = canvasRef.current;
+    if (el) el.style.cursor = CURSOR_FOR_TOOL[activeTool] ?? "crosshair";
+  }, [activeTool]);
+
+  // Mount: renderer + resize observer + input listeners.
   useEffect(() => {
     const el = canvasRef.current;
     if (!el) return;
@@ -61,7 +88,14 @@ export function Canvas({ boardId }: CanvasProps) {
     renderer.mount(el);
     rendererRef.current = renderer;
 
-    const { setViewport } = useUiStore.getState();
+    const ctx = ctxRef.current;
+    const ui = useUiStore.getState;
+
+    const worldAt = (e: PointerEvent): Point => {
+      const rect = el.getBoundingClientRect();
+      return screenToWorld(ui().viewport, { x: e.clientX - rect.left, y: e.clientY - rect.top });
+    };
+    const modsOf = (e: PointerEvent): ToolModifiers => ({ shift: e.shiftKey, alt: e.altKey, meta: e.metaKey || e.ctrlKey });
 
     const resize = () => {
       renderer.resize(el.clientWidth, el.clientHeight, window.devicePixelRatio || 1);
@@ -73,45 +107,68 @@ export function Canvas({ boardId }: CanvasProps) {
 
     const onWheel = (e: WheelEvent) => {
       e.preventDefault();
-      const vp = useUiStore.getState().viewport;
+      const vp = ui().viewport;
       if (e.ctrlKey || e.metaKey) {
         const rect = el.getBoundingClientRect();
         const anchor = { x: e.clientX - rect.left, y: e.clientY - rect.top };
-        setViewport(zoomAt(vp, anchor, Math.exp(-e.deltaY * 0.0015)));
+        ui().setViewport(zoomAt(vp, anchor, Math.exp(-e.deltaY * 0.0015)));
       } else {
-        setViewport({ ...vp, x: vp.x + e.deltaX / vp.zoom, y: vp.y + e.deltaY / vp.zoom });
+        ui().setViewport({ ...vp, x: vp.x + e.deltaX / vp.zoom, y: vp.y + e.deltaY / vp.zoom });
       }
     };
 
     const onPointerDown = (e: PointerEvent) => {
-      if (spaceDown.current || e.button === 1) {
-        panning.current = true;
-        el.setPointerCapture(e.pointerId);
+      el.setPointerCapture(e.pointerId);
+      const panRequested = spaceDown.current || e.button === 1 || ui().activeTool === "pan";
+      if (panRequested) {
+        dragMode.current = "pan";
         el.style.cursor = "grabbing";
+        return;
       }
+      dragMode.current = "tool";
+      toolRef.current?.handle({ kind: "pointerdown", world: worldAt(e), mods: modsOf(e) }, ctx);
     };
     const onPointerMove = (e: PointerEvent) => {
-      if (!panning.current) return;
-      const vp = useUiStore.getState().viewport;
-      setViewport(pan(vp, { x: e.movementX, y: e.movementY }));
+      if (dragMode.current === "pan") {
+        ui().setViewport(pan(ui().viewport, { x: e.movementX, y: e.movementY }));
+      } else if (dragMode.current === "tool") {
+        toolRef.current?.handle({ kind: "pointermove", world: worldAt(e), mods: modsOf(e) }, ctx);
+      }
     };
     const onPointerUp = (e: PointerEvent) => {
-      if (!panning.current) return;
-      panning.current = false;
       el.releasePointerCapture(e.pointerId);
-      el.style.cursor = spaceDown.current ? "grab" : "default";
+      if (dragMode.current === "pan") {
+        el.style.cursor = spaceDown.current || ui().activeTool === "pan" ? "grab" : CURSOR_FOR_TOOL[ui().activeTool] ?? "crosshair";
+      } else if (dragMode.current === "tool") {
+        toolRef.current?.handle({ kind: "pointerup", world: worldAt(e), mods: modsOf(e) }, ctx);
+      }
+      dragMode.current = null;
     };
 
     const onKeyDown = (e: KeyboardEvent) => {
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
       if (e.code === "Space" && !spaceDown.current) {
         spaceDown.current = true;
-        if (!panning.current) el.style.cursor = "grab";
+        if (!dragMode.current) el.style.cursor = "grab";
+        return;
       }
+      if (e.key === "Escape") {
+        toolRef.current?.cancel(ctx);
+        ui().setSelection([]);
+        return;
+      }
+      if (e.key === "Delete" || e.key === "Backspace") {
+        for (const id of ui().selection) ctx.removeShape(id);
+        ui().setSelection([]);
+        return;
+      }
+      const tool = TOOL_SHORTCUTS[e.key.toLowerCase()];
+      if (tool && !e.metaKey && !e.ctrlKey) ui().setActiveTool(tool);
     };
     const onKeyUp = (e: KeyboardEvent) => {
       if (e.code === "Space") {
         spaceDown.current = false;
-        if (!panning.current) el.style.cursor = "default";
+        if (!dragMode.current) el.style.cursor = CURSOR_FOR_TOOL[ui().activeTool] ?? "crosshair";
       }
     };
 
@@ -136,8 +193,7 @@ export function Canvas({ boardId }: CanvasProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [boardId]);
 
-  // Repaint whenever the observed viewport/selection change.
-  useEffect(scheduleRender, [viewport, selection]);
+  useEffect(scheduleRender, [viewport, selection, shapes, activeTool]);
 
   return (
     <canvas

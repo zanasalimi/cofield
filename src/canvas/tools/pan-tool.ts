@@ -9,8 +9,8 @@ export function createPanTool(): Tool {
   return {
     id: "pan",
     handle(_event: ToolEvent, _ctx: ToolContext): void {
-      // TODO(M1): drag updates the viewport (owned by the viewport store), not the doc.
-      throw new Error("not implemented");
+      // No-op: when the pan tool is active the Canvas drives the viewport
+      // directly on drag (same path as holding Space), never the document.
     },
     cancel(_ctx: ToolContext): void {
       // no-op: pan never leaves partial state.
