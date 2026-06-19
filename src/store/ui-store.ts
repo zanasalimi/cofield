@@ -43,6 +43,10 @@ export interface UiState {
   openCommentId: string | null;
   /** component kind armed for insertion — the next canvas click places it, or null */
   pendingInsert: ComponentKind | null;
+  /** pen tool mode + brush settings */
+  penMode: "pen" | "highlighter" | "eraser";
+  penColor: string;
+  penSize: number;
 
   setActiveTool: (tool: ToolId) => void;
   setViewport: (viewport: Viewport) => void;
@@ -62,6 +66,9 @@ export interface UiState {
   setCommentMode: (commentMode: boolean) => void;
   setOpenCommentId: (id: string | null) => void;
   setPendingInsert: (kind: ComponentKind | null) => void;
+  setPenMode: (mode: "pen" | "highlighter" | "eraser") => void;
+  setPenColor: (color: string) => void;
+  setPenSize: (size: number) => void;
 }
 
 export const useUiStore = create<UiState>((set) => ({
@@ -83,6 +90,9 @@ export const useUiStore = create<UiState>((set) => ({
   commentMode: false,
   openCommentId: null,
   pendingInsert: null,
+  penMode: "pen",
+  penColor: "#4262FF",
+  penSize: 3,
 
   setActiveTool: (activeTool) => set({ activeTool, commentMode: false, pendingInsert: null }),
   setViewport: (viewport) => set({ viewport }),
@@ -102,4 +112,7 @@ export const useUiStore = create<UiState>((set) => ({
   setCommentMode: (commentMode) => set({ commentMode }),
   setOpenCommentId: (openCommentId) => set({ openCommentId }),
   setPendingInsert: (pendingInsert) => set({ pendingInsert }),
+  setPenMode: (penMode) => set({ penMode }),
+  setPenColor: (penColor) => set({ penColor }),
+  setPenSize: (penSize) => set({ penSize }),
 }));

@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import { Canvas } from "@/canvas/Canvas";
 import { TopBar } from "@/ui/TopBar";
 import { Toolbar } from "@/ui/Toolbar";
+import { PenToolbar } from "@/ui/PenToolbar";
 import { Minimap } from "@/ui/Minimap";
 import { HelpButton } from "@/ui/HelpButton";
 import { ZoomControl } from "@/ui/ZoomControl";
@@ -38,7 +39,8 @@ export default async function BoardPage({ params }: BoardPageProps) {
         <Canvas boardId={boardId} />
 
         {/* Floating chrome over the canvas. */}
-        <div className="pointer-events-none absolute bottom-5 left-1/2 -translate-x-1/2">
+        <div className="pointer-events-none absolute bottom-5 left-1/2 flex -translate-x-1/2 flex-col items-center gap-2">
+          <PenToolbar />
           <Toolbar />
         </div>
         <div className="pointer-events-none absolute bottom-5 left-5">
