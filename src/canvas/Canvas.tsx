@@ -9,7 +9,7 @@
 import { useEffect, useRef } from "react";
 import { Canvas2DRenderer } from "./renderer/Canvas2DRenderer";
 import type { Renderer } from "./renderer/Renderer";
-import { pan, zoomAt, screenToWorld, visibleWorldRect } from "./viewport/viewport";
+import { pan, zoomAt, screenToWorld, visibleWorldRect, fitRect } from "./viewport/viewport";
 import { cullToViewport } from "./viewport/culling";
 import { hitTestTopmost, shapeBounds, rectsIntersect } from "./geometry/hit-test";
 import { computeSnap, SNAP_THRESHOLD } from "./geometry/snapping";
@@ -34,6 +34,23 @@ const CURSOR_FOR_TOOL: Record<string, string> = {
 
 function center(s: Shape): Point {
   return { x: s.x + s.w / 2, y: s.y + s.h / 2 };
+}
+
+/** Axis-aligned union of the shapes' world bounds, or null if empty. */
+function unionBounds(shapes: Shape[]): { x: number; y: number; w: number; h: number } | null {
+  if (shapes.length === 0) return null;
+  let minX = Infinity;
+  let minY = Infinity;
+  let maxX = -Infinity;
+  let maxY = -Infinity;
+  for (const s of shapes) {
+    const b = shapeBounds(s);
+    minX = Math.min(minX, b.x);
+    minY = Math.min(minY, b.y);
+    maxX = Math.max(maxX, b.x + b.w);
+    maxY = Math.max(maxY, b.y + b.h);
+  }
+  return { x: minX, y: minY, w: maxX - minX, h: maxY - minY };
 }
 
 /** Topmost non-connector shape whose body — expanded to include its connection
@@ -480,6 +497,18 @@ export function Canvas({ boardId }: CanvasProps) {
         e.preventDefault();
         const sel = useUiStore.getState().selection;
         if (sel.length) useUiStore.getState().setSelection(useBoardStore.getState().duplicate(sel));
+        return;
+      }
+      // Zoom to fit all (Shift+1) / to selection (Shift+2).
+      if (e.shiftKey && (e.code === "Digit1" || e.code === "Digit2")) {
+        e.preventDefault();
+        const all = useBoardStore.getState().shapes.filter((s) => s.type !== "connector");
+        const target =
+          e.code === "Digit2"
+            ? all.filter((s) => useUiStore.getState().selection.includes(s.id))
+            : all;
+        const b = unionBounds(target);
+        if (b) ui().setViewport(fitRect(b, el.clientWidth, el.clientHeight));
         return;
       }
       // Z-order: Cmd/Ctrl + ] / [ (Shift = all the way to front/back).

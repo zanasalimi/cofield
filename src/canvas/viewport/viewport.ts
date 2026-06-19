@@ -56,3 +56,14 @@ export function zoomAt(vp: Viewport, anchor: Point, factor: number): Viewport {
 export function visibleWorldRect(vp: Viewport, screenW: number, screenH: number): Rect {
   return { x: vp.x, y: vp.y, w: screenW / vp.zoom, h: screenH / vp.zoom };
 }
+
+/** A viewport that fits a world rect centred in the screen, with screen padding. */
+export function fitRect(rect: Rect, screenW: number, screenH: number, padding = 80): Viewport {
+  if (rect.w <= 0 || rect.h <= 0 || screenW <= 0 || screenH <= 0) return createViewport();
+  const zoom = clampZoom(Math.min((screenW - 2 * padding) / rect.w, (screenH - 2 * padding) / rect.h));
+  return {
+    x: rect.x + rect.w / 2 - screenW / (2 * zoom),
+    y: rect.y + rect.h / 2 - screenH / (2 * zoom),
+    zoom,
+  };
+}
