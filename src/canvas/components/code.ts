@@ -8,6 +8,7 @@ export interface CodeProps {
   code: string;
   theme: "dark" | "light";
   lineNumbers: boolean;
+  wrap: boolean;
   fontSize: number;
   title: string;
 }
@@ -21,17 +22,18 @@ export const codeDef: ComponentDef<CodeProps> = {
   group: "structural",
   Interior: CodeInterior,
   defaults: () => ({
-    props: { language: "ts", code: "// code", theme: "dark", lineNumbers: true, fontSize: 13, title: "" },
+    props: { language: "ts", code: "// code", theme: "dark", lineNumbers: true, wrap: false, fontSize: 13, title: "" },
     w: 360, h: 120,
   }),
   customSchema: [
     { kind: "select", key: "language", label: "Language", options: [
       { value: "ts", label: "TypeScript" }, { value: "js", label: "JavaScript" },
-      { value: "py", label: "Python" }, { value: "json", label: "JSON" }, { value: "bash", label: "Shell" },
+      { value: "py", label: "Python" }, { value: "json", label: "JSON" }, { value: "bash", label: "Shell" }, { value: "css", label: "CSS" }, { value: "html", label: "HTML" },
     ] },
     { kind: "select", key: "theme", label: "Theme", options: [{ value: "dark", label: "Dark" }, { value: "light", label: "Light" }] },
     { kind: "toggle", key: "lineNumbers", label: "Line numbers" },
-    { kind: "number", key: "fontSize", label: "Font size", min: 9, max: 24, step: 1 },
+    { kind: "toggle", key: "wrap", label: "Wrap lines" },
+    { kind: "slider", key: "fontSize", label: "Font size", min: 9, max: 24, step: 1 },
     { kind: "text", key: "title", label: "Filename" },
   ],
   drawChrome(ctx, shape) {

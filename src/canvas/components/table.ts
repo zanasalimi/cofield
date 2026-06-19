@@ -8,6 +8,10 @@ export interface TableProps {
   colW: number[];
   rowH: number[];
   headerRow: boolean;
+  headerCol: boolean;
+  banded: boolean;
+  borderColor: string;
+  borderWidth: number;
   cells: string[][];
 }
 
@@ -27,7 +31,11 @@ export const tableDef: ComponentDef<TableProps> = {
   defaults: () => {
     const rows = 3, cols = 3;
     return {
-      props: { rows, cols, colW: Array(cols).fill(COL), rowH: Array(rows).fill(ROW), headerRow: true, cells: blankCells(rows, cols) },
+      props: {
+        rows, cols, colW: Array(cols).fill(COL), rowH: Array(rows).fill(ROW),
+        headerRow: true, headerCol: false, banded: false, borderColor: "#D7D7DE", borderWidth: 1,
+        cells: blankCells(rows, cols),
+      },
       w: cols * COL, h: rows * ROW,
     };
   },
@@ -45,6 +53,10 @@ export const tableDef: ComponentDef<TableProps> = {
     { kind: "number", key: "rows", label: "Rows", min: 1, max: 30, step: 1 },
     { kind: "number", key: "cols", label: "Columns", min: 1, max: 12, step: 1 },
     { kind: "toggle", key: "headerRow", label: "Header row" },
+    { kind: "toggle", key: "headerCol", label: "Header column" },
+    { kind: "toggle", key: "banded", label: "Banded rows" },
+    { kind: "color", key: "borderColor", label: "Border" },
+    { kind: "slider", key: "borderWidth", label: "Border width", min: 1, max: 4, step: 1 },
   ],
   drawChrome(ctx, shape) {
     const p = shape.props as unknown as TableProps;
@@ -52,12 +64,27 @@ export const tableDef: ComponentDef<TableProps> = {
     ctx.translate(shape.x, shape.y);
     ctx.fillStyle = "#FFFFFF";
     ctx.fillRect(0, 0, shape.w, shape.h);
+    // banded rows
+    if (p.banded) {
+      let by = 0;
+      for (let r = 0; r < p.rows; r++) {
+        if (r % 2 === 1) {
+          ctx.fillStyle = "#FAFAFB";
+          ctx.fillRect(0, by, shape.w, p.rowH[r] ?? ROW);
+        }
+        by += p.rowH[r] ?? ROW;
+      }
+    }
     if (p.headerRow && p.rowH[0]) {
-      ctx.fillStyle = "#F4F4F6";
+      ctx.fillStyle = "#F0F0F4";
       ctx.fillRect(0, 0, shape.w, p.rowH[0]);
     }
-    ctx.strokeStyle = shape.style.stroke;
-    ctx.lineWidth = 1;
+    if (p.headerCol && p.colW[0]) {
+      ctx.fillStyle = "#F0F0F4";
+      ctx.fillRect(0, 0, p.colW[0], shape.h);
+    }
+    ctx.strokeStyle = p.borderColor ?? "#D7D7DE";
+    ctx.lineWidth = p.borderWidth ?? 1;
     let y = 0;
     for (const h of p.rowH) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(shape.w, y); ctx.stroke(); y += h; }
     ctx.beginPath(); ctx.moveTo(0, shape.h); ctx.lineTo(shape.w, shape.h); ctx.stroke();

@@ -7,6 +7,7 @@ export type CustomField =
   | { kind: "color"; key: string; label: string; allowNone?: boolean }
   | { kind: "select"; key: string; label: string; options: { value: string; label: string }[] }
   | { kind: "number"; key: string; label: string; min?: number; max?: number; step?: number }
+  | { kind: "slider"; key: string; label: string; min?: number; max?: number; step?: number }
   | { kind: "toggle"; key: string; label: string }
   | { kind: "text"; key: string; label: string; multiline?: boolean };
 

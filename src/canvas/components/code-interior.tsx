@@ -14,12 +14,15 @@ export function CodeInterior({ shape }: { shape: Shape }) {
         useBoardStore.getState().updateComponentProps(shape.id, { code: e.target.value })
       }
       spellCheck={false}
+      wrap={p.wrap ? "soft" : "off"}
       className="size-full resize-none rounded-[10px] border-none p-3 outline-none"
       style={{
         background: "transparent",
         color: dark ? "#E6E6F0" : "#1A1A1A",
         font: `${p.fontSize ?? 13}px ui-monospace, monospace`,
         paddingLeft: p.lineNumbers ? 34 : 12,
+        whiteSpace: p.wrap ? "pre-wrap" : "pre",
+        overflowX: p.wrap ? "hidden" : "auto",
       }}
     />
   );
