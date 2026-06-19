@@ -7,6 +7,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { Download } from "lucide-react";
 import { Canvas2DRenderer } from "./renderer/Canvas2DRenderer";
 import type { Renderer } from "./renderer/Renderer";
 import { pan, zoomAt, screenToWorld, visibleWorldRect, fitRect } from "./viewport/viewport";
@@ -220,6 +221,7 @@ export function Canvas({ boardId }: CanvasProps) {
   const spaceDown = useRef(false);
   const dragMode = useRef<"pan" | "tool" | null>(null);
   const hoveredIdRef = useRef<string | null>(null);
+  const exportRef = useRef<(() => void) | null>(null);
 
   // Only the chrome that is React-rendered subscribes here (grid, cursors,
   // tool wiring). The canvas itself paints imperatively from store subscriptions
@@ -357,6 +359,50 @@ export function Canvas({ boardId }: CanvasProps) {
       });
     });
   }
+
+  function exportPng() {
+    const all = useBoardStore.getState().shapes;
+    const byId = new Map(all.map((sh) => [sh.id, sh]));
+    const resolved: Shape[] = [];
+    for (const sh of all) {
+      if (sh.type === "connector") {
+        const rc = resolveConnector(sh, byId);
+        if (rc) resolved.push(rc);
+      } else {
+        resolved.push(sh);
+      }
+    }
+    const b = unionBounds(resolved);
+    if (!b) return;
+    const pad = 40;
+    const scale = 2;
+    const wCss = b.w + pad * 2;
+    const hCss = b.h + pad * 2;
+    const off = document.createElement("canvas");
+    const r = new Canvas2DRenderer();
+    r.mount(off);
+    r.resize(wCss, hCss, scale);
+    r.render({ shapes: resolved, viewport: { x: b.x - pad, y: b.y - pad, zoom: 1 }, selection: [] });
+    // Composite onto the paper background and download.
+    const final = document.createElement("canvas");
+    final.width = Math.ceil(wCss * scale);
+    final.height = Math.ceil(hCss * scale);
+    const fctx = final.getContext("2d");
+    if (!fctx) return;
+    fctx.fillStyle = "#FAFAF7";
+    fctx.fillRect(0, 0, final.width, final.height);
+    fctx.drawImage(off, 0, 0);
+    final.toBlob((blob) => {
+      if (!blob) return;
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `cofield-${boardId}.png`;
+      a.click();
+      URL.revokeObjectURL(url);
+    }, "image/png");
+  }
+  exportRef.current = exportPng;
 
   useEffect(() => {
     toolRef.current?.cancel(ctxRef.current);
@@ -497,6 +543,12 @@ export function Canvas({ boardId }: CanvasProps) {
         useBoardStore.getState().redo();
         return;
       }
+      // Export the board as a PNG.
+      if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key.toLowerCase() === "e") {
+        e.preventDefault();
+        exportRef.current?.();
+        return;
+      }
       // Copy / paste / duplicate.
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "c") {
         const sel = useUiStore.getState().selection;
@@ -611,6 +663,15 @@ export function Canvas({ boardId }: CanvasProps) {
       <div className="absolute left-1/2 top-4 -translate-x-1/2">
         <AvatarStack presences={presences} me={me} />
       </div>
+      <button
+        type="button"
+        onClick={() => exportRef.current?.()}
+        title="Export board as PNG (⌘⇧E)"
+        aria-label="Export board as PNG"
+        className="absolute bottom-4 right-20 grid size-9 place-items-center rounded-lg border border-hairline bg-chrome text-ink-soft shadow-toolbar transition-transform duration-100 hover:text-ink active:scale-90"
+      >
+        <Download className="size-4" />
+      </button>
       <TextOverlay />
       <SelectionToolbar />
       <AlignBar />
