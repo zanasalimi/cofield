@@ -63,7 +63,7 @@ export function makeShape(type: ShapeType, rect: { x: number; y: number; w: numb
     h: rect.h,
     rotation: 0,
     style: DEFAULT_STYLE[type],
-    content: type === "sticky" ? "" : type === "text" ? "Text" : undefined,
+    content: type === "sticky" || type === "text" ? "" : undefined,
     createdBy: "me",
   };
 }

@@ -20,6 +20,16 @@ export function TextOverlay() {
 
   const shape = editingId ? shapes.find((s) => s.id === editingId) : undefined;
 
+  // Leaving an empty text/sticky removes it, so no invisible orphans pile up.
+  const stopEditing = () => {
+    const s = shape;
+    setEditingId(null);
+    if (s && (s.type === "text" || s.type === "sticky") && !(s.content ?? "").trim()) {
+      useBoardStore.getState().removeShape(s.id);
+      useUiStore.getState().setSelection([]);
+    }
+  };
+
   useEffect(() => {
     if (editingId && ref.current) {
       ref.current.focus();
@@ -44,11 +54,12 @@ export function TextOverlay() {
       ref={ref}
       value={shape.content ?? ""}
       onChange={(e) => useBoardStore.getState().updateShape(shape.id, { content: e.target.value })}
-      onBlur={() => setEditingId(null)}
+      onBlur={stopEditing}
       onKeyDown={(e) => {
-        if (e.key === "Escape") setEditingId(null);
+        if (e.key === "Escape") stopEditing();
         e.stopPropagation();
       }}
+      placeholder={isSticky || isText ? "Type something…" : ""}
       spellCheck={false}
       className="pointer-events-auto absolute resize-none overflow-hidden border-none bg-transparent outline-none"
       style={{

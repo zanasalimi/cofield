@@ -286,6 +286,7 @@ export function Canvas({ boardId }: CanvasProps) {
       setGuides: (guides) => useUiStore.getState().setGuides(guides),
       setSelection: (ids) => useUiStore.getState().setSelection(ids),
       getSelection: () => useUiStore.getState().selection,
+      setEditing: (id) => useUiStore.getState().setEditingId(id),
     };
   }
 

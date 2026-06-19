@@ -65,6 +65,8 @@ export interface ToolContext {
   setGuides: (guides: import("@/canvas/geometry/snapping").SnapGuide[]) => void;
   setSelection: (ids: string[]) => void;
   getSelection: () => string[];
+  /** Enter (or leave) text editing for a shape. */
+  setEditing: (id: string | null) => void;
 }
 
 export interface Tool {
