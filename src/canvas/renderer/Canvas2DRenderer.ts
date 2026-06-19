@@ -299,10 +299,11 @@ function drawShape(ctx: CanvasRenderingContext2D, shape: Shape): void {
         ctx.fillRect(shape.x, shape.y, shape.w, shape.h);
         ctx.restore();
         if (shape.content) {
+          const fs = style.fontSize ?? 14;
           ctx.fillStyle = "#1A1A1A";
-          ctx.font = "14px ui-sans-serif, system-ui, sans-serif";
+          ctx.font = `${style.bold ? "600 " : ""}${fs}px ui-sans-serif, system-ui, sans-serif`;
           ctx.textBaseline = "top";
-          wrapText(ctx, shape.content, shape.x + 10, shape.y + 10, shape.w - 20, 17);
+          wrapText(ctx, shape.content, shape.x + 10, shape.y + 10, shape.w - 20, fs * 1.25, style.align ?? "left");
         }
         break;
       }
@@ -312,12 +313,14 @@ function drawShape(ctx: CanvasRenderingContext2D, shape: Shape): void {
         ctx.fill();
         if (style.strokeWidth > 0) ctx.stroke();
         break;
-      case "text":
+      case "text": {
+        const fs = style.fontSize ?? 16;
         ctx.fillStyle = style.stroke;
-        ctx.font = "16px ui-sans-serif, system-ui, sans-serif";
+        ctx.font = `${style.bold ? "600 " : ""}${fs}px ui-sans-serif, system-ui, sans-serif`;
         ctx.textBaseline = "top";
-        if (shape.content) wrapText(ctx, shape.content, shape.x, shape.y, shape.w, 19);
+        if (shape.content) wrapText(ctx, shape.content, shape.x, shape.y, shape.w, fs * 1.2, style.align ?? "left");
         break;
+      }
       case "arrow":
         ctx.beginPath();
         ctx.moveTo(shape.x, shape.y);
@@ -372,23 +375,34 @@ function drawArrowhead(ctx: CanvasRenderingContext2D, fx: number, fy: number, tx
   ctx.fill();
 }
 
-function wrapText(ctx: CanvasRenderingContext2D, text: string, x: number, y: number, maxW: number, lineH: number): void {
+function wrapText(
+  ctx: CanvasRenderingContext2D,
+  text: string,
+  x: number,
+  y: number,
+  maxW: number,
+  lineH: number,
+  align: "left" | "center" | "right" = "left",
+): void {
+  ctx.textAlign = align;
+  const anchor = align === "center" ? x + maxW / 2 : align === "right" ? x + maxW : x;
   let line = "";
   let cy = y;
   for (const word of text.split(/(\s+)/)) {
     const test = line + word;
     if (ctx.measureText(test).width > maxW && line) {
-      ctx.fillText(line.trimEnd(), x, cy);
+      ctx.fillText(line.trimEnd(), anchor, cy);
       line = word.trimStart();
       cy += lineH;
     } else {
       line = test;
     }
     if (word.includes("\n")) {
-      ctx.fillText(line, x, cy);
+      ctx.fillText(line, anchor, cy);
       line = "";
       cy += lineH;
     }
   }
-  if (line) ctx.fillText(line, x, cy);
+  if (line) ctx.fillText(line, anchor, cy);
+  ctx.textAlign = "left";
 }

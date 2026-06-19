@@ -21,6 +21,10 @@ export interface ShapeStyle {
   fill: string;
   stroke: string;
   strokeWidth: number;
+  /** text/sticky typography */
+  fontSize?: number;
+  bold?: boolean;
+  align?: "left" | "center" | "right";
 }
 
 /** A shape edge a connector can anchor to. */

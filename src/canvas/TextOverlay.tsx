@@ -53,7 +53,9 @@ export function TextOverlay() {
         padding: pad * viewport.zoom,
         background: isSticky ? shape.style.fill : "transparent",
         color: isSticky ? "#1A1A1A" : shape.style.stroke || "#1A1A1A",
-        fontSize: (isSticky ? 14 : 16) * viewport.zoom,
+        fontSize: (shape.style.fontSize ?? (isSticky ? 14 : 16)) * viewport.zoom,
+        fontWeight: shape.style.bold ? 600 : 400,
+        textAlign: shape.style.align ?? "left",
         fontFamily: "ui-sans-serif, system-ui, sans-serif",
         lineHeight: 1.2,
       }}
