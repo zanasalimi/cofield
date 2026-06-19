@@ -29,6 +29,7 @@ import { HoverConnectLayer } from "./HoverConnectLayer";
 import { RotateHandle } from "./RotateHandle";
 import { LinkLayer } from "./LinkLayer";
 import { CommentsLayer } from "./CommentsLayer";
+import { ComponentInteriorLayer } from "./ComponentInteriorLayer";
 import type { Point, Shape, ShapeType, Side } from "@/collab/types";
 
 const CURSOR_FOR_TOOL: Record<string, string> = {
@@ -762,6 +763,7 @@ export function Canvas({ boardId }: CanvasProps) {
       <CursorsLayer presences={presences} viewport={viewport} />
       <LinkLayer />
       <CommentsLayer />
+      <ComponentInteriorLayer />
       <HoverConnectLayer />
       <RotateHandle />
       <TextOverlay />

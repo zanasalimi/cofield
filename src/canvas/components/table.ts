@@ -1,5 +1,6 @@
 import { Table } from "lucide-react";
 import type { ComponentDef } from "./registry";
+import { TableInterior } from "./table-interior";
 
 export interface TableProps {
   rows: number;
@@ -22,6 +23,7 @@ export const tableDef: ComponentDef<TableProps> = {
   label: "Table",
   icon: Table,
   group: "structural",
+  Interior: TableInterior,
   defaults: () => {
     const rows = 3, cols = 3;
     return {

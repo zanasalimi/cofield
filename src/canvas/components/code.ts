@@ -1,6 +1,7 @@
 import { Code2 } from "lucide-react";
 import type { ComponentDef } from "./registry";
 import { roundRectPath } from "@/canvas/renderer/shapes-util";
+import { CodeInterior } from "./code-interior";
 
 export interface CodeProps {
   language: string;
@@ -18,6 +19,7 @@ export const codeDef: ComponentDef<CodeProps> = {
   label: "Code block",
   icon: Code2,
   group: "structural",
+  Interior: CodeInterior,
   defaults: () => ({
     props: { language: "ts", code: "// code", theme: "dark", lineNumbers: true, fontSize: 13, title: "" },
     w: 360, h: 120,
