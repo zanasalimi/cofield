@@ -9,6 +9,7 @@ import { Toolbar } from "@/ui/Toolbar";
 import { Minimap } from "@/ui/Minimap";
 import { HelpButton } from "@/ui/HelpButton";
 import { ZoomControl } from "@/ui/ZoomControl";
+import { Inspector } from "@/canvas/Inspector";
 import { getCurrentUser } from "@/auth/server";
 import { isMember } from "@/boards/server";
 
@@ -46,6 +47,9 @@ export default async function BoardPage({ params }: BoardPageProps) {
         <div className="pointer-events-none absolute bottom-5 right-5 flex flex-col items-end gap-2.5">
           <Minimap />
           <ZoomControl />
+        </div>
+        <div className="pointer-events-none absolute right-5 top-5">
+          <Inspector />
         </div>
       </div>
     </div>
