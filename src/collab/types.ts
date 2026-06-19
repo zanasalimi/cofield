@@ -28,7 +28,12 @@ export interface ShapeStyle {
   /** text/sticky typography */
   fontSize?: number;
   bold?: boolean;
+  italic?: boolean;
+  underline?: boolean;
+  strike?: boolean;
   align?: "left" | "center" | "right";
+  /** vertical alignment of a node's label */
+  valign?: "top" | "middle" | "bottom";
   /** named font family (key into FONT_STACKS) */
   fontFamily?: string;
   /** label / text colour (falls back to ink) */

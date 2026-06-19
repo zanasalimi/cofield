@@ -7,7 +7,7 @@
  * here — cheaper and buttery during pan/zoom.
  */
 import type { Renderer, RenderScene } from "./Renderer";
-import type { Shape } from "@/collab/types";
+import type { Shape, ShapeStyle } from "@/collab/types";
 import { fontStack } from "@/canvas/fonts";
 
 const SELECT = "#4262FF"; // Miro-like selection blue
@@ -282,13 +282,7 @@ function drawShape(ctx: CanvasRenderingContext2D, shape: Shape): void {
         ctx.shadowOffsetY = 3;
         ctx.fillRect(shape.x, shape.y, shape.w, shape.h);
         ctx.restore();
-        if (shape.content) {
-          const fs = style.fontSize ?? 14;
-          ctx.fillStyle = style.textColor ?? "#1A1A1A";
-          ctx.font = `${style.bold ? "600 " : ""}${fs}px ${fontStack(style.fontFamily)}`;
-          ctx.textBaseline = "top";
-          wrapText(ctx, shape.content, shape.x + 10, shape.y + 10, shape.w - 20, fs * 1.25, style.align ?? "left");
-        }
+        if (shape.content) drawLabel(ctx, shape.content, shape.x, shape.y, shape.w, shape.h, style, 14, "#1A1A1A", false, 10);
         break;
       }
       case "ellipse":
@@ -349,11 +343,7 @@ function drawShape(ctx: CanvasRenderingContext2D, shape: Shape): void {
         break;
       }
       case "text": {
-        const fs = style.fontSize ?? 16;
-        ctx.fillStyle = style.textColor ?? style.stroke;
-        ctx.font = `${style.bold ? "600 " : ""}${fs}px ${fontStack(style.fontFamily)}`;
-        ctx.textBaseline = "top";
-        if (shape.content) wrapText(ctx, shape.content, shape.x, shape.y, shape.w, fs * 1.2, style.align ?? "left");
+        if (shape.content) drawLabel(ctx, shape.content, shape.x, shape.y, shape.w, shape.h, style, 16, style.stroke, false, 0);
         break;
       }
       case "arrow":
@@ -398,7 +388,8 @@ function drawShape(ctx: CanvasRenderingContext2D, shape: Shape): void {
 
     // Centred text label for diagram nodes (diagrams.net style) — every box,
     // ellipse, triangle, diamond and star can hold a label in its middle.
-    if (shape.content && LABELLED.has(shape.type)) drawCenteredLabel(ctx, shape);
+    if (shape.content && LABELLED.has(shape.type))
+      drawLabel(ctx, shape.content, shape.x, shape.y, shape.w, shape.h, style, 14, "#1A1A1A", true, 8);
   });
   ctx.globalAlpha = prevAlpha;
 }
@@ -406,18 +397,10 @@ function drawShape(ctx: CanvasRenderingContext2D, shape: Shape): void {
 /** Shape types that carry a centred label. */
 const LABELLED = new Set<Shape["type"]>(["rect", "ellipse", "triangle", "diamond", "star"]);
 
-function drawCenteredLabel(ctx: CanvasRenderingContext2D, shape: Shape): void {
-  const fs = shape.style.fontSize ?? 14;
-  ctx.fillStyle = shape.style.textColor ?? "#1A1A1A";
-  ctx.font = `${shape.style.bold ? "600 " : ""}${fs}px ${fontStack(shape.style.fontFamily)}`;
-  ctx.textAlign = "center";
-  ctx.textBaseline = "middle";
-  const cx = shape.x + shape.w / 2;
-  const cy = shape.y + shape.h / 2;
-  const maxW = Math.max(8, shape.w - 16);
-  const lineH = fs * 1.25;
+/** Wrap text to lines that fit `maxW`, honouring explicit newlines. */
+function wrapLines(ctx: CanvasRenderingContext2D, content: string, maxW: number): string[] {
   const lines: string[] = [];
-  for (const para of (shape.content ?? "").split("\n")) {
+  for (const para of content.split("\n")) {
     let line = "";
     for (const word of para.split(/\s+/)) {
       if (!word) continue;
@@ -431,10 +414,64 @@ function drawCenteredLabel(ctx: CanvasRenderingContext2D, shape: Shape): void {
     }
     lines.push(line);
   }
-  const startY = cy - ((lines.length - 1) * lineH) / 2;
-  lines.forEach((ln, i) => ctx.fillText(ln, cx, startY + i * lineH));
+  return lines;
+}
+
+/**
+ * Draw a shape's text label with full typography: font family, bold/italic,
+ * colour, horizontal + vertical alignment, and underline/strikethrough. `centred`
+ * nodes default to centre/middle; text/sticky default to left/top.
+ */
+function drawLabel(
+  ctx: CanvasRenderingContext2D,
+  content: string,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+  style: ShapeStyle,
+  defaultSize: number,
+  defaultColor: string,
+  centred: boolean,
+  pad: number,
+): void {
+  const fs = style.fontSize ?? defaultSize;
+  const lineH = fs * 1.3;
+  const color = style.textColor ?? defaultColor;
+  ctx.fillStyle = color;
+  ctx.strokeStyle = color;
+  ctx.lineWidth = Math.max(1, fs / 14);
+  ctx.font = `${style.italic ? "italic " : ""}${style.bold ? "600 " : ""}${fs}px ${fontStack(style.fontFamily)}`;
+  ctx.textBaseline = "top";
+  const align = style.align ?? (centred ? "center" : "left");
+  ctx.textAlign = align;
+  const maxW = Math.max(4, w - pad * 2);
+  const lines = wrapLines(ctx, content, maxW);
+  const totalH = lines.length * lineH;
+  const valign = style.valign ?? (centred ? "middle" : "top");
+  const startY = valign === "middle" ? y + (h - totalH) / 2 : valign === "bottom" ? y + h - totalH - pad : y + pad;
+  const anchorX = align === "center" ? x + w / 2 : align === "right" ? x + w - pad : x + pad;
+  for (let i = 0; i < lines.length; i++) {
+    const ly = startY + i * lineH;
+    ctx.fillText(lines[i]!, anchorX, ly);
+    if (style.underline || style.strike) {
+      const tw = ctx.measureText(lines[i]!).width;
+      const lx = align === "center" ? anchorX - tw / 2 : align === "right" ? anchorX - tw : anchorX;
+      if (style.underline) {
+        ctx.beginPath();
+        ctx.moveTo(lx, ly + fs * 1.04);
+        ctx.lineTo(lx + tw, ly + fs * 1.04);
+        ctx.stroke();
+      }
+      if (style.strike) {
+        ctx.beginPath();
+        ctx.moveTo(lx, ly + fs * 0.58);
+        ctx.lineTo(lx + tw, ly + fs * 0.58);
+        ctx.stroke();
+      }
+    }
+  }
   ctx.textAlign = "left";
-  ctx.textBaseline = "alphabetic";
 }
 
 function drawArrowhead(ctx: CanvasRenderingContext2D, fx: number, fy: number, tx: number, ty: number, color: string): void {
@@ -449,34 +486,3 @@ function drawArrowhead(ctx: CanvasRenderingContext2D, fx: number, fy: number, tx
   ctx.fill();
 }
 
-function wrapText(
-  ctx: CanvasRenderingContext2D,
-  text: string,
-  x: number,
-  y: number,
-  maxW: number,
-  lineH: number,
-  align: "left" | "center" | "right" = "left",
-): void {
-  ctx.textAlign = align;
-  const anchor = align === "center" ? x + maxW / 2 : align === "right" ? x + maxW : x;
-  let line = "";
-  let cy = y;
-  for (const word of text.split(/(\s+)/)) {
-    const test = line + word;
-    if (ctx.measureText(test).width > maxW && line) {
-      ctx.fillText(line.trimEnd(), anchor, cy);
-      line = word.trimStart();
-      cy += lineH;
-    } else {
-      line = test;
-    }
-    if (word.includes("\n")) {
-      ctx.fillText(line, anchor, cy);
-      line = "";
-      cy += lineH;
-    }
-  }
-  if (line) ctx.fillText(line, anchor, cy);
-  ctx.textAlign = "left";
-}

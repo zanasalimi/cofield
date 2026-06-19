@@ -27,6 +27,7 @@ import { AlignBar } from "./AlignBar";
 import { ContextMenu } from "./ContextMenu";
 import { HoverConnectLayer } from "./HoverConnectLayer";
 import { RotateHandle } from "./RotateHandle";
+import { LinkLayer } from "./LinkLayer";
 import type { Point, Shape, ShapeType, Side } from "@/collab/types";
 
 const CURSOR_FOR_TOOL: Record<string, string> = {
@@ -736,6 +737,7 @@ export function Canvas({ boardId }: CanvasProps) {
       <div className="absolute left-1/2 top-4 -translate-x-1/2">
         <AvatarStack presences={presences} me={me} />
       </div>
+      <LinkLayer />
       <HoverConnectLayer />
       <RotateHandle />
       <TextOverlay />

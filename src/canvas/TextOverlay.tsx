@@ -10,6 +10,7 @@ import { useEffect, useRef } from "react";
 import { useUiStore } from "@/store/ui-store";
 import { useBoardStore } from "@/store/board-store";
 import { worldToScreen } from "./viewport/viewport";
+import { fontStack } from "./fonts";
 
 export function TextOverlay() {
   const editingId = useUiStore((s) => s.editingId);
@@ -71,12 +72,14 @@ export function TextOverlay() {
         paddingLeft: hpad,
         paddingRight: hpad,
         background: isSticky ? shape.style.fill : "transparent",
-        color: isText ? shape.style.stroke || "#1A1A1A" : "#1A1A1A",
+        color: shape.style.textColor ?? (isText ? shape.style.stroke || "#1A1A1A" : "#1A1A1A"),
         fontSize: fs,
         fontWeight: shape.style.bold ? 600 : 400,
-        textAlign: isDiagram ? "center" : shape.style.align ?? "left",
-        fontFamily: "ui-sans-serif, system-ui, sans-serif",
-        lineHeight: 1.25,
+        fontStyle: shape.style.italic ? "italic" : "normal",
+        textDecoration: [shape.style.underline && "underline", shape.style.strike && "line-through"].filter(Boolean).join(" ") || "none",
+        textAlign: shape.style.align ?? (isDiagram ? "center" : "left"),
+        fontFamily: fontStack(shape.style.fontFamily),
+        lineHeight: 1.3,
       }}
     />
   );
