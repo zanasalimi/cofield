@@ -10,6 +10,7 @@ import type { Renderer, RenderScene } from "./Renderer";
 import type { Shape, ShapeStyle } from "@/collab/types";
 import { fontStack } from "@/canvas/fonts";
 import { getComponentDef } from "@/canvas/components/registry";
+import { roundRectPath } from "./shapes-util";
 
 const SELECT = "#4262FF"; // Miro-like selection blue
 const HANDLE = 9; // handle box size, screen px
@@ -114,6 +115,26 @@ export class Canvas2DRenderer implements Renderer {
           ctx.lineTo((g.end - vp.x) * vp.zoom, y);
         }
         ctx.stroke();
+      }
+      // Distance pills: the empty px gap to the aligned neighbour (Figma-style).
+      for (const g of scene.guides) {
+        if (!g.gap) continue;
+        const label = `${g.gap.px} px`;
+        const gx = (g.gap.x - vp.x) * vp.zoom;
+        const gy = (g.gap.y - vp.y) * vp.zoom;
+        ctx.font = "600 11px ui-sans-serif, system-ui, sans-serif";
+        const tw = ctx.measureText(label).width;
+        const padX = 6;
+        const w = tw + padX * 2;
+        const h = 18;
+        ctx.fillStyle = "#F24E9C";
+        roundRectPath(ctx, gx - w / 2, gy - h / 2, w, h, 5);
+        ctx.fill();
+        ctx.fillStyle = "#FFFFFF";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText(label, gx, gy + 0.5);
+        ctx.textAlign = "left";
       }
     }
 
