@@ -5,6 +5,7 @@
 import { redirect } from "next/navigation";
 import { Canvas } from "@/canvas/Canvas";
 import { Toolbar } from "@/ui/Toolbar";
+import { BoardBar } from "@/ui/BoardBar";
 import { ZoomControl } from "@/ui/ZoomControl";
 import { ShareButton } from "@/components/boards/ShareButton";
 import { getCurrentUser } from "@/auth/server";
@@ -32,6 +33,10 @@ export default async function BoardPage({ params }: BoardPageProps) {
       <Canvas boardId={boardId} />
 
       {/* Floating chrome over the canvas — Miro layout. */}
+      <div className="pointer-events-none absolute left-4 top-4">
+        <BoardBar />
+      </div>
+
       <div className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2">
         <Toolbar />
       </div>

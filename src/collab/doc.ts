@@ -113,6 +113,21 @@ export function readShapesInOrder(board: BoardDoc): Shape[] {
   return out;
 }
 
+/** Board metadata (name, background) lives in the shared `meta` map. */
+export function setMeta(board: BoardDoc, patch: Record<string, unknown>): void {
+  board.doc.transact(() => {
+    for (const [k, v] of Object.entries(patch)) board.meta.set(k, v);
+  });
+}
+
+export function readMeta(board: BoardDoc): Record<string, unknown> {
+  const out: Record<string, unknown> = {};
+  board.meta.forEach((v, k) => {
+    out[k] = v;
+  });
+  return out;
+}
+
 /**
  * An undo manager scoped to the document's shapes and z-order. It tracks only
  * locally-originated transactions (origin `null`); updates applied by the

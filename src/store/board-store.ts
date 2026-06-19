@@ -13,6 +13,7 @@ import {
   updateShape as docUpdateShape,
   removeShape as docRemoveShape,
   reorderShapes as docReorderShapes,
+  setMeta as docSetMeta,
   createUndoManager,
   type BoardDoc,
 } from "@/collab/doc";
@@ -111,6 +112,10 @@ function cloneShapes(sources: Shape[], dx: number, dy: number): string[] {
 
 export interface BoardState {
   shapes: Shape[];
+  /** shared board metadata (name, background, …) */
+  meta: Record<string, unknown>;
+  setMeta: (patch: Record<string, unknown>) => void;
+  _setMeta: (meta: Record<string, unknown>) => void;
   addShape: (type: ShapeType, rect: { x: number; y: number; w: number; h: number }) => string;
   addConnector: (from: string, to: string, fromSide?: Side, toSide?: Side) => string;
   /** Add an image shape (src is a data URL or remote URL). */
@@ -146,6 +151,12 @@ export interface BoardState {
 
 export const useBoardStore = create<BoardState>((set, get) => ({
   shapes: [],
+  meta: {},
+  setMeta: (patch) => {
+    if (bound) docSetMeta(bound, patch);
+    else set((s) => ({ meta: { ...s.meta, ...patch } }));
+  },
+  _setMeta: (meta) => set({ meta }),
 
   addShape: (type, rect) => {
     const shape = makeShape(type, rect);

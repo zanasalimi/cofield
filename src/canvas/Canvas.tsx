@@ -704,9 +704,17 @@ export function Canvas({ boardId }: CanvasProps) {
     el.addEventListener("pointerleave", onPointerLeave);
     el.addEventListener("dblclick", onDblClick);
     el.addEventListener("contextmenu", onContextMenu);
+    const onExportEvt = () => exportRef.current?.();
+    const onZoomFitEvt = () => {
+      const all = useBoardStore.getState().shapes.filter((s) => s.type !== "connector");
+      const b = unionBounds(all);
+      if (b) ui().setViewport(fitRect(b, el.clientWidth, el.clientHeight));
+    };
     el.addEventListener("dragover", onDragOver);
     el.addEventListener("drop", onDrop);
     window.addEventListener("paste", onPaste);
+    window.addEventListener("cofield:export", onExportEvt);
+    window.addEventListener("cofield:zoomfit", onZoomFitEvt);
     window.addEventListener("keydown", onKeyDown);
     window.addEventListener("keyup", onKeyUp);
 
@@ -724,6 +732,8 @@ export function Canvas({ boardId }: CanvasProps) {
       el.removeEventListener("dragover", onDragOver);
       el.removeEventListener("drop", onDrop);
       window.removeEventListener("paste", onPaste);
+      window.removeEventListener("cofield:export", onExportEvt);
+      window.removeEventListener("cofield:zoomfit", onZoomFitEvt);
       setImageLoadCallback(null);
       window.removeEventListener("keydown", onKeyDown);
       window.removeEventListener("keyup", onKeyUp);
