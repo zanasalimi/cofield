@@ -34,6 +34,11 @@ export function setLocalSelection(awareness: Awareness, selection: ShapeId[]): v
   merge(awareness, { selection });
 }
 
+/** Publish the local viewport so others can follow it. */
+export function setLocalViewport(awareness: Awareness, viewport: { x: number; y: number; zoom: number }): void {
+  merge(awareness, { viewport });
+}
+
 /** Read all remote presences (excludes the local client). */
 export function readPresenceStates(awareness: Awareness): Presence[] {
   const out: Presence[] = [];
@@ -41,7 +46,14 @@ export function readPresenceStates(awareness: Awareness): Presence[] {
     if (clientId === awareness.clientID) return;
     const p = state as Partial<Presence>;
     if (p && p.userId && p.name && p.color) {
-      out.push({ userId: p.userId, name: p.name, color: p.color, cursor: p.cursor ?? null, selection: p.selection ?? [] });
+      out.push({
+        userId: p.userId,
+        name: p.name,
+        color: p.color,
+        cursor: p.cursor ?? null,
+        selection: p.selection ?? [],
+        viewport: p.viewport,
+      });
     }
   });
   return out;

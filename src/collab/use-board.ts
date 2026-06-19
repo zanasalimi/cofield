@@ -15,6 +15,7 @@ import {
   setLocalIdentity,
   setLocalCursor,
   setLocalSelection,
+  setLocalViewport,
   onPresenceChange,
   readPresenceStates,
   CURSOR_THROTTLE_MS,
@@ -25,9 +26,16 @@ import { CURSOR_COLORS, type ConnectionState, type Point, type Presence } from "
 const WS_URL = process.env.NEXT_PUBLIC_WS_URL ?? "ws://localhost:1234";
 const NAMES = ["Otter", "Heron", "Fox", "Marten", "Wren", "Lynx", "Finch", "Vole"];
 
+export interface LocalIdentity {
+  userId: string;
+  name: string;
+  color: string;
+}
+
 export function useBoard(boardId: string) {
   const [presences, setPresences] = useState<Presence[]>([]);
   const [connection, setConnection] = useState<ConnectionState>("connecting");
+  const [me, setMe] = useState<LocalIdentity | null>(null);
   const providerRef = useRef<SyncProvider | null>(null);
   const lastCursorAt = useRef(0);
 
@@ -48,11 +56,13 @@ export function useBoard(boardId: string) {
 
     // Stable per-session identity for presence (the auth user replaces this in M3).
     const cid = provider.awareness.clientID;
-    setLocalIdentity(provider.awareness, {
+    const identity: LocalIdentity = {
       userId: String(cid),
       name: NAMES[cid % NAMES.length]!,
       color: CURSOR_COLORS[cid % CURSOR_COLORS.length]!,
-    });
+    };
+    setLocalIdentity(provider.awareness, identity);
+    setMe(identity);
 
     const offPresence = onPresenceChange(provider.awareness, setPresences);
     const offState = provider.onStateChange(setConnection);
@@ -86,5 +96,10 @@ export function useBoard(boardId: string) {
     if (p) setLocalSelection(p.awareness, ids);
   }, []);
 
-  return { presences, connection, publishCursor, publishSelection };
+  const publishViewport = useCallback((vp: { x: number; y: number; zoom: number }) => {
+    const p = providerRef.current;
+    if (p) setLocalViewport(p.awareness, vp);
+  }, []);
+
+  return { presences, connection, me, publishCursor, publishSelection, publishViewport };
 }

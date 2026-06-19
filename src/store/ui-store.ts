@@ -24,6 +24,8 @@ export interface UiState {
   guides: SnapGuide[];
   /** open right-click menu position (screen coords in the canvas wrapper), or null */
   contextMenu: { x: number; y: number } | null;
+  /** userId of the presence whose viewport we are following, or null */
+  followingId: string | null;
   connection: ConnectionState;
 
   setActiveTool: (tool: ToolId) => void;
@@ -34,6 +36,7 @@ export interface UiState {
   setMarquee: (marquee: Rect | null) => void;
   setGuides: (guides: SnapGuide[]) => void;
   setContextMenu: (menu: { x: number; y: number } | null) => void;
+  setFollowing: (userId: string | null) => void;
   setConnection: (state: ConnectionState) => void;
 }
 
@@ -46,6 +49,7 @@ export const useUiStore = create<UiState>((set) => ({
   marquee: null,
   guides: [],
   contextMenu: null,
+  followingId: null,
   connection: "connecting",
 
   setActiveTool: (activeTool) => set({ activeTool }),
@@ -56,5 +60,6 @@ export const useUiStore = create<UiState>((set) => ({
   setMarquee: (marquee) => set({ marquee }),
   setGuides: (guides) => set({ guides }),
   setContextMenu: (contextMenu) => set({ contextMenu }),
+  setFollowing: (followingId) => set({ followingId }),
   setConnection: (connection) => set({ connection }),
 }));

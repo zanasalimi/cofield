@@ -19,6 +19,7 @@ import { useUiStore } from "@/store/ui-store";
 import { useBoardStore } from "@/store/board-store";
 import { useBoard } from "@/collab/use-board";
 import { CursorsLayer } from "@/presence/CursorsLayer";
+import { AvatarStack } from "@/presence/AvatarStack";
 import { TextOverlay } from "./TextOverlay";
 import { SelectionToolbar } from "./SelectionToolbar";
 import { AlignBar } from "./AlignBar";
@@ -226,9 +227,10 @@ export function Canvas({ boardId }: CanvasProps) {
   const viewport = useUiStore((s) => s.viewport);
   const selection = useUiStore((s) => s.selection);
   const activeTool = useUiStore((s) => s.activeTool);
+  const followingId = useUiStore((s) => s.followingId);
 
   // Realtime: doc binding + presence + throttled publishers.
-  const { presences, publishCursor, publishSelection } = useBoard(boardId);
+  const { presences, me, publishCursor, publishSelection, publishViewport } = useBoard(boardId);
   const pubCursor = useRef(publishCursor);
   pubCursor.current = publishCursor;
 
@@ -236,6 +238,21 @@ export function Canvas({ boardId }: CanvasProps) {
   useEffect(() => {
     publishSelection(selection);
   }, [selection, publishSelection]);
+
+  // Broadcast our viewport so others can follow it.
+  useEffect(() => {
+    publishViewport(viewport);
+  }, [viewport, publishViewport]);
+
+  // Follow a user: mirror their viewport whenever their presence updates.
+  useEffect(() => {
+    if (!followingId) return;
+    const target = presences.find((p) => p.userId === followingId);
+    if (!target?.viewport) return;
+    const t = target.viewport;
+    const vp = useUiStore.getState().viewport;
+    if (vp.x !== t.x || vp.y !== t.y || vp.zoom !== t.zoom) useUiStore.getState().setViewport({ ...t });
+  }, [followingId, presences]);
 
   const ctxRef = useRef<ToolContext>(null as unknown as ToolContext);
   if (!ctxRef.current) {
@@ -380,6 +397,7 @@ export function Canvas({ boardId }: CanvasProps) {
 
     const onWheel = (e: WheelEvent) => {
       e.preventDefault();
+      if (ui().followingId) ui().setFollowing(null); // manual nav breaks follow
       const vp = ui().viewport;
       if (e.ctrlKey || e.metaKey) {
         const rect = el.getBoundingClientRect();
@@ -394,6 +412,7 @@ export function Canvas({ boardId }: CanvasProps) {
       el.setPointerCapture(e.pointerId);
       const panRequested = spaceDown.current || e.button === 1 || ui().activeTool === "pan";
       if (panRequested) {
+        if (ui().followingId) ui().setFollowing(null);
         dragMode.current = "pan";
         el.style.cursor = "grabbing";
         return;
@@ -589,6 +608,9 @@ export function Canvas({ boardId }: CanvasProps) {
     >
       <canvas ref={canvasRef} className="block h-full w-full touch-none" aria-label="Collaborative canvas" />
       <CursorsLayer presences={presences} viewport={viewport} />
+      <div className="absolute left-1/2 top-4 -translate-x-1/2">
+        <AvatarStack presences={presences} me={me} />
+      </div>
       <TextOverlay />
       <SelectionToolbar />
       <AlignBar />

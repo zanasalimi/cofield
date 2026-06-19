@@ -89,6 +89,8 @@ export interface Presence {
   cursor: Point | null;
   /** selected shape ids */
   selection: ShapeId[];
+  /** the user's current viewport, broadcast so others can follow it */
+  viewport?: { x: number; y: number; zoom: number };
 }
 
 /** The eight curated multiplayer hues — order is the stable assignment order. */
