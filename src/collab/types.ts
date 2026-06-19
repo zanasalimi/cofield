@@ -19,7 +19,11 @@ export type ShapeType =
   | "sticky"
   | "text"
   | "image"
-  | "connector";
+  | "connector"
+  | "component";
+
+/** Rich, data-bearing element kinds rendered via the component registry. */
+export type ComponentKind = "frame" | "table" | "code";
 
 export interface ShapeStyle {
   fill: string;
@@ -75,6 +79,12 @@ export interface Shape {
   locked?: boolean;
   /** optional hyperlink attached to the shape */
   link?: string;
+  /** component family discriminator (only when type === "component") */
+  kind?: ComponentKind;
+  /** component data, persisted as a nested Y.Map so concurrent field edits merge */
+  props?: Record<string, unknown>;
+  /** reserved: ids of child shapes for container components (not yet persisted) */
+  children?: ShapeId[];
   createdBy: UserId;
 }
 

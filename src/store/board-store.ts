@@ -54,6 +54,7 @@ const DEFAULT_STYLE: Record<ShapeType, ShapeStyle> = {
   arrow: { fill: "transparent", stroke: "#1A1A1A", strokeWidth: 2 },
   draw: { fill: "transparent", stroke: "#1A1A1A", strokeWidth: 3 },
   connector: { fill: "transparent", stroke: "#37352F", strokeWidth: 2.5 },
+  component: { fill: "transparent", stroke: "transparent", strokeWidth: 0 },
 };
 
 /** Build a fully-formed shape with per-type defaults. */

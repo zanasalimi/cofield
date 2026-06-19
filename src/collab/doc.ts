@@ -21,7 +21,7 @@ export interface BoardDoc {
   comments: Y.Map<Y.Map<unknown>>;
 }
 
-const FIELDS: (keyof Shape)[] = ["id", "type", "x", "y", "w", "h", "rotation", "style", "content", "points", "src", "from", "to", "fromSide", "toSide", "locked", "link", "createdBy"];
+const FIELDS: (keyof Shape)[] = ["id", "type", "x", "y", "w", "h", "rotation", "style", "content", "points", "src", "from", "to", "fromSide", "toSide", "locked", "link", "createdBy", "kind"];
 
 /** Create (or wrap) the typed top-level structures on a Y.Doc. */
 export function createBoardDoc(doc: Y.Doc = new Y.Doc()): BoardDoc {
@@ -93,6 +93,11 @@ function toYMap(shape: Shape): Y.Map<unknown> {
     const v = shape[f];
     if (v !== undefined) ym.set(f, v);
   }
+  if (shape.type === "component" && shape.props) {
+    const p = new Y.Map<unknown>();
+    for (const [k, v] of Object.entries(shape.props)) p.set(k, v);
+    ym.set("props", p);
+  }
   return ym;
 }
 
@@ -118,6 +123,8 @@ function fromYMap(ym: Y.Map<unknown>): Shape | null {
     locked: ym.get("locked") as boolean | undefined,
     link: ym.get("link") as string | undefined,
     createdBy: ym.get("createdBy") as string,
+    kind: ym.get("kind") as Shape["kind"],
+    props: (ym.get("props") as Y.Map<unknown> | undefined)?.toJSON() as Record<string, unknown> | undefined,
   };
 }
 
@@ -137,6 +144,16 @@ export function updateShape(board: BoardDoc, id: ShapeId, patch: Partial<Shape>)
     for (const [k, v] of Object.entries(patch)) {
       if (v !== undefined) ym.set(k, v);
     }
+  });
+}
+
+/** Patch a component's nested props map (per-field, merge-safe). */
+export function updateComponentProps(board: BoardDoc, id: ShapeId, patch: Record<string, unknown>): void {
+  const ym = board.shapes.get(id);
+  const props = ym?.get("props") as Y.Map<unknown> | undefined;
+  if (!props) return;
+  board.doc.transact(() => {
+    for (const [k, v] of Object.entries(patch)) if (v !== undefined) props.set(k, v);
   });
 }
 
