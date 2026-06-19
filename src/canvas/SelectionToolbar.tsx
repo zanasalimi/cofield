@@ -41,6 +41,7 @@ export function SelectionToolbar() {
   };
 
   const isConnector = shape.type === "connector";
+  const isImage = shape.type === "image";
   const isText = shape.type === "text" || shape.type === "sticky";
   const colorKey: keyof ShapeStyle = isText || isConnector || shape.type === "arrow" || shape.type === "draw" ? "stroke" : "fill";
   const swatches = isConnector ? LINE_SWATCHES : FILL_SWATCHES;
@@ -62,16 +63,18 @@ export function SelectionToolbar() {
       className="pointer-events-auto absolute z-10 flex -translate-x-1/2 items-center gap-1 rounded-xl border border-hairline bg-chrome px-2 py-1.5 shadow-toolbar"
       style={{ left: anchor.x, top }}
     >
-      {swatches.map((c) => (
-        <button
-          key={c}
-          type="button"
-          onClick={() => set({ [colorKey]: c })}
-          className="size-5 rounded-full border border-black/10 transition-transform active:scale-90"
-          style={{ background: c }}
-          aria-label={`Set colour ${c}`}
-        />
-      ))}
+      {isImage
+        ? null
+        : swatches.map((c) => (
+            <button
+              key={c}
+              type="button"
+              onClick={() => set({ [colorKey]: c })}
+              className="size-5 rounded-full border border-black/10 transition-transform active:scale-90"
+              style={{ background: c }}
+              aria-label={`Set colour ${c}`}
+            />
+          ))}
 
       {isText ? (
         <>

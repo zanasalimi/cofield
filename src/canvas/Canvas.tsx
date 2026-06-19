@@ -8,7 +8,7 @@
 
 import { useEffect, useRef } from "react";
 import { Download } from "lucide-react";
-import { Canvas2DRenderer } from "./renderer/Canvas2DRenderer";
+import { Canvas2DRenderer, setImageLoadCallback } from "./renderer/Canvas2DRenderer";
 import type { Renderer } from "./renderer/Renderer";
 import { pan, zoomAt, screenToWorld, visibleWorldRect, fitRect } from "./viewport/viewport";
 import { cullToViewport } from "./viewport/culling";
@@ -418,6 +418,26 @@ export function Canvas({ boardId }: CanvasProps) {
     const renderer = new Canvas2DRenderer();
     renderer.mount(el);
     rendererRef.current = renderer;
+    setImageLoadCallback(() => scheduleRender()); // repaint when an image decodes
+
+    // Place an image file on the board at a world point (drop or paste).
+    const placeImage = (file: File, world: Point) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const src = reader.result as string;
+        const probe = new Image();
+        probe.onload = () => {
+          const scale = Math.min(1, 360 / probe.naturalWidth);
+          const w = probe.naturalWidth * scale;
+          const h = probe.naturalHeight * scale;
+          const id = useBoardStore.getState().addImage(src, { x: world.x - w / 2, y: world.y - h / 2, w, h });
+          ui().setSelection([id]);
+          useBoardStore.getState().commitHistory();
+        };
+        probe.src = src;
+      };
+      reader.readAsDataURL(file);
+    };
 
     const ctx = ctxRef.current;
     const ui = useUiStore.getState;
@@ -495,6 +515,21 @@ export function Canvas({ boardId }: CanvasProps) {
         useBoardStore.getState().commitHistory(); // each completed gesture = one undo step
       }
       dragMode.current = null;
+    };
+    const onDragOver = (e: DragEvent) => e.preventDefault();
+    const onDrop = (e: DragEvent) => {
+      e.preventDefault();
+      const file = Array.from(e.dataTransfer?.files ?? []).find((f) => f.type.startsWith("image/"));
+      if (!file) return;
+      const rect = el.getBoundingClientRect();
+      placeImage(file, screenToWorld(ui().viewport, { x: e.clientX - rect.left, y: e.clientY - rect.top }));
+    };
+    const onPaste = (e: ClipboardEvent) => {
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+      const item = Array.from(e.clipboardData?.items ?? []).find((i) => i.type.startsWith("image/"));
+      const file = item?.getAsFile();
+      if (!file) return;
+      placeImage(file, screenToWorld(ui().viewport, { x: el.clientWidth / 2, y: el.clientHeight / 2 }));
     };
     const onContextMenu = (e: MouseEvent) => {
       e.preventDefault();
@@ -625,6 +660,9 @@ export function Canvas({ boardId }: CanvasProps) {
     el.addEventListener("pointerleave", onPointerLeave);
     el.addEventListener("dblclick", onDblClick);
     el.addEventListener("contextmenu", onContextMenu);
+    el.addEventListener("dragover", onDragOver);
+    el.addEventListener("drop", onDrop);
+    window.addEventListener("paste", onPaste);
     window.addEventListener("keydown", onKeyDown);
     window.addEventListener("keyup", onKeyUp);
 
@@ -639,6 +677,10 @@ export function Canvas({ boardId }: CanvasProps) {
       el.removeEventListener("pointerleave", onPointerLeave);
       el.removeEventListener("dblclick", onDblClick);
       el.removeEventListener("contextmenu", onContextMenu);
+      el.removeEventListener("dragover", onDragOver);
+      el.removeEventListener("drop", onDrop);
+      window.removeEventListener("paste", onPaste);
+      setImageLoadCallback(null);
       window.removeEventListener("keydown", onKeyDown);
       window.removeEventListener("keyup", onKeyUp);
       if (rafRef.current != null) cancelAnimationFrame(rafRef.current);

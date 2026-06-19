@@ -13,6 +13,26 @@ const SELECT = "#4262FF"; // Miro-like selection blue
 const HANDLE = 8; // handle box size, screen px
 const ROT_OFFSET = 22; // rotation handle distance above the top edge, screen px
 
+// Images decode asynchronously; cache the elements and repaint once each loads.
+const imageCache = new Map<string, HTMLImageElement>();
+let onImageLoad: (() => void) | null = null;
+
+/** Register a callback fired when a lazily-loaded image finishes decoding. */
+export function setImageLoadCallback(cb: (() => void) | null): void {
+  onImageLoad = cb;
+}
+
+function getImage(src: string): HTMLImageElement {
+  let img = imageCache.get(src);
+  if (!img) {
+    img = new Image();
+    img.onload = () => onImageLoad?.();
+    img.src = src;
+    imageCache.set(src, img);
+  }
+  return img;
+}
+
 export class Canvas2DRenderer implements Renderer {
   private ctx: CanvasRenderingContext2D | null = null;
   private canvas: HTMLCanvasElement | null = null;
@@ -350,6 +370,18 @@ function drawShape(ctx: CanvasRenderingContext2D, shape: Shape): void {
         ctx.closePath();
         ctx.fill();
         if (style.strokeWidth > 0) ctx.stroke();
+        break;
+      }
+      case "image": {
+        if (shape.src) {
+          const img = getImage(shape.src);
+          if (img.complete && img.naturalWidth > 0) {
+            ctx.drawImage(img, shape.x, shape.y, shape.w, shape.h);
+          } else {
+            ctx.fillStyle = "#ECECE7";
+            ctx.fillRect(shape.x, shape.y, shape.w, shape.h);
+          }
+        }
         break;
       }
       case "text": {

@@ -45,6 +45,7 @@ const DEFAULT_STYLE: Record<ShapeType, ShapeStyle> = {
   star: { fill: "#D9C2FF", stroke: "#1A1A1A", strokeWidth: 2 },
   sticky: { fill: "#FF9F1C", stroke: "#1A1A1A", strokeWidth: 0 },
   text: { fill: "transparent", stroke: "#1A1A1A", strokeWidth: 0 },
+  image: { fill: "transparent", stroke: "transparent", strokeWidth: 0 },
   arrow: { fill: "transparent", stroke: "#1A1A1A", strokeWidth: 2 },
   draw: { fill: "transparent", stroke: "#1A1A1A", strokeWidth: 3 },
   connector: { fill: "transparent", stroke: "#37352F", strokeWidth: 2.5 },
@@ -112,6 +113,8 @@ export interface BoardState {
   shapes: Shape[];
   addShape: (type: ShapeType, rect: { x: number; y: number; w: number; h: number }) => string;
   addConnector: (from: string, to: string, fromSide?: Side, toSide?: Side) => string;
+  /** Add an image shape (src is a data URL or remote URL). */
+  addImage: (src: string, rect: { x: number; y: number; w: number; h: number }) => string;
   updateShape: (id: string, patch: Partial<Shape>) => void;
   removeShape: (id: string) => void;
   /** Clone shapes in place (fresh ids, small offset); returns the new ids. */
@@ -167,6 +170,13 @@ export const useBoardStore = create<BoardState>((set, get) => ({
       toSide,
       createdBy: "me",
     };
+    if (bound) docAddShape(bound, shape);
+    else set((s) => ({ shapes: [...s.shapes, shape] }));
+    return shape.id;
+  },
+
+  addImage: (src, rect) => {
+    const shape: Shape = { ...makeShape("image", rect), src };
     if (bound) docAddShape(bound, shape);
     else set((s) => ({ shapes: [...s.shapes, shape] }));
     return shape.id;
