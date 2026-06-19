@@ -7,17 +7,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import {
-  TreeStructure as Workflow,
-  SquaresFour as LayoutGrid,
-  MagnifyingGlass as Search,
-  Gear as Settings,
-  DownloadSimple as Download,
-  ArrowsOut as Maximize,
-  House as Home,
-  ArrowUUpLeft as Undo2,
-  ArrowUUpRight as Redo2,
-} from "@phosphor-icons/react";
+import { Workflow, LayoutGrid, Search, Settings, Download, Maximize, Home, Undo2, Redo2 } from "@/components/icons";
 import { useBoardStore } from "@/store/board-store";
 import { AvatarStack } from "@/presence/AvatarStack";
 import { ShareButton } from "@/components/boards/ShareButton";

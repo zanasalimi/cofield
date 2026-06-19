@@ -7,41 +7,7 @@
  */
 "use client";
 
-import {
-  TextB as Bold,
-  TextItalic as Italic,
-  TextUnderline as Underline,
-  TextStrikethrough as Strikethrough,
-  TextAlignLeft as AlignLeft,
-  TextAlignCenter as AlignCenter,
-  TextAlignRight as AlignRight,
-  AlignTop as AlignStartHorizontal,
-  AlignCenterHorizontal,
-  AlignBottom as AlignEndHorizontal,
-  LinkSimple as Link2,
-  Lock,
-  LockOpen as Unlock,
-  Trash as Trash2,
-  Minus,
-  Plus,
-  Drop as Droplets,
-  ArrowsOutSimple as Scaling,
-  CaretDown as ChevronDown,
-  Square,
-  Circle,
-  Triangle,
-  Diamond,
-  Star,
-  Note as StickyNote,
-  TextT as Type,
-  Eyedropper as Pipette,
-  ChatCircleDots as MessageSquarePlus,
-  Path as Spline,
-  ArrowElbowDownRight as CornerDownRight,
-  ArrowRight,
-  CaretRight as ChevronRight,
-  ArrowsLeftRight as ArrowRightLeft,
-} from "@phosphor-icons/react";
+import { Bold, Italic, Underline, Strikethrough, AlignLeft, AlignCenter, AlignRight, AlignStartHorizontal, AlignCenterHorizontal, AlignEndHorizontal, Link2, Lock, Unlock, Trash2, Minus, Plus, Droplets, Scaling, ChevronDown, Square, Circle, Triangle, Diamond, Star, StickyNote, Type, Pipette, MessageSquarePlus, Spline, CornerDownRight, ArrowRight, ChevronRight, ArrowRightLeft } from "@/components/icons";
 import type { Shape, ShapeStyle, ShapeType, ArrowHead } from "@/collab/types";
 import { FONT_NAMES, fontStack } from "./fonts";
 import { Button } from "@/components/ui/button";

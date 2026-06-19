@@ -1,4 +1,4 @@
-import { FrameCorners as Frame } from "@phosphor-icons/react";
+import { Frame } from "@/components/icons";
 import type { ComponentDef } from "./registry";
 import { roundRectPath } from "@/canvas/renderer/shapes-util";
 

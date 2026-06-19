@@ -4,7 +4,7 @@
  */
 "use client";
 
-import { LinkSimple as Link2 } from "@phosphor-icons/react";
+import { Link2 } from "@/components/icons";
 import { useUiStore } from "@/store/ui-store";
 import { useBoardStore } from "@/store/board-store";
 import { worldToScreen } from "./viewport/viewport";

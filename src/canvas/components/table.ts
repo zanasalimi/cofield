@@ -1,4 +1,4 @@
-import { Table } from "@phosphor-icons/react";
+import { Table } from "@/components/icons";
 import type { ComponentDef } from "./registry";
 import { TableInterior } from "./table-interior";
 

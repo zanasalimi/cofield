@@ -6,22 +6,7 @@
 "use client";
 
 import { useState } from "react";
-import {
-  Cursor as MousePointer2,
-  Hand,
-  TextT as Type,
-  Note as StickyNote,
-  Square,
-  Circle,
-  Triangle,
-  Diamond,
-  Star,
-  ArrowUpRight as MoveUpRight,
-  PencilSimple as Pencil,
-  Shapes,
-  ChatCircle as MessageSquare,
-  PlusSquare as SquarePlus,
-} from "@phosphor-icons/react";
+import { MousePointer2, Hand, Type, StickyNote, Square, Circle, Triangle, Diamond, Star, MoveUpRight, Pencil, Shapes, MessageSquare, SquarePlus } from "@/components/icons";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useUiStore } from "@/store/ui-store";
 import type { ToolId } from "@/canvas/tools/types";

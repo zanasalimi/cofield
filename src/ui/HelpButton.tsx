@@ -5,7 +5,7 @@
 "use client";
 
 import { useState } from "react";
-import { Question as HelpCircle } from "@phosphor-icons/react";
+import { HelpCircle } from "@/components/icons";
 
 const SHORTCUTS: [string, string][] = [
   ["Select / Hand", "V / H"],

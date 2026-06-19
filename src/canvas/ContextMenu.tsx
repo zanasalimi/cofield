@@ -5,7 +5,7 @@
  */
 "use client";
 
-import { ArrowUp, ArrowDown, CaretUp as ChevronUp, CaretDown as ChevronDown, Copy, Lock, LockOpen as Unlock, Trash as Trash2 } from "@phosphor-icons/react";
+import { ArrowUp, ArrowDown, ChevronUp, ChevronDown, Copy, Lock, Unlock, Trash2 } from "@/components/icons";
 import { useUiStore } from "@/store/ui-store";
 import { useBoardStore } from "@/store/board-store";
 

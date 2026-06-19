@@ -1,4 +1,4 @@
-import { Code as Code2 } from "@phosphor-icons/react";
+import { Code2 } from "@/components/icons";
 import type { ComponentDef } from "./registry";
 import { roundRectPath } from "@/canvas/renderer/shapes-util";
 import { CodeInterior } from "./code-interior";

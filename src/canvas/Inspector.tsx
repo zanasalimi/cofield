@@ -6,7 +6,7 @@
  */
 "use client";
 
-import { CaretDown as ChevronDown, Check, Eyedropper as Pipette } from "@phosphor-icons/react";
+import { ChevronDown, Check, Pipette } from "@/components/icons";
 import { getComponentDef, type CustomField } from "@/canvas/components/registry";
 import { useUiStore } from "@/store/ui-store";
 import { useBoardStore } from "@/store/board-store";

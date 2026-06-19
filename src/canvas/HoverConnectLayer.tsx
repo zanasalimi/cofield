@@ -8,7 +8,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { ArrowUp, ArrowRight, ArrowDown, ArrowLeft } from "@phosphor-icons/react";
+import { ArrowUp, ArrowRight, ArrowDown, ArrowLeft } from "@/components/icons";
 import type { Shape, ShapeType, Side } from "@/collab/types";
 import { useUiStore } from "@/store/ui-store";
 import { useBoardStore } from "@/store/board-store";

@@ -5,7 +5,7 @@
  */
 "use client";
 
-import { PencilSimple as Pen, Highlighter, Eraser } from "@phosphor-icons/react";
+import { Pen, Highlighter, Eraser } from "@/components/icons";
 import { useUiStore } from "@/store/ui-store";
 import { Slider } from "@/components/ui/slider";
 

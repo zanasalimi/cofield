@@ -1,4 +1,3 @@
-import type { Icon } from "@phosphor-icons/react";
 import type * as React from "react";
 import type { Shape, ComponentKind } from "@/collab/types";
 import type { Viewport } from "@/canvas/viewport/viewport";
@@ -14,7 +13,8 @@ export type CustomField =
 export interface ComponentDef<P = Record<string, unknown>> {
   kind: ComponentKind;
   label: string;
-  icon: Icon;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- accepts any React component (the Hugeicons wrapper)
+  icon: React.FC<any>;
   group: "structural" | "wireframe" | "software" | "flow";
   defaults(): { props: P; w: number; h: number };
   drawChrome(ctx: CanvasRenderingContext2D, shape: Shape, vp: Viewport): void;

@@ -6,7 +6,7 @@
 "use client";
 
 import { useRef } from "react";
-import { ArrowClockwise as RotateCw } from "@phosphor-icons/react";
+import { RotateCw } from "@/components/icons";
 import { useUiStore } from "@/store/ui-store";
 import { useBoardStore } from "@/store/board-store";
 import { worldToScreen, screenToWorld } from "./viewport/viewport";

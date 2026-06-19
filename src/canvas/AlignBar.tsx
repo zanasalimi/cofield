@@ -4,16 +4,7 @@
  */
 "use client";
 
-import {
-  AlignLeft as AlignStartVertical,
-  AlignCenterVertical,
-  AlignRight as AlignEndVertical,
-  AlignTop as AlignStartHorizontal,
-  AlignCenterHorizontal,
-  AlignBottom as AlignEndHorizontal,
-  Rows as AlignHorizontalDistributeCenter,
-  Columns as AlignVerticalDistributeCenter,
-} from "@phosphor-icons/react";
+import { AlignStartVertical, AlignCenterVertical, AlignEndVertical, AlignStartHorizontal, AlignCenterHorizontal, AlignEndHorizontal, AlignHorizontalDistributeCenter, AlignVerticalDistributeCenter } from "@/components/icons";
 import { useUiStore } from "@/store/ui-store";
 import { useBoardStore } from "@/store/board-store";
 import { worldToScreen } from "./viewport/viewport";
