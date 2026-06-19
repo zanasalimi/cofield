@@ -7,7 +7,7 @@
  */
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { Shape, ShapeType, Side } from "@/collab/types";
 import { useUiStore } from "@/store/ui-store";
 import { useBoardStore } from "@/store/board-store";
@@ -56,13 +56,20 @@ const NODE_TYPES = new Set<ShapeType>(["rect", "ellipse", "triangle", "diamond",
 
 export function HoverConnectLayer() {
   const hoveredId = useUiStore((s) => s.hoveredId);
+  const selection = useUiStore((s) => s.selection);
+  const dragging = useUiStore((s) => s.dragging);
   const activeTool = useUiStore((s) => s.activeTool);
   const viewport = useUiStore((s) => s.viewport);
   const shapes = useBoardStore((s) => s.shapes);
   const [over, setOver] = useState<Side | null>(null);
 
-  if (activeTool !== "select" || !hoveredId) return null;
-  const shape = shapes.find((s) => s.id === hoveredId);
+  // Prefer the selected shape (stable points that don't vanish as you reach for
+  // them); otherwise the hovered shape. Hidden during a move/resize/pan drag.
+  const targetId = (selection.length === 1 ? selection[0] : null) ?? hoveredId;
+  useEffect(() => setOver(null), [targetId]);
+
+  if (activeTool !== "select" || dragging || !targetId) return null;
+  const shape = shapes.find((s) => s.id === targetId);
   if (!shape || shape.type === "connector" || shape.type === "image" || shape.locked) return null;
 
   return (

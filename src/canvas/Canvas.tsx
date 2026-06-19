@@ -512,11 +512,13 @@ export function Canvas({ boardId }: CanvasProps) {
       const panRequested = spaceDown.current || e.button === 1 || ui().activeTool === "pan";
       if (panRequested) {
         if (ui().followingId) ui().setFollowing(null);
+        ui().setDragging(true);
         dragMode.current = "pan";
         el.style.cursor = "grabbing";
         return;
       }
       dragMode.current = "tool";
+      ui().setDragging(true);
       if (ui().hoveredId) ui().setHoveredId(null);
       toolRef.current?.handle({ kind: "pointerdown", world: worldAt(e), mods: modsOf(e) }, ctx);
     };
@@ -557,6 +559,7 @@ export function Canvas({ boardId }: CanvasProps) {
         toolRef.current?.handle({ kind: "pointerup", world: worldAt(e), mods: modsOf(e) }, ctx);
         useBoardStore.getState().commitHistory(); // each completed gesture = one undo step
       }
+      ui().setDragging(false);
       dragMode.current = null;
     };
     const onDragOver = (e: DragEvent) => e.preventDefault();

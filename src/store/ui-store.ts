@@ -28,6 +28,8 @@ export interface UiState {
   followingId: string | null;
   /** shape currently hovered (drives the DOM connection-point affordance) */
   hoveredId: string | null;
+  /** true while a move/resize/pan drag is in progress (hides hover affordances) */
+  dragging: boolean;
   connection: ConnectionState;
 
   setActiveTool: (tool: ToolId) => void;
@@ -40,6 +42,7 @@ export interface UiState {
   setContextMenu: (menu: { x: number; y: number } | null) => void;
   setFollowing: (userId: string | null) => void;
   setHoveredId: (id: string | null) => void;
+  setDragging: (dragging: boolean) => void;
   setConnection: (state: ConnectionState) => void;
 }
 
@@ -54,6 +57,7 @@ export const useUiStore = create<UiState>((set) => ({
   contextMenu: null,
   followingId: null,
   hoveredId: null,
+  dragging: false,
   connection: "connecting",
 
   setActiveTool: (activeTool) => set({ activeTool }),
@@ -66,5 +70,6 @@ export const useUiStore = create<UiState>((set) => ({
   setContextMenu: (contextMenu) => set({ contextMenu }),
   setFollowing: (followingId) => set({ followingId }),
   setHoveredId: (hoveredId) => set({ hoveredId }),
+  setDragging: (dragging) => set({ dragging }),
   setConnection: (connection) => set({ connection }),
 }));
