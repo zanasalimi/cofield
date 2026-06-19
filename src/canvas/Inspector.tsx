@@ -34,9 +34,9 @@ export function Inspector() {
   const set = (key: string, value: unknown) => useBoardStore.getState().updateComponentProps(shape.id, { [key]: value });
 
   return (
-    <div className="animate-pop pointer-events-auto w-64 rounded-2xl border border-hairline bg-chrome p-3.5 shadow-toolbar">
-      <p className="mb-3 px-0.5 text-xs font-semibold uppercase tracking-wide text-ink-soft">{def.label}</p>
-      <div className="flex flex-col gap-3.5">
+    <div className="animate-pop pointer-events-auto w-60 rounded-2xl border border-hairline bg-chrome p-2.5 shadow-toolbar">
+      <p className="mb-2 px-0.5 text-[11px] font-semibold uppercase tracking-wide text-ink-soft">{def.label}</p>
+      <div className="flex flex-col gap-2.5">
         {def.customSchema.map((f) => (
           <Field key={f.key} field={f} value={props[f.key]} onChange={(v) => set(f.key, v)} />
         ))}
@@ -57,7 +57,7 @@ function Row({ label, children }: { label: string; children: React.ReactNode }) 
 function Stack({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <label className="block">
-      <span className="mb-1.5 block text-xs font-medium text-ink-soft">{label}</span>
+      <span className="mb-1 block text-[11px] font-medium text-ink-soft">{label}</span>
       {children}
     </label>
   );
@@ -68,7 +68,7 @@ function Field({ field, value, onChange }: { field: CustomField; value: unknown;
     case "text":
       return (
         <Stack label={field.label}>
-          <Input value={String(value ?? "")} onChange={(e) => onChange(e.target.value)} className="h-9" />
+          <Input value={String(value ?? "")} onChange={(e) => onChange(e.target.value)} className="h-8" />
         </Stack>
       );
     case "number":

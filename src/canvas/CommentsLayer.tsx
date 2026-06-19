@@ -16,7 +16,13 @@ import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover
 import { worldToScreen, screenToWorld } from "./viewport/viewport";
 
 const THEME_COLORS = ["#6B6B66", "#3FA34D", "#E03E3E", "#2D9CDB", "#1A1A1A"];
-const EMOJIS = ["👍", "🙌", "🎉", "🔥", "😀", "😅", "😂", "😍", "🤔", "😬", "😮", "😢", "😡", "✅", "❌", "⭐", "💡", "🚀", "👀", "🙏", "💯", "❤️", "👋", "✨"];
+const EMOJIS = [
+  "👍", "👎", "🙌", "👏", "🙏", "👋", "🤝", "💪",
+  "🎉", "🔥", "⭐", "✨", "💯", "💡", "🚀", "👀",
+  "😀", "😄", "😅", "😂", "🙂", "😍", "🥰", "😎",
+  "🤔", "😬", "😮", "😴", "😢", "😡", "🥳", "🤯",
+  "❤️", "💜", "💙", "💚", "✅", "❌", "⚠️", "❓",
+];
 
 const initial = (name: string) => name.trim().slice(0, 1).toUpperCase() || "?";
 
@@ -34,18 +40,18 @@ function EmojiPicker({ onPick }: { onPick: (e: string) => void }) {
   return (
     <Popover>
       <PopoverTrigger asChild>
-        <button type="button" title="Emoji" className="grid size-7 place-items-center rounded-lg text-ink-soft transition-colors hover:bg-muted hover:text-ink">
-          <Smile className="size-[18px]" />
+        <button type="button" title="Emoji" className="grid size-9 shrink-0 place-items-center rounded-xl border border-hairline text-ink-soft transition-colors hover:bg-muted hover:text-ink">
+          <Smile className="size-5" />
         </button>
       </PopoverTrigger>
       <PopoverContent align="end" className="w-auto p-2">
-        <div className="grid grid-cols-8 gap-0.5">
+        <div className="grid grid-cols-8 gap-1">
           {EMOJIS.map((e) => (
             <button
               key={e}
               type="button"
               onClick={() => onPick(e)}
-              className="grid size-7 place-items-center rounded-md text-lg leading-none transition-transform hover:scale-125"
+              className="grid size-9 place-items-center rounded-lg text-2xl leading-none transition-transform hover:scale-125 hover:bg-muted"
             >
               {e}
             </button>
@@ -103,11 +109,11 @@ function Composer({ comment }: { comment: Comment }) {
             useUiStore.getState().setOpenCommentId(null);
           }
         }}
-        className="max-h-24 flex-1 resize-none rounded-xl border border-hairline bg-muted/40 px-3 py-2 text-sm text-ink outline-none transition-colors focus:border-primary"
+        className="max-h-24 min-h-9 flex-1 resize-none rounded-xl border border-hairline bg-muted/40 px-3 py-[0.5rem] text-sm leading-5 text-ink outline-none transition-colors focus:border-primary"
       />
       <EmojiPicker onPick={insertEmoji} />
-      <button type="submit" title="Send" onClick={send} className="grid size-8 shrink-0 place-items-center rounded-lg bg-primary text-white transition-transform duration-100 hover:bg-primary/90 active:scale-90">
-        <Send className="size-4" />
+      <button type="submit" title="Send" onClick={send} className="grid size-9 shrink-0 place-items-center rounded-xl bg-primary text-white transition-transform duration-100 hover:bg-primary/90 active:scale-90">
+        <Send className="size-5" />
       </button>
     </div>
   );
@@ -138,16 +144,17 @@ function Thread({ comment }: { comment: Comment }) {
             </span>
             {comment.resolved ? "Resolved" : "Resolve"}
           </button>
-          <div className="ml-1 flex items-center gap-1">
+          <div className="ml-1 flex items-center gap-0.5">
             {THEME_COLORS.map((c) => (
               <button
                 key={c}
                 type="button"
                 title="Theme colour"
                 onClick={() => useBoardStore.getState().setCommentColor(comment.id, c)}
-                className={`size-3.5 rounded-full transition-transform hover:scale-125 ${comment.color === c ? "ring-2 ring-ink/30 ring-offset-1" : ""}`}
-                style={{ background: c }}
-              />
+                className={`grid size-6 shrink-0 place-items-center rounded-full transition-colors ${comment.color === c ? "bg-ink/10" : "hover:bg-muted"}`}
+              >
+                <span className="size-3.5 rounded-full" style={{ background: c }} />
+              </button>
             ))}
           </div>
           <Popover>

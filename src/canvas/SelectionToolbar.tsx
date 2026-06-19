@@ -155,15 +155,47 @@ function DashControl({ value, onPick }: { value?: "solid" | "dashed" | "dotted";
   );
 }
 
+/** Stroke width buttons, optionally with a "None" (0 width) choice for borders. */
+function WidthControl({ value, onPick, withNone }: { value?: number; onPick: (w: number) => void; withNone?: boolean }) {
+  const v = value ?? 2;
+  return (
+    <div className="flex items-center gap-1">
+      {withNone ? (
+        <button
+          type="button"
+          title="No border"
+          onClick={() => onPick(0)}
+          className={`grid h-9 flex-1 place-items-center rounded-lg text-xs transition-colors hover:bg-muted ${v === 0 ? "bg-muted text-ink" : "text-ink-soft"}`}
+        >
+          None
+        </button>
+      ) : null}
+      {WIDTHS.map((w, i) => (
+        <button
+          key={w}
+          type="button"
+          title={["Thin", "Medium", "Thick"][i]}
+          onClick={() => onPick(w)}
+          className={`grid h-9 flex-1 place-items-center rounded-lg transition-colors hover:bg-muted ${Math.abs(v - w) < 0.6 ? "bg-muted text-ink" : "text-ink-soft"}`}
+        >
+          <span className="rounded-full bg-current" style={{ width: 18, height: 1 + i * 2 }} />
+        </button>
+      ))}
+    </div>
+  );
+}
+
 export function SelectionToolbar() {
   const selection = useUiStore((s) => s.selection);
   const editingId = useUiStore((s) => s.editingId);
   const viewport = useUiStore((s) => s.viewport);
   const shapes = useBoardStore((s) => s.shapes);
 
-  if (selection.length !== 1 || editingId) return null;
+  if (selection.length !== 1) return null;
   const shape = shapes.find((s) => s.id === selection[0]);
-  if (!shape) return null;
+  // Show for the selected shape unless THAT shape is being text-edited. (A stale
+  // editingId pointing at a different/old shape must not suppress the toolbar.)
+  if (!shape || editingId === shape.id) return null;
 
   const st = shape.style;
   const set = (patch: Partial<ShapeStyle>) => useBoardStore.getState().updateShape(shape.id, { style: { ...st, ...patch } });
@@ -172,8 +204,10 @@ export function SelectionToolbar() {
   const isConnector = shape.type === "connector";
   const isImage = shape.type === "image";
   const isDraw = shape.type === "draw";
+  const isComponent = shape.type === "component";
   const isLine = isConnector || isDraw; // stroke-only objects (no fill, no border box)
-  const hasFill = !isLine && !isImage && shape.type !== "text";
+  // Components draw via their own props (the Inspector) — fill/border here are no-ops.
+  const hasFill = !isLine && !isImage && !isComponent && shape.type !== "text";
   const hasBorder = hasFill; // a filled shape has an editable border
   const hasText = LABELLED.has(shape.type);
   const canSwitch = LABELLED.has(shape.type);
@@ -252,19 +286,17 @@ export function SelectionToolbar() {
               <ColorGrid colors={LINE_COLORS} onPick={(c) => set({ stroke: c })} />
             </PopoverContent>
           </Popover>
-          {WIDTHS.map((w, i) => (
-            <Button
-              key={w}
-              variant="ghost"
-              size="icon-lg"
-              title={`Line ${["thin", "medium", "thick"][i]}`}
-              onClick={() => set({ strokeWidth: w })}
-              className={Math.abs((st.strokeWidth ?? 2) - w) < 0.6 ? "bg-muted" : ""}
-            >
-              <span className="rounded-full bg-current" style={{ width: 18, height: 2 + i * 2 }} />
-            </Button>
-          ))}
-          {!isDraw ? <DashControl value={st.strokeDash} onPick={(d) => set({ strokeDash: d })} /> : null}
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="ghost" size="icon-lg" title="Line style" className={iconBtn}>
+                <span className="w-5 border-t-2 border-current" style={{ borderTopStyle: st.strokeDash === "dotted" ? "dotted" : st.strokeDash === "dashed" ? "dashed" : "solid" }} />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent align="start" className="flex w-52 flex-col gap-2.5">
+              <WidthControl value={st.strokeWidth} onPick={(w) => set({ strokeWidth: w })} />
+              {!isDraw ? <DashControl value={st.strokeDash} onPick={(d) => set({ strokeDash: d })} /> : null}
+            </PopoverContent>
+          </Popover>
         </>
       ) : null}
 
@@ -321,20 +353,7 @@ export function SelectionToolbar() {
           </PopoverTrigger>
           <PopoverContent align="start" className="flex w-56 flex-col gap-2.5">
             <ColorGrid colors={LINE_COLORS} onPick={(c) => set({ stroke: c })} />
-            <div className="flex items-center gap-1">
-              {WIDTHS.map((w, i) => (
-                <Button
-                  key={w}
-                  variant="ghost"
-                  size="icon-lg"
-                  title={`${["Thin", "Medium", "Thick"][i]} border`}
-                  onClick={() => set({ strokeWidth: w })}
-                  className={`flex-1 ${Math.abs((st.strokeWidth ?? 2) - w) < 0.6 ? "bg-muted" : ""}`}
-                >
-                  <span className="rounded-full bg-current" style={{ width: 20, height: 1 + i * 2 }} />
-                </Button>
-              ))}
-            </div>
+            <WidthControl value={st.strokeWidth} withNone onPick={(w) => set({ strokeWidth: w })} />
             <DashControl value={st.strokeDash} onPick={(d) => set({ strokeDash: d })} />
           </PopoverContent>
         </Popover>

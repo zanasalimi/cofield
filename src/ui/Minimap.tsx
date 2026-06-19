@@ -20,8 +20,9 @@ import "@/canvas/components"; // register component kinds so drawChrome works in
 const MAP_W = 224;
 const MAP_H = 132;
 
-/** A viewport that fits the board's content into the minimap (content-framed). */
-function fitContent(shapes: Shape[], view: Viewport, area: { w: number; h: number }): Viewport {
+/** A viewport that fits the board's content into the minimap (content-framed),
+ *  sized to the map's ACTUAL pixel box so shapes keep their aspect. */
+function fitContent(shapes: Shape[], view: Viewport, area: { w: number; h: number }, map: { w: number; h: number }): Viewport {
   const nodes = shapes.filter((s) => s.type !== "connector");
   let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
   for (const s of nodes) {
@@ -34,7 +35,7 @@ function fitContent(shapes: Shape[], view: Viewport, area: { w: number; h: numbe
   if (!Number.isFinite(minX)) {
     minX = view.x; minY = view.y; maxX = view.x + area.w / view.zoom; maxY = view.y + area.h / view.zoom;
   }
-  return fitRect({ x: minX, y: minY, w: Math.max(1, maxX - minX), h: Math.max(1, maxY - minY) }, MAP_W, MAP_H, 14);
+  return fitRect({ x: minX, y: minY, w: Math.max(1, maxX - minX), h: Math.max(1, maxY - minY) }, map.w, map.h, 12);
 }
 
 export function Minimap() {
@@ -46,6 +47,7 @@ export function Minimap() {
   const dragging = useRef(false);
   const [open, setOpen] = useState(false);
   const [area, setArea] = useState({ w: 1280, h: 720 });
+  const [size, setSize] = useState({ w: MAP_W, h: MAP_H });
 
   useEffect(() => {
     const m = () => setArea({ w: window.innerWidth, h: window.innerHeight - 64 });
@@ -54,32 +56,43 @@ export function Minimap() {
     return () => window.removeEventListener("resize", m);
   }, []);
 
+  // Own the renderer + size the backing to the canvas's REAL pixel box (measured),
+  // so the snapshot's aspect always matches what's on screen — no stretch.
   useEffect(() => {
     const el = canvasRef.current;
     if (!el) return;
     const r = new Canvas2DRenderer();
     r.mount(el);
-    r.resize(MAP_W, MAP_H, window.devicePixelRatio || 1);
     rendererRef.current = r;
+    const measure = () => {
+      const w = el.clientWidth || MAP_W;
+      const h = el.clientHeight || MAP_H;
+      r.resize(w, h, window.devicePixelRatio || 1);
+      setSize({ w, h });
+    };
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
     return () => {
+      ro.disconnect();
       r.destroy();
       rendererRef.current = null;
     };
   }, []);
 
-  const fit = fitContent(shapes, viewport, area);
+  const fit = fitContent(shapes, viewport, area, size);
 
   // Repaint the snapshot whenever the board or framing changes.
   useEffect(() => {
     rendererRef.current?.render({ shapes: resolveScene(shapes), viewport: fit, selection: [] });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [shapes, fit.x, fit.y, fit.zoom]);
+  }, [shapes, fit.x, fit.y, fit.zoom, size.w, size.h]);
 
   const recenter = (clientX: number, clientY: number) => {
     const el = canvasRef.current;
     if (!el) return;
     const r = el.getBoundingClientRect();
-    const w = screenToWorld(fit, { x: ((clientX - r.left) / r.width) * MAP_W, y: ((clientY - r.top) / r.height) * MAP_H });
+    const w = screenToWorld(fit, { x: ((clientX - r.left) / r.width) * size.w, y: ((clientY - r.top) / r.height) * size.h });
     setViewport({ ...viewport, x: w.x - area.w / (2 * viewport.zoom), y: w.y - area.h / (2 * viewport.zoom) });
   };
 
