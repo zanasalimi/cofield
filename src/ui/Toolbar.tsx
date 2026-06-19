@@ -20,10 +20,13 @@ import {
   Pencil,
   Shapes,
   MessageSquare,
+  SquarePlus,
 } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useUiStore } from "@/store/ui-store";
 import type { ToolId } from "@/canvas/tools/types";
+import "@/canvas/components";
+import { componentList } from "@/canvas/components/registry";
 
 type Icon = typeof Square;
 
@@ -75,8 +78,10 @@ function ToolButton({
 export function Toolbar() {
   const activeTool = useUiStore((s) => s.activeTool);
   const commentMode = useUiStore((s) => s.commentMode);
+  const pendingInsert = useUiStore((s) => s.pendingInsert);
   const setActiveTool = useUiStore((s) => s.setActiveTool);
   const [shapesOpen, setShapesOpen] = useState(false);
+  const [insertOpen, setInsertOpen] = useState(false);
   const [currentShape, setCurrentShape] = useState<{ id: ToolId; Icon: Icon }>({ id: "rect", Icon: Square });
 
   const pick = (id: ToolId) => {
@@ -165,6 +170,50 @@ export function Toolbar() {
       >
         <MessageSquare className="size-[22px]" />
       </ToolButton>
+
+      {/* Insert flyout — lists component kinds, opens upward, closes on outside click. */}
+      <div className="relative">
+        <ToolButton
+          active={pendingInsert !== null}
+          label="Insert"
+          onClick={() => setInsertOpen((o) => !o)}
+        >
+          <SquarePlus className="size-[22px]" />
+        </ToolButton>
+        {insertOpen ? (
+          <>
+            <div className="fixed inset-0 z-10" onClick={() => setInsertOpen(false)} />
+            <div className="animate-pop-up absolute bottom-full left-1/2 z-20 mb-2 flex -translate-x-1/2 flex-col gap-0.5 rounded-2xl border border-hairline bg-chrome p-1.5 shadow-toolbar">
+              {componentList().map((def) => {
+                const DefIcon = def.icon;
+                return (
+                  <Tooltip key={String(def.kind)}>
+                    <TooltipTrigger asChild>
+                      <button
+                        type="button"
+                        aria-label={def.label}
+                        onClick={() => {
+                          useUiStore.getState().setPendingInsert(def.kind);
+                          setInsertOpen(false);
+                        }}
+                        className={`flex h-11 items-center gap-2 rounded-xl px-3 transition-transform duration-100 active:scale-90 ${
+                          pendingInsert === def.kind ? "bg-primary/10 text-primary" : "text-ink-soft hover:bg-ink/5 hover:text-ink"
+                        }`}
+                      >
+                        <DefIcon className="size-[20px] shrink-0" />
+                        <span className="text-sm font-medium">{def.label}</span>
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent side="right" sideOffset={6}>
+                      {def.label}
+                    </TooltipContent>
+                  </Tooltip>
+                );
+              })}
+            </div>
+          </>
+        ) : null}
+      </div>
     </div>
   );
 }

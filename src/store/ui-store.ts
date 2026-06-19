@@ -6,7 +6,7 @@ import { create } from "zustand";
 import type { ToolId } from "@/canvas/tools/types";
 import type { Viewport } from "@/canvas/viewport/viewport";
 import { createViewport } from "@/canvas/viewport/viewport";
-import type { ConnectionState, Point, Presence, Rect, Side } from "@/collab/types";
+import type { ComponentKind, ConnectionState, Point, Presence, Rect, Side } from "@/collab/types";
 import type { SnapGuide } from "@/canvas/geometry/snapping";
 
 export interface UiState {
@@ -41,6 +41,8 @@ export interface UiState {
   commentMode: boolean;
   /** id of the comment thread currently open, or null */
   openCommentId: string | null;
+  /** component kind armed for insertion — the next canvas click places it, or null */
+  pendingInsert: ComponentKind | null;
 
   setActiveTool: (tool: ToolId) => void;
   setViewport: (viewport: Viewport) => void;
@@ -59,6 +61,7 @@ export interface UiState {
   setPresences: (presences: Presence[]) => void;
   setCommentMode: (commentMode: boolean) => void;
   setOpenCommentId: (id: string | null) => void;
+  setPendingInsert: (kind: ComponentKind | null) => void;
 }
 
 export const useUiStore = create<UiState>((set) => ({
@@ -79,8 +82,9 @@ export const useUiStore = create<UiState>((set) => ({
   presences: [],
   commentMode: false,
   openCommentId: null,
+  pendingInsert: null,
 
-  setActiveTool: (activeTool) => set({ activeTool, commentMode: false }),
+  setActiveTool: (activeTool) => set({ activeTool, commentMode: false, pendingInsert: null }),
   setViewport: (viewport) => set({ viewport }),
   setSelection: (selection) => set({ selection }),
   setEditingId: (editingId) => set({ editingId }),
@@ -97,4 +101,5 @@ export const useUiStore = create<UiState>((set) => ({
   setPresences: (presences) => set({ presences }),
   setCommentMode: (commentMode) => set({ commentMode }),
   setOpenCommentId: (openCommentId) => set({ openCommentId }),
+  setPendingInsert: (pendingInsert) => set({ pendingInsert }),
 }));

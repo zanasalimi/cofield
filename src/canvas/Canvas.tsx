@@ -419,12 +419,13 @@ export function Canvas({ boardId }: CanvasProps) {
   }
   exportRef.current = exportPng;
 
+  const pendingInsert = useUiStore((s) => s.pendingInsert);
   useEffect(() => {
     toolRef.current?.cancel(ctxRef.current);
     toolRef.current = createTool(activeTool);
     const el = canvasRef.current;
-    if (el) el.style.cursor = commentMode ? "crosshair" : CURSOR_FOR_TOOL[activeTool] ?? "crosshair";
-  }, [activeTool, commentMode]);
+    if (el) el.style.cursor = commentMode || pendingInsert ? "crosshair" : CURSOR_FOR_TOOL[activeTool] ?? "crosshair";
+  }, [activeTool, commentMode, pendingInsert]);
 
   useEffect(() => {
     const el = canvasRef.current;
@@ -491,6 +492,16 @@ export function Canvas({ boardId }: CanvasProps) {
     };
 
     const onPointerDown = (e: PointerEvent) => {
+      // Insert mode armed: place a component at the click point and select it.
+      const pending = ui().pendingInsert;
+      if (pending && e.button === 0) {
+        const w = worldAt(e);
+        const id = useBoardStore.getState().addComponent(pending, { x: w.x, y: w.y });
+        ui().setPendingInsert(null);
+        ui().setSelection([id]);
+        useBoardStore.getState().commitHistory();
+        return;
+      }
       // Comment tool armed: drop a pin at the click and open its thread.
       if (ui().commentMode && e.button === 0) {
         const w = worldAt(e);
