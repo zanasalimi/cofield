@@ -8,11 +8,14 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import type { Shape, ShapeType, Side } from "@/collab/types";
+import { ArrowUp, ArrowRight, ArrowDown, ArrowLeft } from "lucide-react";
+import type { Shape, Side } from "@/collab/types";
 import { useUiStore } from "@/store/ui-store";
 import { useBoardStore } from "@/store/board-store";
 import { worldToScreen, screenToWorld } from "./viewport/viewport";
 import { hitTestTopmost } from "./geometry/hit-test";
+
+const ARROW = { top: ArrowUp, right: ArrowRight, bottom: ArrowDown, left: ArrowLeft } as const;
 
 const GAP = 56; // world-space gap to a quick-created node
 const SIDES: { side: Side; ux: number; uy: number; ax: number; ay: number }[] = [
@@ -21,8 +24,6 @@ const SIDES: { side: Side; ux: number; uy: number; ax: number; ay: number }[] = 
   { side: "bottom", ux: 0, uy: 1, ax: 0.5, ay: 1 },
   { side: "left", ux: -1, uy: 0, ax: 0, ay: 0.5 },
 ];
-const OPPOSITE: Record<Side, Side> = { top: "bottom", bottom: "top", left: "right", right: "left" };
-
 function nearestSide(s: Shape, p: { x: number; y: number }): Side {
   const mids: [Side, number, number][] = [
     ["top", s.x + s.w / 2, s.y],
@@ -51,8 +52,6 @@ function ghostRect(shape: Shape, side: Side): { x: number; y: number; w: number;
   if (side === "bottom") return { x: shape.x, y: shape.y + shape.h + GAP, w, h };
   return { x: shape.x, y: shape.y - shape.h - GAP, w, h };
 }
-
-const NODE_TYPES = new Set<ShapeType>(["rect", "ellipse", "triangle", "diamond", "star"]);
 
 export function HoverConnectLayer() {
   const hoveredId = useUiStore((s) => s.hoveredId);
@@ -88,6 +87,7 @@ export function HoverConnectLayer() {
             side={s.side}
             x={pt.x}
             y={pt.y}
+            active={over === s.side}
             onOver={() => setOver(s.side)}
             onOut={() => setOver((o) => (o === s.side ? null : o))}
           />
@@ -114,6 +114,7 @@ function ConnectPoint({
   side,
   x,
   y,
+  active,
   onOver,
   onOut,
 }: {
@@ -121,6 +122,7 @@ function ConnectPoint({
   side: Side;
   x: number;
   y: number;
+  active: boolean;
   onOver: () => void;
   onOut: () => void;
 }) {
@@ -152,13 +154,12 @@ function ConnectPoint({
       const target = targetId && targetId !== shape.id ? board.getShape(targetId) : undefined;
       if (target) board.addConnector(shape.id, target.id, side, nearestSide(target, world));
     } else {
-      // Click → quick-create a connected node, ready to label.
-      const r = ghostRect(shape, side);
-      const type: ShapeType = NODE_TYPES.has(shape.type) ? shape.type : "rect";
-      const id = board.addShape(type, r);
-      board.addConnector(shape.id, id, side, OPPOSITE[side]);
-      useUiStore.getState().setSelection([id]);
-      useUiStore.getState().setEditingId(id);
+      // Click → create a connected duplicate, ready to label.
+      const id = board.quickConnect(shape.id, side);
+      if (id) {
+        useUiStore.getState().setSelection([id]);
+        useUiStore.getState().setEditingId(id);
+      }
     }
     board.commitHistory();
     useUiStore.getState().setConnecting(null);
@@ -166,15 +167,36 @@ function ConnectPoint({
     dragging.current = false;
   };
 
+  const handlers = {
+    onPointerDown: onDown,
+    onPointerMove: onMove,
+    onPointerUp: onUp,
+    onPointerEnter: onOver,
+    onPointerLeave: onOut,
+  };
+
+  // Hovered point becomes a prominent blue directional button (click = create a
+  // connected copy that way); otherwise a small connection dot (drag = connector).
+  if (active) {
+    const Arrow = ARROW[side];
+    return (
+      <button
+        type="button"
+        aria-label={`Create ${side}`}
+        {...handlers}
+        className="animate-pop pointer-events-auto absolute grid size-7 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full bg-[#4262FF] text-white shadow-md transition-transform duration-100 hover:scale-110 active:scale-95"
+        style={{ left: x, top: y }}
+      >
+        <Arrow className="size-4" strokeWidth={2.5} />
+      </button>
+    );
+  }
+
   return (
     <button
       type="button"
       aria-label={`Connect ${side}`}
-      onPointerDown={onDown}
-      onPointerMove={onMove}
-      onPointerUp={onUp}
-      onPointerEnter={onOver}
-      onPointerLeave={onOut}
+      {...handlers}
       className="animate-pop pointer-events-auto absolute size-3.5 -translate-x-1/2 -translate-y-1/2 cursor-crosshair rounded-full border-[1.5px] border-[#4262FF] bg-white shadow-sm transition-transform duration-100 hover:scale-[1.6]"
       style={{ left: x, top: y }}
     />

@@ -422,7 +422,7 @@ export function Canvas({ boardId }: CanvasProps) {
     final.height = Math.ceil(hCss * scale);
     const fctx = final.getContext("2d");
     if (!fctx) return;
-    fctx.fillStyle = "#FAFAF7";
+    fctx.fillStyle = "#FFFFFF";
     fctx.fillRect(0, 0, final.width, final.height);
     fctx.drawImage(off, 0, 0);
     final.toBlob((blob) => {
@@ -675,6 +675,22 @@ export function Canvas({ boardId }: CanvasProps) {
         }
         return;
       }
+      // Alt + arrow: create a connected duplicate in that direction (like Miro).
+      if (e.altKey && e.key.startsWith("Arrow")) {
+        const sel = ui().selection;
+        if (sel.length === 1) {
+          e.preventDefault();
+          const side: Side =
+            e.key === "ArrowLeft" ? "left" : e.key === "ArrowRight" ? "right" : e.key === "ArrowUp" ? "top" : "bottom";
+          const id = useBoardStore.getState().quickConnect(sel[0]!, side);
+          if (id) {
+            ui().setSelection([id]);
+            ui().setEditingId(id);
+            useBoardStore.getState().commitHistory();
+          }
+        }
+        return;
+      }
       if (e.code === "Space" && !spaceDown.current) {
         spaceDown.current = true;
         if (!dragMode.current) el.style.cursor = "grab";
@@ -752,8 +768,8 @@ export function Canvas({ boardId }: CanvasProps) {
     <div
       className="absolute inset-0"
       style={{
-        backgroundColor: "#F7F7F5",
-        backgroundImage: "radial-gradient(circle, #d4d3cd 1.1px, transparent 1.2px)",
+        backgroundColor: "#FFFFFF",
+        backgroundImage: "radial-gradient(circle, #D6D6D1 0.8px, transparent 0.9px)",
         backgroundSize: `${dot}px ${dot}px`,
         backgroundPosition: `${-viewport.x * viewport.zoom}px ${-viewport.y * viewport.zoom}px`,
       }}

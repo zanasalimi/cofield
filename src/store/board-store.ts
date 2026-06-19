@@ -120,6 +120,8 @@ export interface BoardState {
   addConnector: (from: string, to: string, fromSide?: Side, toSide?: Side) => string;
   /** Add an image shape (src is a data URL or remote URL). */
   addImage: (src: string, rect: { x: number; y: number; w: number; h: number }) => string;
+  /** Create a connected duplicate of a shape on the given side; returns its id. */
+  quickConnect: (id: string, side: Side) => string | null;
   updateShape: (id: string, patch: Partial<Shape>) => void;
   removeShape: (id: string) => void;
   /** Clone shapes in place (fresh ids, small offset); returns the new ids. */
@@ -191,6 +193,29 @@ export const useBoardStore = create<BoardState>((set, get) => ({
     if (bound) docAddShape(bound, shape);
     else set((s) => ({ shapes: [...s.shapes, shape] }));
     return shape.id;
+  },
+
+  quickConnect: (id, side) => {
+    const s = get().shapes.find((sh) => sh.id === id);
+    if (!s) return null;
+    const GAP = 56;
+    const NODE = new Set<ShapeType>(["rect", "ellipse", "triangle", "diamond", "star"]);
+    const type: ShapeType = NODE.has(s.type) ? s.type : "rect";
+    const opp: Record<Side, Side> = { top: "bottom", bottom: "top", left: "right", right: "left" };
+    let x = s.x;
+    let y = s.y;
+    if (side === "right") x = s.x + s.w + GAP;
+    else if (side === "left") x = s.x - s.w - GAP;
+    else if (side === "bottom") y = s.y + s.h + GAP;
+    else y = s.y - s.h - GAP;
+    let newId = "";
+    const make = () => {
+      newId = get().addShape(type, { x, y, w: s.w, h: s.h });
+      get().addConnector(id, newId, side, opp[side]);
+    };
+    if (bound) bound.doc.transact(make);
+    else make();
+    return newId;
   },
 
   updateShape: (id, patch) => {
