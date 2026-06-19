@@ -314,6 +314,7 @@ export function Canvas({ boardId }: CanvasProps) {
       const vp = useUiStore.getState().viewport;
       const all = useBoardStore.getState().shapes;
       const editingId = useUiStore.getState().editingId;
+      const interiorId = useUiStore.getState().interiorId;
       const byId = new Map(all.map((sh) => [sh.id, sh]));
       const resolved: Shape[] = [];
       for (const sh of all) {
@@ -324,6 +325,20 @@ export function Canvas({ boardId }: CanvasProps) {
           // The textarea shows the text while editing — blank the canvas copy so
           // they don't render as two overlapping ghosts.
           resolved.push({ ...sh, content: "" });
+        } else if (sh.type === "component" && sh.id === interiorId) {
+          // The DOM interior shows the editable text — blank the canvas copy so
+          // drawChrome renders bg/border/grid but no text (prevents ghosting at
+          // non-1 zoom where scale() misaligns the canvas snapshot).
+          resolved.push({
+            ...sh,
+            props: {
+              ...sh.props,
+              code: "",
+              cells: Array.isArray(sh.props?.cells)
+                ? (sh.props.cells as string[][]).map((r) => r.map(() => ""))
+                : sh.props?.cells,
+            },
+          });
         } else {
           resolved.push(sh);
         }

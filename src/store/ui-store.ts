@@ -16,6 +16,8 @@ export interface UiState {
   selection: string[];
   /** id of the shape currently being text-edited, or null */
   editingId: string | null;
+  /** id of the component whose DOM interior is currently mounted, or null */
+  interiorId: string | null;
   /** in-progress connector drag (from a connection dot to the pointer), or null */
   connecting: { from: string; fromSide?: Side; point: Point } | null;
   /** in-progress marquee selection rectangle (world coords), or null */
@@ -44,6 +46,7 @@ export interface UiState {
   setViewport: (viewport: Viewport) => void;
   setSelection: (ids: string[]) => void;
   setEditingId: (id: string | null) => void;
+  setInteriorId: (id: string | null) => void;
   setConnecting: (connecting: { from: string; fromSide?: Side; point: Point } | null) => void;
   setMarquee: (marquee: Rect | null) => void;
   setGuides: (guides: SnapGuide[]) => void;
@@ -63,6 +66,7 @@ export const useUiStore = create<UiState>((set) => ({
   viewport: createViewport(),
   selection: [],
   editingId: null,
+  interiorId: null,
   connecting: null,
   marquee: null,
   guides: [],
@@ -80,6 +84,7 @@ export const useUiStore = create<UiState>((set) => ({
   setViewport: (viewport) => set({ viewport }),
   setSelection: (selection) => set({ selection }),
   setEditingId: (editingId) => set({ editingId }),
+  setInteriorId: (interiorId) => set({ interiorId }),
   setConnecting: (connecting) => set({ connecting }),
   setMarquee: (marquee) => set({ marquee }),
   setGuides: (guides) => set({ guides }),
