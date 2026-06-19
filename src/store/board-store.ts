@@ -7,7 +7,7 @@
  */
 import { create } from "zustand";
 import type * as Y from "yjs";
-import type { Shape, ShapeType, ShapeStyle, Side, Comment, CommentMessage } from "@/collab/types";
+import type { Shape, ShapeType, ShapeStyle, Side, Comment, CommentMessage, ComponentKind } from "@/collab/types";
 import {
   addShape as docAddShape,
   updateShape as docUpdateShape,
@@ -18,9 +18,11 @@ import {
   addCommentMessage as docAddCommentMessage,
   setCommentResolved as docSetCommentResolved,
   removeComment as docRemoveComment,
+  updateComponentProps as docUpdateComponentProps,
   createUndoManager,
   type BoardDoc,
 } from "@/collab/doc";
+import { getComponentDef } from "@/canvas/components/registry";
 
 let bound: BoardDoc | null = null;
 let undoMgr: Y.UndoManager | null = null;
@@ -54,7 +56,7 @@ const DEFAULT_STYLE: Record<ShapeType, ShapeStyle> = {
   arrow: { fill: "transparent", stroke: "#1A1A1A", strokeWidth: 2 },
   draw: { fill: "transparent", stroke: "#1A1A1A", strokeWidth: 3 },
   connector: { fill: "transparent", stroke: "#37352F", strokeWidth: 2.5 },
-  component: { fill: "transparent", stroke: "transparent", strokeWidth: 0 },
+  component: { fill: "transparent", stroke: "#D7D7DE", strokeWidth: 1 },
 };
 
 /** Build a fully-formed shape with per-type defaults. */
@@ -132,6 +134,10 @@ export interface BoardState {
   addConnector: (from: string, to: string, fromSide?: Side, toSide?: Side) => string;
   /** Add an image shape (src is a data URL or remote URL). */
   addImage: (src: string, rect: { x: number; y: number; w: number; h: number }) => string;
+  /** Insert a component shape using registry defaults; returns its id. */
+  addComponent: (kind: ComponentKind, at: { x: number; y: number }) => string;
+  /** Patch a component shape's props. */
+  updateComponentProps: (id: string, patch: Record<string, unknown>) => void;
   /** Create a connected duplicate of a shape on the given side; returns its id. */
   quickConnect: (id: string, side: Side) => string | null;
   updateShape: (id: string, patch: Partial<Shape>) => void;
@@ -229,6 +235,26 @@ export const useBoardStore = create<BoardState>((set, get) => ({
     if (bound) docAddShape(bound, shape);
     else set((s) => ({ shapes: [...s.shapes, shape] }));
     return shape.id;
+  },
+
+  addComponent: (kind, at) => {
+    const def = getComponentDef(kind);
+    const { props, w, h } = def.defaults();
+    const id = nextId();
+    const shape: Shape = {
+      id, type: "component", kind,
+      x: at.x, y: at.y, w, h, rotation: 0,
+      style: DEFAULT_STYLE.component, props,
+      createdBy: "me",
+    };
+    if (bound) docAddShape(bound, shape);
+    else set((s) => ({ shapes: [...s.shapes, shape] }));
+    return id;
+  },
+
+  updateComponentProps: (id, patch) => {
+    if (bound) docUpdateComponentProps(bound, id, patch);
+    else set((s) => ({ shapes: s.shapes.map((sh) => (sh.id === id ? { ...sh, props: { ...sh.props, ...patch } } : sh)) }));
   },
 
   quickConnect: (id, side) => {
