@@ -26,6 +26,7 @@ import { SelectionToolbar } from "./SelectionToolbar";
 import { AlignBar } from "./AlignBar";
 import { ContextMenu } from "./ContextMenu";
 import { HoverConnectLayer } from "./HoverConnectLayer";
+import { RotateHandle } from "./RotateHandle";
 import type { Point, Shape, ShapeType, Side } from "@/collab/types";
 
 const CURSOR_FOR_TOOL: Record<string, string> = {
@@ -733,6 +734,7 @@ export function Canvas({ boardId }: CanvasProps) {
         <AvatarStack presences={presences} me={me} />
       </div>
       <HoverConnectLayer />
+      <RotateHandle />
       <TextOverlay />
       <SelectionToolbar />
       <AlignBar />

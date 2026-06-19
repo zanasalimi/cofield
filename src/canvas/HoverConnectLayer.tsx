@@ -9,7 +9,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { ArrowUp, ArrowRight, ArrowDown, ArrowLeft } from "lucide-react";
-import type { Shape, Side } from "@/collab/types";
+import type { Shape, ShapeType, Side } from "@/collab/types";
 import { useUiStore } from "@/store/ui-store";
 import { useBoardStore } from "@/store/board-store";
 import { worldToScreen, screenToWorld } from "./viewport/viewport";
@@ -101,13 +101,37 @@ export function HoverConnectLayer() {
 function Ghost({ shape, side, viewport }: { shape: Shape; side: Side; viewport: { x: number; y: number; zoom: number } }) {
   const r = ghostRect(shape, side);
   const tl = worldToScreen(viewport, { x: r.x, y: r.y });
-  const radius = shape.type === "ellipse" ? "9999px" : shape.type === "rect" ? "8px" : "6px";
+  const w = r.w * viewport.zoom;
+  const h = r.h * viewport.zoom;
   return (
-    <div
-      className="animate-pop absolute border-2 border-dashed border-[#4262FF]/45 bg-[#4262FF]/10"
-      style={{ left: tl.x, top: tl.y, width: r.w * viewport.zoom, height: r.h * viewport.zoom, borderRadius: radius }}
-    />
+    <svg className="animate-pop pointer-events-none absolute" style={{ left: tl.x, top: tl.y }} width={w} height={h} aria-hidden>
+      <ShapeOutline type={shape.type} w={w} h={h} />
+    </svg>
   );
+}
+
+/** A low-opacity dashed outline of a shape type — the clone you'd create. */
+function ShapeOutline({ type, w, h }: { type: ShapeType; w: number; h: number }) {
+  const props = {
+    fill: "rgba(66,98,255,0.08)",
+    stroke: "rgba(66,98,255,0.55)",
+    strokeWidth: 2,
+    strokeDasharray: "5 4",
+  };
+  const m = 2;
+  if (type === "ellipse") return <ellipse cx={w / 2} cy={h / 2} rx={w / 2 - m} ry={h / 2 - m} {...props} />;
+  if (type === "triangle") return <polygon points={`${w / 2},${m} ${w - m},${h - m} ${m},${h - m}`} {...props} />;
+  if (type === "diamond") return <polygon points={`${w / 2},${m} ${w - m},${h / 2} ${w / 2},${h - m} ${m},${h / 2}`} {...props} />;
+  if (type === "star") {
+    const pts: string[] = [];
+    for (let i = 0; i < 10; i++) {
+      const ang = -Math.PI / 2 + (i * Math.PI) / 5;
+      const rr = i % 2 === 0 ? 1 : 0.4;
+      pts.push(`${w / 2 + Math.cos(ang) * (w / 2 - m) * rr},${h / 2 + Math.sin(ang) * (h / 2 - m) * rr}`);
+    }
+    return <polygon points={pts.join(" ")} {...props} />;
+  }
+  return <rect x={m} y={m} width={w - 2 * m} height={h - 2 * m} rx={8} {...props} />;
 }
 
 function ConnectPoint({

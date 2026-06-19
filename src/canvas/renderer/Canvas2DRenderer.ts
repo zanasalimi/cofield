@@ -12,7 +12,6 @@ import { fontStack } from "@/canvas/fonts";
 
 const SELECT = "#4262FF"; // Miro-like selection blue
 const HANDLE = 9; // handle box size, screen px
-const ROT_OFFSET = 30; // rotation handle distance above the top edge, screen px (clears the connection point)
 
 // Images decode asynchronously; cache the elements and repaint once each loads.
 const imageCache = new Map<string, HTMLImageElement>();
@@ -227,17 +226,7 @@ function drawSelection(
   ctx.lineWidth = 1.5;
   ctx.strokeRect(x, y, w, h);
 
-  // Rotation handle: a stem up from the top-center to a circle.
-  const cx = x + w / 2;
-  ctx.beginPath();
-  ctx.moveTo(cx, y);
-  ctx.lineTo(cx, y - ROT_OFFSET);
-  ctx.stroke();
-  ctx.beginPath();
-  ctx.arc(cx, y - ROT_OFFSET, HANDLE / 2, 0, Math.PI * 2);
-  ctx.fillStyle = "#ffffff";
-  ctx.fill();
-  ctx.stroke();
+  // The rotation handle is a DOM icon (RotateHandle), drawn elsewhere.
 
   // Four corner resize handles (round, Miro-style). Edge midpoints stay free
   // for the connection points, so resizing and relating never conflict.
