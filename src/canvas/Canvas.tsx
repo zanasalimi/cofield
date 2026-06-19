@@ -402,6 +402,7 @@ export function Canvas({ boardId }: CanvasProps) {
     const el = canvasRef.current;
     if (!el) return;
 
+    rafRef.current = null; // start clean — a stale id would block all repaints
     const renderer = new Canvas2DRenderer();
     renderer.mount(el);
     rendererRef.current = renderer;
@@ -712,6 +713,8 @@ export function Canvas({ boardId }: CanvasProps) {
       window.removeEventListener("keydown", onKeyDown);
       window.removeEventListener("keyup", onKeyUp);
       if (rafRef.current != null) cancelAnimationFrame(rafRef.current);
+      rafRef.current = null; // reset so a re-mount/Fast-Refresh can schedule again
+      rendererRef.current = null;
       renderer.destroy();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
