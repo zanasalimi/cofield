@@ -8,6 +8,7 @@
 
 import { useEffect, useRef } from "react";
 import { Canvas2DRenderer, setImageLoadCallback } from "./renderer/Canvas2DRenderer";
+import "@/canvas/components";
 import type { Renderer } from "./renderer/Renderer";
 import { pan, zoomAt, screenToWorld, visibleWorldRect, fitRect } from "./viewport/viewport";
 import { cullToViewport } from "./viewport/culling";

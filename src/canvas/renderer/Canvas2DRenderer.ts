@@ -9,6 +9,7 @@
 import type { Renderer, RenderScene } from "./Renderer";
 import type { Shape, ShapeStyle } from "@/collab/types";
 import { fontStack } from "@/canvas/fonts";
+import { getComponentDef } from "@/canvas/components/registry";
 
 const SELECT = "#4262FF"; // Miro-like selection blue
 const HANDLE = 9; // handle box size, screen px
@@ -384,6 +385,16 @@ function drawShape(ctx: CanvasRenderingContext2D, shape: Shape): void {
           drawArrowhead(ctx, p[0]!, p[1]!, p[2]!, p[3]!, style.stroke);
         }
         break;
+      case "component": {
+        try {
+          getComponentDef(shape.kind!).drawChrome(ctx, shape, { x: 0, y: 0, zoom: 1 });
+        } catch {
+          ctx.strokeStyle = shape.style.stroke;
+          ctx.lineWidth = shape.style.strokeWidth || 1;
+          ctx.strokeRect(shape.x, shape.y, shape.w, shape.h);
+        }
+        break;
+      }
     }
 
     // Centred text label for diagram nodes (diagrams.net style) — every box,
