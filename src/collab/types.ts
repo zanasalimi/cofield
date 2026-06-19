@@ -78,6 +78,24 @@ export interface Shape {
   createdBy: UserId;
 }
 
+/** One message in a comment thread. */
+export interface CommentMessage {
+  id: string;
+  author: string;
+  color: string;
+  text: string;
+  ts: number;
+}
+
+/** A comment pin anchored on the board, with a thread of messages. */
+export interface Comment {
+  id: string;
+  x: number;
+  y: number;
+  resolved: boolean;
+  messages: CommentMessage[];
+}
+
 /** A point in world coordinates. */
 export interface Point {
   x: number;

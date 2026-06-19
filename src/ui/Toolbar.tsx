@@ -20,6 +20,7 @@ import {
   MoveUpRight,
   Pencil,
   Shapes,
+  MessageSquare,
   Undo2,
   Redo2,
 } from "lucide-react";
@@ -78,11 +79,13 @@ function RailButton({
 export function Toolbar() {
   const activeTool = useUiStore((s) => s.activeTool);
   const setActiveTool = useUiStore((s) => s.setActiveTool);
+  const commentMode = useUiStore((s) => s.commentMode);
   const [shapesOpen, setShapesOpen] = useState(false);
   const [currentShape, setCurrentShape] = useState<{ id: ToolId; Icon: Icon }>({ id: "rect", Icon: Square });
 
   const pick = (id: ToolId) => {
     setActiveTool(id);
+    useUiStore.getState().setCommentMode(false);
     setShapesOpen(false);
   };
 
@@ -149,6 +152,15 @@ export function Toolbar() {
 
       <RailButton active={activeTool === "draw"} label="Pen" shortcut="P" onClick={() => pick("draw")}>
         <Pencil className="size-[18px]" />
+      </RailButton>
+
+      <RailButton
+        active={commentMode}
+        label="Comment"
+        shortcut="C"
+        onClick={() => useUiStore.getState().setCommentMode(!commentMode)}
+      >
+        <MessageSquare className="size-[18px]" />
       </RailButton>
 
       <div className="my-1 h-px w-6 bg-hairline" />

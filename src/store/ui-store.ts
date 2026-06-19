@@ -31,6 +31,12 @@ export interface UiState {
   /** true while a move/resize/pan drag is in progress (hides hover affordances) */
   dragging: boolean;
   connection: ConnectionState;
+  /** the local user's identity, mirrored from presence so comments can attribute authors */
+  me: { userId: string; name: string; color: string } | null;
+  /** true while the comment tool is armed — the next canvas click drops a pin */
+  commentMode: boolean;
+  /** id of the comment thread currently open, or null */
+  openCommentId: string | null;
 
   setActiveTool: (tool: ToolId) => void;
   setViewport: (viewport: Viewport) => void;
@@ -44,6 +50,9 @@ export interface UiState {
   setHoveredId: (id: string | null) => void;
   setDragging: (dragging: boolean) => void;
   setConnection: (state: ConnectionState) => void;
+  setMe: (me: { userId: string; name: string; color: string } | null) => void;
+  setCommentMode: (commentMode: boolean) => void;
+  setOpenCommentId: (id: string | null) => void;
 }
 
 export const useUiStore = create<UiState>((set) => ({
@@ -59,8 +68,11 @@ export const useUiStore = create<UiState>((set) => ({
   hoveredId: null,
   dragging: false,
   connection: "connecting",
+  me: null,
+  commentMode: false,
+  openCommentId: null,
 
-  setActiveTool: (activeTool) => set({ activeTool }),
+  setActiveTool: (activeTool) => set({ activeTool, commentMode: false }),
   setViewport: (viewport) => set({ viewport }),
   setSelection: (selection) => set({ selection }),
   setEditingId: (editingId) => set({ editingId }),
@@ -72,4 +84,7 @@ export const useUiStore = create<UiState>((set) => ({
   setHoveredId: (hoveredId) => set({ hoveredId }),
   setDragging: (dragging) => set({ dragging }),
   setConnection: (connection) => set({ connection }),
+  setMe: (me) => set({ me }),
+  setCommentMode: (commentMode) => set({ commentMode }),
+  setOpenCommentId: (openCommentId) => set({ openCommentId }),
 }));

@@ -11,13 +11,14 @@
  * different fields of the same shape merge without clobbering.
  */
 import * as Y from "yjs";
-import type { Shape, ShapeId, ShapeType, ShapeStyle, Side } from "./types";
+import type { Shape, ShapeId, ShapeType, ShapeStyle, Side, Comment, CommentMessage } from "./types";
 
 export interface BoardDoc {
   doc: Y.Doc;
   shapes: Y.Map<Y.Map<unknown>>;
   order: Y.Array<ShapeId>;
   meta: Y.Map<unknown>;
+  comments: Y.Map<Y.Map<unknown>>;
 }
 
 const FIELDS: (keyof Shape)[] = ["id", "type", "x", "y", "w", "h", "rotation", "style", "content", "points", "src", "from", "to", "fromSide", "toSide", "locked", "link", "createdBy"];
@@ -29,7 +30,61 @@ export function createBoardDoc(doc: Y.Doc = new Y.Doc()): BoardDoc {
     shapes: doc.getMap<Y.Map<unknown>>("shapes"),
     order: doc.getArray<ShapeId>("order"),
     meta: doc.getMap("meta"),
+    comments: doc.getMap<Y.Map<unknown>>("comments"),
   };
+}
+
+/** Create an empty comment pin at a world point. */
+export function addComment(board: BoardDoc, id: string, x: number, y: number): void {
+  board.doc.transact(() => {
+    const c = new Y.Map<unknown>();
+    c.set("id", id);
+    c.set("x", x);
+    c.set("y", y);
+    c.set("resolved", false);
+    c.set("messages", new Y.Array());
+    board.comments.set(id, c);
+  });
+}
+
+/** Append a message to a comment's thread (concurrent replies merge). */
+export function addCommentMessage(board: BoardDoc, commentId: string, msg: CommentMessage): void {
+  const c = board.comments.get(commentId);
+  if (!c) return;
+  (c.get("messages") as Y.Array<CommentMessage>).push([msg]);
+}
+
+export function setCommentResolved(board: BoardDoc, commentId: string, resolved: boolean): void {
+  board.comments.get(commentId)?.set("resolved", resolved);
+}
+
+export function moveComment(board: BoardDoc, commentId: string, x: number, y: number): void {
+  const c = board.comments.get(commentId);
+  if (!c) return;
+  board.doc.transact(() => {
+    c.set("x", x);
+    c.set("y", y);
+  });
+}
+
+export function removeComment(board: BoardDoc, commentId: string): void {
+  board.comments.delete(commentId);
+}
+
+export function readComments(board: BoardDoc): Comment[] {
+  const out: Comment[] = [];
+  board.comments.forEach((c) => {
+    const id = c.get("id") as string | undefined;
+    if (!id) return;
+    out.push({
+      id,
+      x: c.get("x") as number,
+      y: c.get("y") as number,
+      resolved: (c.get("resolved") as boolean) ?? false,
+      messages: ((c.get("messages") as Y.Array<CommentMessage>)?.toArray() ?? []).slice(),
+    });
+  });
+  return out;
 }
 
 function toYMap(shape: Shape): Y.Map<unknown> {

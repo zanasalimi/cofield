@@ -8,7 +8,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import * as Y from "yjs";
-import { createBoardDoc, readShapesInOrder, readMeta } from "./doc";
+import { createBoardDoc, readShapesInOrder, readMeta, readComments } from "./doc";
 import { bindOfflineCache } from "./offline";
 import { createWebsocketProvider, type SyncProvider } from "./provider";
 import {
@@ -58,6 +58,10 @@ export function useBoard(boardId: string) {
     board.meta.observe(refreshMeta);
     refreshMeta();
 
+    const refreshComments = () => useBoardStore.getState()._setComments(readComments(board));
+    board.comments.observeDeep(refreshComments);
+    refreshComments();
+
     // Stable per-session identity for presence (the auth user replaces this in M3).
     const cid = provider.awareness.clientID;
     const identity: LocalIdentity = {
@@ -77,6 +81,7 @@ export function useBoard(boardId: string) {
       board.shapes.unobserveDeep(refresh);
       board.order.unobserve(refresh);
       board.meta.unobserve(refreshMeta);
+      board.comments.unobserveDeep(refreshComments);
       offPresence();
       offState();
       useBoardStore.getState().unbindDoc();

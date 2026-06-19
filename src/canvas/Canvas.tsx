@@ -28,6 +28,7 @@ import { ContextMenu } from "./ContextMenu";
 import { HoverConnectLayer } from "./HoverConnectLayer";
 import { RotateHandle } from "./RotateHandle";
 import { LinkLayer } from "./LinkLayer";
+import { CommentsLayer } from "./CommentsLayer";
 import type { Point, Shape, ShapeType, Side } from "@/collab/types";
 
 const CURSOR_FOR_TOOL: Record<string, string> = {
@@ -208,6 +209,7 @@ export function Canvas({ boardId }: CanvasProps) {
   const viewport = useUiStore((s) => s.viewport);
   const selection = useUiStore((s) => s.selection);
   const activeTool = useUiStore((s) => s.activeTool);
+  const commentMode = useUiStore((s) => s.commentMode);
   const followingId = useUiStore((s) => s.followingId);
 
   // Realtime: doc binding + presence + throttled publishers.
@@ -219,6 +221,11 @@ export function Canvas({ boardId }: CanvasProps) {
   useEffect(() => {
     publishSelection(selection);
   }, [selection, publishSelection]);
+
+  // Mirror identity into the UI store so comments can attribute their author.
+  useEffect(() => {
+    useUiStore.getState().setMe(me);
+  }, [me]);
 
   // Broadcast our viewport so others can follow it.
   useEffect(() => {
@@ -396,8 +403,8 @@ export function Canvas({ boardId }: CanvasProps) {
     toolRef.current?.cancel(ctxRef.current);
     toolRef.current = createTool(activeTool);
     const el = canvasRef.current;
-    if (el) el.style.cursor = CURSOR_FOR_TOOL[activeTool] ?? "crosshair";
-  }, [activeTool]);
+    if (el) el.style.cursor = commentMode ? "crosshair" : CURSOR_FOR_TOOL[activeTool] ?? "crosshair";
+  }, [activeTool, commentMode]);
 
   useEffect(() => {
     const el = canvasRef.current;
@@ -464,6 +471,14 @@ export function Canvas({ boardId }: CanvasProps) {
     };
 
     const onPointerDown = (e: PointerEvent) => {
+      // Comment tool armed: drop a pin at the click and open its thread.
+      if (ui().commentMode && e.button === 0) {
+        const w = worldAt(e);
+        const id = useBoardStore.getState().addComment(w.x, w.y);
+        ui().setCommentMode(false);
+        ui().setOpenCommentId(id);
+        return;
+      }
       el.setPointerCapture(e.pointerId);
       const panRequested = spaceDown.current || e.button === 1 || ui().activeTool === "pan";
       if (panRequested) {
@@ -656,11 +671,18 @@ export function Canvas({ boardId }: CanvasProps) {
         toolRef.current?.cancel(ctx);
         ui().setSelection([]);
         ui().setContextMenu(null);
+        ui().setCommentMode(false);
+        ui().setOpenCommentId(null);
         return;
       }
       if (e.key === "Delete" || e.key === "Backspace") {
         for (const id of ui().selection) ctx.removeShape(id);
         ui().setSelection([]);
+        return;
+      }
+      // Comment tool toggle.
+      if (e.key.toLowerCase() === "c" && !e.metaKey && !e.ctrlKey && !e.altKey) {
+        ui().setCommentMode(!ui().commentMode);
         return;
       }
       const tool = TOOL_SHORTCUTS[e.key.toLowerCase()];
@@ -738,6 +760,7 @@ export function Canvas({ boardId }: CanvasProps) {
         <AvatarStack presences={presences} me={me} />
       </div>
       <LinkLayer />
+      <CommentsLayer />
       <HoverConnectLayer />
       <RotateHandle />
       <TextOverlay />

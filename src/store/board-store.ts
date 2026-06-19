@@ -7,13 +7,17 @@
  */
 import { create } from "zustand";
 import type * as Y from "yjs";
-import type { Shape, ShapeType, ShapeStyle, Side } from "@/collab/types";
+import type { Shape, ShapeType, ShapeStyle, Side, Comment, CommentMessage } from "@/collab/types";
 import {
   addShape as docAddShape,
   updateShape as docUpdateShape,
   removeShape as docRemoveShape,
   reorderShapes as docReorderShapes,
   setMeta as docSetMeta,
+  addComment as docAddComment,
+  addCommentMessage as docAddCommentMessage,
+  setCommentResolved as docSetCommentResolved,
+  removeComment as docRemoveComment,
   createUndoManager,
   type BoardDoc,
 } from "@/collab/doc";
@@ -116,6 +120,13 @@ export interface BoardState {
   meta: Record<string, unknown>;
   setMeta: (patch: Record<string, unknown>) => void;
   _setMeta: (meta: Record<string, unknown>) => void;
+  /** comment pins + threads */
+  comments: Comment[];
+  addComment: (x: number, y: number) => string;
+  addCommentMessage: (commentId: string, msg: CommentMessage) => void;
+  resolveComment: (commentId: string, resolved: boolean) => void;
+  removeComment: (commentId: string) => void;
+  _setComments: (comments: Comment[]) => void;
   addShape: (type: ShapeType, rect: { x: number; y: number; w: number; h: number }) => string;
   addConnector: (from: string, to: string, fromSide?: Side, toSide?: Side) => string;
   /** Add an image shape (src is a data URL or remote URL). */
@@ -159,6 +170,30 @@ export const useBoardStore = create<BoardState>((set, get) => ({
     else set((s) => ({ meta: { ...s.meta, ...patch } }));
   },
   _setMeta: (meta) => set({ meta }),
+
+  comments: [],
+  addComment: (x, y) => {
+    const id = nextId();
+    if (bound) docAddComment(bound, id, x, y);
+    else set((s) => ({ comments: [...s.comments, { id, x, y, resolved: false, messages: [] }] }));
+    return id;
+  },
+  addCommentMessage: (commentId, msg) => {
+    if (bound) docAddCommentMessage(bound, commentId, msg);
+    else
+      set((s) => ({
+        comments: s.comments.map((c) => (c.id === commentId ? { ...c, messages: [...c.messages, msg] } : c)),
+      }));
+  },
+  resolveComment: (commentId, resolved) => {
+    if (bound) docSetCommentResolved(bound, commentId, resolved);
+    else set((s) => ({ comments: s.comments.map((c) => (c.id === commentId ? { ...c, resolved } : c)) }));
+  },
+  removeComment: (commentId) => {
+    if (bound) docRemoveComment(bound, commentId);
+    else set((s) => ({ comments: s.comments.filter((c) => c.id !== commentId) }));
+  },
+  _setComments: (comments) => set({ comments }),
 
   addShape: (type, rect) => {
     const shape = makeShape(type, rect);
