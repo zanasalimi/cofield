@@ -19,23 +19,23 @@ export function BoardBar() {
   const [menu, setMenu] = useState(false);
 
   return (
-    <div className="pointer-events-auto relative flex items-center gap-1 rounded-2xl border border-hairline bg-chrome px-2 py-1.5 shadow-toolbar">
-      <span className="select-none px-1 text-sm font-semibold tracking-tight text-ink">Cofield</span>
-      <div className="h-5 w-px bg-hairline" />
+    <div className="pointer-events-auto relative flex items-center gap-1.5 rounded-2xl border border-hairline bg-chrome px-3 py-2 shadow-toolbar">
+      <span className="select-none px-1 text-base font-semibold tracking-tight text-ink">Cofield</span>
+      <div className="h-6 w-px bg-hairline" />
       <input
         value={name}
         onChange={(e) => useBoardStore.getState().setMeta({ name: e.target.value })}
         placeholder="Untitled"
         aria-label="Board name"
-        className="w-40 rounded-md bg-transparent px-1.5 py-0.5 text-sm text-ink outline-none transition-colors placeholder:text-ink-soft hover:bg-ink/5 focus:bg-ink/5"
+        className="w-52 rounded-lg bg-transparent px-2 py-1 text-base text-ink outline-none transition-colors placeholder:text-ink-soft hover:bg-ink/5 focus:bg-ink/5"
       />
       <button
         type="button"
         aria-label="Board menu"
         onClick={() => setMenu((m) => !m)}
-        className="grid size-7 place-items-center rounded-lg text-ink-soft transition-transform duration-100 hover:bg-ink/5 hover:text-ink active:scale-90"
+        className="grid size-9 place-items-center rounded-lg text-ink-soft transition-transform duration-100 hover:bg-ink/5 hover:text-ink active:scale-90"
       >
-        <ChevronDown className="size-4" />
+        <ChevronDown className="size-5" />
       </button>
 
       {menu ? (

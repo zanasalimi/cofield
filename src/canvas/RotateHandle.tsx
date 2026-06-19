@@ -66,10 +66,10 @@ export function RotateHandle() {
       onPointerDown={onDown}
       onPointerMove={onMove}
       onPointerUp={onUp}
-      className="pointer-events-auto absolute grid size-7 -translate-x-1/2 -translate-y-1/2 cursor-grab place-items-center rounded-full border border-hairline bg-chrome text-ink-soft shadow-sm transition-transform duration-100 hover:text-ink active:scale-90"
+      className="pointer-events-auto absolute grid size-9 -translate-x-1/2 -translate-y-1/2 cursor-grab place-items-center rounded-full border border-hairline bg-chrome text-ink-soft shadow-sm transition-transform duration-100 hover:text-ink active:scale-90"
       style={{ left: p.x, top: p.y }}
     >
-      <RotateCw className="size-3.5" />
+      <RotateCw className="size-[18px]" />
     </button>
   );
 }

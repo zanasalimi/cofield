@@ -72,7 +72,7 @@ function ColorGrid({ colors, onPick, withNone }: { colors: string[]; onPick: (c:
           type="button"
           onClick={() => onPick("transparent")}
           title="No fill"
-          className="grid size-7 place-items-center rounded-md border border-black/10 transition-transform hover:scale-110 active:scale-95"
+          className="grid size-8 place-items-center rounded-md border border-black/10 transition-transform hover:scale-110 active:scale-95"
           style={{ background: "linear-gradient(135deg, transparent 44%, #E03E3E 44%, #E03E3E 56%, transparent 56%)" }}
           aria-label="No fill"
         />
@@ -82,7 +82,7 @@ function ColorGrid({ colors, onPick, withNone }: { colors: string[]; onPick: (c:
           key={c}
           type="button"
           onClick={() => onPick(c)}
-          className="size-7 rounded-md border border-black/10 transition-transform hover:scale-110 active:scale-95"
+          className="size-8 rounded-md border border-black/10 transition-transform hover:scale-110 active:scale-95"
           style={{ background: c }}
           aria-label={`Colour ${c}`}
         />
@@ -119,22 +119,22 @@ export function SelectionToolbar() {
     if (a && b) world = { x: (a.x + a.w / 2 + b.x + b.w / 2) / 2, y: Math.min(a.y, b.y) };
   }
   const anchor = worldToScreen(viewport, world);
-  const Sep = () => <div className="mx-0.5 h-6 w-px bg-hairline" />;
-  const iconBtn = "[&_svg]:size-[18px]";
+  const Sep = () => <div className="mx-0.5 h-7 w-px bg-hairline" />;
+  const iconBtn = "[&_svg]:size-5";
   const CurType = TYPE_OPTIONS.find((t) => t.type === shape.type)?.Icon ?? Square;
 
   return (
     <div
-      className="animate-pop pointer-events-auto absolute z-10 flex -translate-x-1/2 items-center gap-0.5 rounded-2xl border border-hairline bg-chrome p-1.5 shadow-toolbar"
-      style={{ left: anchor.x, top: Math.max(8, anchor.y - 64) }}
+      className="animate-pop pointer-events-auto absolute z-10 flex -translate-x-1/2 items-center gap-1 rounded-[20px] border border-hairline bg-chrome p-2 shadow-toolbar"
+      style={{ left: anchor.x, top: Math.max(8, anchor.y - 76) }}
     >
       {canSwitch ? (
         <>
           <Popover>
             <PopoverTrigger asChild>
-              <Button variant="ghost" size="lg" title="Switch type" className="gap-1 px-2">
-                <CurType className="size-[18px]" />
-                <ChevronDown className="size-3.5 opacity-60" />
+              <Button variant="ghost" size="lg" title="Switch type" className="gap-1 px-2.5">
+                <CurType className="size-5" />
+                <ChevronDown className="size-4 opacity-60" />
               </Button>
             </PopoverTrigger>
             <PopoverContent align="start" className="w-40">
@@ -145,9 +145,9 @@ export function SelectionToolbar() {
                     type="button"
                     title={label}
                     onClick={() => setShape({ type })}
-                    className={`grid size-9 place-items-center rounded-lg transition-colors hover:bg-muted ${shape.type === type ? "bg-muted text-ink" : "text-ink-soft"}`}
+                    className={`grid size-10 place-items-center rounded-lg transition-colors hover:bg-muted ${shape.type === type ? "bg-muted text-ink" : "text-ink-soft"}`}
                   >
-                    <Icon className="size-[18px]" />
+                    <Icon className="size-5" />
                   </button>
                 ))}
               </div>
@@ -162,7 +162,7 @@ export function SelectionToolbar() {
           <PopoverTrigger asChild>
             <Button variant="ghost" size="icon-lg" title="Fill colour">
               <span
-                className="size-5 rounded-md border border-black/15"
+                className="size-6 rounded-md border border-black/15"
                 style={st.fill === "transparent" ? { background: "linear-gradient(135deg,#fff 44%,#E03E3E 44%,#E03E3E 56%,#fff 56%)" } : { background: st.fill }}
               />
             </Button>
@@ -178,7 +178,7 @@ export function SelectionToolbar() {
           <Popover>
             <PopoverTrigger asChild>
               <Button variant="ghost" size="icon-lg" title="Line colour">
-                <span className="size-5 rounded-full border border-black/15" style={{ background: st.stroke }} />
+                <span className="size-6 rounded-full border border-black/15" style={{ background: st.stroke }} />
               </Button>
             </PopoverTrigger>
             <PopoverContent align="start">
@@ -194,7 +194,7 @@ export function SelectionToolbar() {
               onClick={() => set({ strokeWidth: w })}
               className={Math.abs((st.strokeWidth ?? 2) - w) < 0.6 ? "bg-muted" : ""}
             >
-              <span className="rounded-full bg-current" style={{ width: 16, height: 1 + i * 2 }} />
+              <span className="rounded-full bg-current" style={{ width: 18, height: 2 + i * 2 }} />
             </Button>
           ))}
         </>
@@ -205,9 +205,9 @@ export function SelectionToolbar() {
           {hasFill ? <Sep /> : null}
           <Popover>
             <PopoverTrigger asChild>
-              <Button variant="ghost" size="lg" className="gap-1.5 px-2.5" title="Font">
-                <span className="text-sm" style={{ fontFamily: fontStack(st.fontFamily) }}>{st.fontFamily ?? "Geist"}</span>
-                <ChevronDown className="size-3.5 opacity-60" />
+              <Button variant="ghost" size="lg" className="gap-1.5 px-3" title="Font">
+                <span className="text-base" style={{ fontFamily: fontStack(st.fontFamily) }}>{st.fontFamily ?? "Geist"}</span>
+                <ChevronDown className="size-4 opacity-60" />
               </Button>
             </PopoverTrigger>
             <PopoverContent align="start" className="w-40 p-1">
@@ -217,7 +217,7 @@ export function SelectionToolbar() {
                     key={name}
                     type="button"
                     onClick={() => set({ fontFamily: name })}
-                    className={`rounded-md px-2 py-1.5 text-left text-sm transition-colors hover:bg-muted ${(st.fontFamily ?? "Geist") === name ? "bg-muted" : ""}`}
+                    className={`rounded-md px-2.5 py-2 text-left text-base transition-colors hover:bg-muted ${(st.fontFamily ?? "Geist") === name ? "bg-muted" : ""}`}
                     style={{ fontFamily: fontStack(name) }}
                   >
                     {name}
@@ -231,7 +231,7 @@ export function SelectionToolbar() {
           <Button variant="ghost" size="icon-lg" title="Smaller" className={iconBtn} onClick={() => set({ fontSize: Math.max(8, fs - 2) })}>
             <Minus />
           </Button>
-          <span className="w-7 text-center text-sm tabular-nums text-ink">{fs}</span>
+          <span className="w-9 text-center text-base tabular-nums text-ink">{fs}</span>
           <Button variant="ghost" size="icon-lg" title="Larger" className={iconBtn} onClick={() => set({ fontSize: Math.min(96, fs + 2) })}>
             <Plus />
           </Button>
@@ -276,7 +276,7 @@ export function SelectionToolbar() {
           <Popover>
             <PopoverTrigger asChild>
               <Button variant="ghost" size="icon-lg" title="Text colour">
-                <span className="text-[17px] font-semibold leading-none" style={{ color: st.textColor ?? "#1A1A1A" }}>A</span>
+                <span className="text-[20px] font-semibold leading-none" style={{ color: st.textColor ?? "#1A1A1A" }}>A</span>
               </Button>
             </PopoverTrigger>
             <PopoverContent align="start">

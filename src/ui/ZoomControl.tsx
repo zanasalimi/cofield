@@ -32,29 +32,29 @@ export function ZoomControl() {
   };
 
   return (
-    <div className="pointer-events-auto flex items-center gap-1 rounded-xl border border-hairline bg-chrome px-1 py-1 shadow-toolbar">
+    <div className="pointer-events-auto flex items-center gap-1 rounded-2xl border border-hairline bg-chrome px-1.5 py-1.5 shadow-toolbar">
       <button
         type="button"
         onClick={() => window.dispatchEvent(new Event("cofield:export"))}
         title="Export PNG (⌘⇧E)"
-        className="grid size-9 place-items-center rounded-lg text-ink-soft transition-transform duration-100 hover:bg-ink/5 hover:text-ink active:scale-90"
+        className="grid size-11 place-items-center rounded-xl text-ink-soft transition-transform duration-100 hover:bg-ink/5 hover:text-ink active:scale-90"
         aria-label="Export board as PNG"
       >
-        <Download className="size-[18px]" />
+        <Download className="size-5" />
       </button>
       <button
         type="button"
         onClick={fitAll}
         title="Zoom to fit (Shift+1)"
-        className="grid size-9 place-items-center rounded-lg text-ink-soft transition-transform duration-100 hover:bg-ink/5 hover:text-ink active:scale-90"
+        className="grid size-11 place-items-center rounded-xl text-ink-soft transition-transform duration-100 hover:bg-ink/5 hover:text-ink active:scale-90"
         aria-label="Zoom to fit"
       >
-        <Maximize className="size-[18px]" />
+        <Maximize className="size-5" />
       </button>
       <button
         type="button"
         onClick={() => setViewport({ ...useUiStore.getState().viewport, zoom: 1 })}
-        className="rounded-lg px-2.5 py-1 text-sm tabular-nums text-ink-soft transition-transform duration-100 hover:bg-ink/5 hover:text-ink active:scale-95"
+        className="rounded-xl px-3 py-1.5 text-base tabular-nums text-ink-soft transition-transform duration-100 hover:bg-ink/5 hover:text-ink active:scale-95"
         aria-label="Reset zoom to 100%"
       >
         {Math.round(zoom * 100)}%

@@ -143,10 +143,10 @@ export function CommentsLayer() {
             <button
               type="button"
               onClick={() => useUiStore.getState().setOpenCommentId(open ? null : c.id)}
-              className="pointer-events-auto grid size-8 -translate-x-1/2 -translate-y-full place-items-center rounded-full rounded-bl-none border-2 border-white text-xs font-semibold text-white shadow-md transition-transform duration-100 hover:scale-110 active:scale-95"
+              className="pointer-events-auto grid size-10 -translate-x-1/2 -translate-y-full place-items-center rounded-full rounded-bl-none border-2 border-white text-sm font-semibold text-white shadow-md transition-transform duration-100 hover:scale-110 active:scale-95"
               style={{ background: color }}
             >
-              {first ? initial(first.author) : <MessageSquare className="size-4" />}
+              {first ? initial(first.author) : <MessageSquare className="size-5" />}
             </button>
             {open ? <Thread comment={c} /> : null}
           </div>

@@ -213,10 +213,10 @@ function ConnectPoint({
         type="button"
         aria-label={`Create ${side}`}
         {...handlers}
-        className="animate-pop pointer-events-auto absolute grid size-7 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full bg-[#4262FF] text-white shadow-md transition-transform duration-100 hover:scale-110 active:scale-95"
+        className="animate-pop pointer-events-auto absolute grid size-9 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full bg-[#4262FF] text-white shadow-md transition-transform duration-100 hover:scale-110 active:scale-95"
         style={{ left: x, top: y }}
       >
-        <Arrow className="size-4" strokeWidth={2.5} />
+        <Arrow className="size-5" strokeWidth={2.5} />
       </button>
     );
   }
@@ -226,7 +226,7 @@ function ConnectPoint({
       type="button"
       aria-label={`Connect ${side}`}
       {...handlers}
-      className="animate-pop pointer-events-auto absolute size-3.5 -translate-x-1/2 -translate-y-1/2 cursor-crosshair rounded-full border-[1.5px] border-[#4262FF] bg-white shadow-sm transition-transform duration-100 hover:scale-[1.6]"
+      className="animate-pop pointer-events-auto absolute size-4 -translate-x-1/2 -translate-y-1/2 cursor-crosshair rounded-full border-2 border-[#4262FF] bg-white shadow-sm transition-transform duration-100 hover:scale-[1.6]"
       style={{ left: x, top: y }}
     />
   );

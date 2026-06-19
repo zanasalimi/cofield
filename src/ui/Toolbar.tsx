@@ -61,7 +61,7 @@ function RailButton({
           type="button"
           aria-label={label}
           onClick={onClick}
-          className={`grid size-10 place-items-center rounded-xl transition-transform duration-100 active:scale-90 ${
+          className={`grid size-12 place-items-center rounded-xl transition-transform duration-100 active:scale-90 ${
             active ? "bg-ink/10 text-ink" : "text-ink-soft hover:bg-ink/5 hover:text-ink"
           }`}
         >
@@ -90,18 +90,18 @@ export function Toolbar() {
   };
 
   return (
-    <div className="pointer-events-auto flex flex-col items-center gap-0.5 rounded-2xl border border-hairline bg-chrome p-1.5 shadow-toolbar">
+    <div className="pointer-events-auto flex flex-col items-center gap-1 rounded-2xl border border-hairline bg-chrome p-2 shadow-toolbar">
       <RailButton active={activeTool === "select"} label="Select" shortcut="V" onClick={() => pick("select")}>
-        <MousePointer2 className="size-[18px]" />
+        <MousePointer2 className="size-[22px]" />
       </RailButton>
       <RailButton active={activeTool === "pan"} label="Hand" shortcut="H" onClick={() => pick("pan")}>
-        <Hand className="size-[18px]" />
+        <Hand className="size-[22px]" />
       </RailButton>
       <RailButton active={activeTool === "sticky"} label="Sticky note" shortcut="S" onClick={() => pick("sticky")}>
-        <StickyNote className="size-[18px]" />
+        <StickyNote className="size-[22px]" />
       </RailButton>
       <RailButton active={activeTool === "text"} label="Text" shortcut="T" onClick={() => pick("text")}>
-        <Type className="size-[18px]" />
+        <Type className="size-[22px]" />
       </RailButton>
 
       {/* Shapes flyout — rail button shows the active shape. */}
@@ -115,8 +115,8 @@ export function Toolbar() {
           }}
         >
           <span className="relative">
-            <currentShape.Icon className="size-[18px]" />
-            <Shapes className="absolute -bottom-1.5 -right-2 size-2.5 text-ink-soft" />
+            <currentShape.Icon className="size-[22px]" />
+            <Shapes className="absolute -bottom-1.5 -right-2 size-3 text-ink-soft" />
           </span>
         </RailButton>
         {shapesOpen ? (
@@ -133,11 +133,11 @@ export function Toolbar() {
                         setCurrentShape({ id, Icon });
                         pick(id);
                       }}
-                      className={`grid size-10 place-items-center rounded-xl transition-transform duration-100 active:scale-90 ${
+                      className={`grid size-12 place-items-center rounded-xl transition-transform duration-100 active:scale-90 ${
                         activeTool === id ? "bg-ink/10 text-ink" : "text-ink-soft hover:bg-ink/5 hover:text-ink"
                       }`}
                     >
-                      <Icon className="size-[18px]" />
+                      <Icon className="size-[22px]" />
                     </button>
                   </TooltipTrigger>
                   <TooltipContent side="bottom" sideOffset={6}>
@@ -151,7 +151,7 @@ export function Toolbar() {
       </div>
 
       <RailButton active={activeTool === "draw"} label="Pen" shortcut="P" onClick={() => pick("draw")}>
-        <Pencil className="size-[18px]" />
+        <Pencil className="size-[22px]" />
       </RailButton>
 
       <RailButton
@@ -160,16 +160,16 @@ export function Toolbar() {
         shortcut="C"
         onClick={() => useUiStore.getState().setCommentMode(!commentMode)}
       >
-        <MessageSquare className="size-[18px]" />
+        <MessageSquare className="size-[22px]" />
       </RailButton>
 
-      <div className="my-1 h-px w-6 bg-hairline" />
+      <div className="my-1 h-px w-7 bg-hairline" />
 
       <RailButton label="Undo" shortcut="⌘Z" onClick={() => useBoardStore.getState().undo()}>
-        <Undo2 className="size-[18px]" />
+        <Undo2 className="size-[22px]" />
       </RailButton>
       <RailButton label="Redo" shortcut="⌘⇧Z" onClick={() => useBoardStore.getState().redo()}>
-        <Redo2 className="size-[18px]" />
+        <Redo2 className="size-[22px]" />
       </RailButton>
     </div>
   );
