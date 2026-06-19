@@ -703,6 +703,7 @@ export function Canvas({ boardId }: CanvasProps) {
         ui().setSelection([]);
         ui().setContextMenu(null);
         ui().setCommentMode(false);
+        ui().setPendingInsert(null);
         ui().setOpenCommentId(null);
         return;
       }
