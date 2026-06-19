@@ -1,17 +1,22 @@
 /**
- * Comment pins + threads. Every comment is a speech-pin anchored at a world
- * point; clicking opens a thread of messages with a reply box and a resolve
- * toggle. Resolved comments are hidden (until reopened). Empty pins (placed but
- * never written to) are removed when their thread closes — no stray markers.
+ * Comment pins + threads. A pin is anchored at a world point and is draggable
+ * like any object; hovering it previews the latest message, clicking opens the
+ * full thread. A brand-new pin shows only a composer (nothing to resolve yet);
+ * once it has messages the thread gains a header with a colour theme, resolve and
+ * delete. Resolved threads stay on the board (dimmed) until someone removes them.
  */
 "use client";
 
-import { useEffect, useRef } from "react";
-import { MessageSquare, Check, Send, Trash2, X } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { MessageSquare, Check, Send, Trash2, X, Smile, MoreHorizontal } from "lucide-react";
 import type { Comment } from "@/collab/types";
 import { useUiStore } from "@/store/ui-store";
 import { useBoardStore } from "@/store/board-store";
-import { worldToScreen } from "./viewport/viewport";
+import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
+import { worldToScreen, screenToWorld } from "./viewport/viewport";
+
+const THEME_COLORS = ["#6B6B66", "#3FA34D", "#E03E3E", "#2D9CDB", "#1A1A1A"];
+const EMOJIS = ["👍", "🙌", "🎉", "🔥", "😀", "😅", "😂", "😍", "🤔", "😬", "😮", "😢", "😡", "✅", "❌", "⭐", "💡", "🚀", "👀", "🙏", "💯", "❤️", "👋", "✨"];
 
 const initial = (name: string) => name.trim().slice(0, 1).toUpperCase() || "?";
 
@@ -25,17 +30,49 @@ function relTime(ts: number): string {
   return `${Math.floor(h / 24)}d ago`;
 }
 
-function Thread({ comment }: { comment: Comment }) {
+function EmojiPicker({ onPick }: { onPick: (e: string) => void }) {
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <button type="button" title="Emoji" className="grid size-7 place-items-center rounded-lg text-ink-soft transition-colors hover:bg-muted hover:text-ink">
+          <Smile className="size-[18px]" />
+        </button>
+      </PopoverTrigger>
+      <PopoverContent align="end" className="w-auto p-2">
+        <div className="grid grid-cols-8 gap-0.5">
+          {EMOJIS.map((e) => (
+            <button
+              key={e}
+              type="button"
+              onClick={() => onPick(e)}
+              className="grid size-7 place-items-center rounded-md text-lg leading-none transition-transform hover:scale-125"
+            >
+              {e}
+            </button>
+          ))}
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
+function Composer({ comment }: { comment: Comment }) {
   const me = useUiStore((s) => s.me);
   const ref = useRef<HTMLTextAreaElement>(null);
+  const fresh = comment.messages.length === 0;
 
   useEffect(() => {
     ref.current?.focus();
   }, []);
 
-  const close = () => {
-    if (comment.messages.length === 0) useBoardStore.getState().removeComment(comment.id);
-    useUiStore.getState().setOpenCommentId(null);
+  const insertEmoji = (emoji: string) => {
+    const ta = ref.current;
+    if (!ta) return;
+    const a = ta.selectionStart ?? ta.value.length;
+    const b = ta.selectionEnd ?? ta.value.length;
+    ta.value = ta.value.slice(0, a) + emoji + ta.value.slice(b);
+    ta.focus();
+    ta.selectionStart = ta.selectionEnd = a + emoji.length;
   };
   const send = () => {
     const text = ref.current?.value.trim();
@@ -51,107 +88,204 @@ function Thread({ comment }: { comment: Comment }) {
   };
 
   return (
+    <div className="flex items-end gap-1.5">
+      <textarea
+        ref={ref}
+        rows={1}
+        placeholder={fresh ? "Add a comment…" : "Reply…"}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" && !e.shiftKey) {
+            e.preventDefault();
+            send();
+          }
+          if (e.key === "Escape") {
+            if (fresh) useBoardStore.getState().removeComment(comment.id);
+            useUiStore.getState().setOpenCommentId(null);
+          }
+        }}
+        className="max-h-24 flex-1 resize-none rounded-xl border border-hairline bg-muted/40 px-3 py-2 text-sm text-ink outline-none transition-colors focus:border-primary"
+      />
+      <EmojiPicker onPick={insertEmoji} />
+      <button type="submit" title="Send" onClick={send} className="grid size-8 shrink-0 place-items-center rounded-lg bg-primary text-white transition-transform duration-100 hover:bg-primary/90 active:scale-90">
+        <Send className="size-4" />
+      </button>
+    </div>
+  );
+}
+
+function Thread({ comment }: { comment: Comment }) {
+  const fresh = comment.messages.length === 0;
+  const close = () => {
+    if (fresh) useBoardStore.getState().removeComment(comment.id);
+    useUiStore.getState().setOpenCommentId(null);
+  };
+
+  return (
     <div
-      className="animate-pop-left pointer-events-auto absolute left-4 top-0 w-72 rounded-2xl border border-hairline bg-chrome p-3 shadow-toolbar"
+      className="animate-pop-left pointer-events-auto absolute left-5 top-0 w-80 rounded-2xl border border-hairline bg-chrome p-3 shadow-toolbar"
       onPointerDown={(e) => e.stopPropagation()}
     >
-      <header className="mb-2 flex items-center justify-between">
-        <button
-          type="button"
-          onClick={() => {
-            const next = !comment.resolved;
-            useBoardStore.getState().resolveComment(comment.id, next);
-            if (next) useUiStore.getState().setOpenCommentId(null);
-          }}
-          className={`flex items-center gap-1.5 rounded-lg px-2 py-1 text-xs transition-colors hover:bg-muted ${comment.resolved ? "text-cursor-fern" : "text-ink-soft"}`}
-        >
-          <Check className="size-3.5" /> {comment.resolved ? "Resolved" : "Resolve"}
-        </button>
-        <div className="flex gap-0.5">
-          {comment.messages.length > 0 ? (
-            <button
-              type="button"
-              title="Delete thread"
-              onClick={() => {
-                useBoardStore.getState().removeComment(comment.id);
-                useUiStore.getState().setOpenCommentId(null);
-              }}
-              className="grid size-7 place-items-center rounded-lg text-ink-soft transition-colors hover:bg-muted hover:text-cursor-coral"
-            >
-              <Trash2 className="size-3.5" />
-            </button>
-          ) : null}
-          <button type="button" title="Close" onClick={close} className="grid size-7 place-items-center rounded-lg text-ink-soft transition-colors hover:bg-muted">
-            <X className="size-3.5" />
-          </button>
-        </div>
-      </header>
-
-      <div className="mb-2 flex max-h-60 flex-col gap-3 overflow-y-auto">
-        {comment.messages.map((m) => (
-          <div key={m.id} className="flex gap-2">
-            <span className="mt-0.5 grid size-6 shrink-0 place-items-center rounded-full text-[10px] font-semibold text-white" style={{ background: m.color }}>
-              {initial(m.author)}
+      {/* Header — only once the thread actually has comments. */}
+      {!fresh ? (
+        <header className="mb-2.5 flex items-center gap-1">
+          <button
+            type="button"
+            onClick={() => useBoardStore.getState().resolveComment(comment.id, !comment.resolved)}
+            className={`flex items-center gap-1.5 rounded-lg px-2 py-1 text-xs font-medium transition-colors hover:bg-muted ${comment.resolved ? "text-cursor-fern" : "text-ink-soft"}`}
+          >
+            <span className={`grid size-4 place-items-center rounded-full border ${comment.resolved ? "border-cursor-fern bg-cursor-fern text-white" : "border-ink-soft/50"}`}>
+              {comment.resolved ? <Check className="size-3" /> : null}
             </span>
-            <div className="min-w-0">
-              <div className="flex items-baseline gap-1.5">
-                <span className="text-xs font-semibold text-ink">{m.author}</span>
-                <span className="text-[10px] text-ink-soft">{relTime(m.ts)}</span>
-              </div>
-              <p className="whitespace-pre-wrap break-words text-sm text-ink">{m.text}</p>
-            </div>
+            {comment.resolved ? "Resolved" : "Resolve"}
+          </button>
+          <div className="ml-1 flex items-center gap-1">
+            {THEME_COLORS.map((c) => (
+              <button
+                key={c}
+                type="button"
+                title="Theme colour"
+                onClick={() => useBoardStore.getState().setCommentColor(comment.id, c)}
+                className={`size-3.5 rounded-full transition-transform hover:scale-125 ${comment.color === c ? "ring-2 ring-ink/30 ring-offset-1" : ""}`}
+                style={{ background: c }}
+              />
+            ))}
           </div>
-        ))}
-        {comment.messages.length === 0 ? <p className="px-0.5 text-xs text-ink-soft">Start the thread…</p> : null}
-      </div>
-
-      <form className="flex items-end gap-1.5" onSubmit={(e) => { e.preventDefault(); send(); }}>
-        <textarea
-          ref={ref}
-          rows={1}
-          placeholder={comment.messages.length ? "Reply…" : "Comment…"}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); }
-            if (e.key === "Escape") close();
-          }}
-          className="max-h-24 flex-1 resize-none rounded-lg border border-hairline bg-muted/50 px-2.5 py-1.5 text-sm text-ink outline-none transition-colors focus:border-primary"
-        />
-        <button type="submit" title="Send" className="grid size-8 shrink-0 place-items-center rounded-lg bg-primary text-white transition-transform duration-100 active:scale-90">
-          <Send className="size-4" />
+          <Popover>
+            <PopoverTrigger asChild>
+              <button type="button" title="More" className="ml-auto grid size-7 place-items-center rounded-lg text-ink-soft transition-colors hover:bg-muted">
+                <MoreHorizontal className="size-4" />
+              </button>
+            </PopoverTrigger>
+            <PopoverContent align="end" className="w-36 p-1">
+              <button
+                type="button"
+                onClick={() => {
+                  useBoardStore.getState().removeComment(comment.id);
+                  useUiStore.getState().setOpenCommentId(null);
+                }}
+                className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm text-cursor-coral transition-colors hover:bg-muted"
+              >
+                <Trash2 className="size-3.5" /> Delete thread
+              </button>
+            </PopoverContent>
+          </Popover>
+          <button type="button" title="Close" onClick={close} className="grid size-7 place-items-center rounded-lg text-ink-soft transition-colors hover:bg-muted">
+            <X className="size-4" />
+          </button>
+        </header>
+      ) : (
+        <button type="button" title="Cancel" onClick={close} className="absolute right-2 top-2 grid size-7 place-items-center rounded-lg text-ink-soft transition-colors hover:bg-muted">
+          <X className="size-4" />
         </button>
-      </form>
+      )}
+
+      {!fresh ? (
+        <div className="mb-2.5 flex max-h-72 flex-col gap-3 overflow-y-auto">
+          {comment.messages.map((m) => (
+            <div key={m.id} className="flex gap-2">
+              <span className="mt-0.5 grid size-6 shrink-0 place-items-center rounded-full text-[10px] font-semibold text-white" style={{ background: m.color }}>
+                {initial(m.author)}
+              </span>
+              <div className="min-w-0">
+                <div className="flex items-baseline gap-1.5">
+                  <span className="text-xs font-semibold text-ink">{m.author}</span>
+                  <span className="text-[10px] text-ink-soft">{relTime(m.ts)}</span>
+                </div>
+                <p className="whitespace-pre-wrap break-words text-sm text-ink">{m.text}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : null}
+
+      <Composer comment={comment} />
+    </div>
+  );
+}
+
+function Pin({ comment, viewport, layerRef }: { comment: Comment; viewport: { x: number; y: number; zoom: number }; layerRef: React.RefObject<HTMLDivElement | null> }) {
+  const openId = useUiStore((s) => s.openCommentId);
+  const open = openId === comment.id;
+  const [hover, setHover] = useState(false);
+  const down = useRef<{ x: number; y: number } | null>(null);
+  const moved = useRef(false);
+
+  const p = worldToScreen(viewport, { x: comment.x, y: comment.y });
+  const first = comment.messages[0];
+  const last = comment.messages[comment.messages.length - 1];
+  const color = comment.color || first?.color || "#6B6B66";
+
+  const worldAt = (clientX: number, clientY: number) => {
+    const r = layerRef.current?.getBoundingClientRect();
+    return screenToWorld(viewport, { x: clientX - (r?.left ?? 0), y: clientY - (r?.top ?? 0) });
+  };
+
+  return (
+    <div className="absolute" style={{ left: p.x, top: p.y }}>
+      <button
+        type="button"
+        onPointerDown={(e) => {
+          e.stopPropagation();
+          (e.currentTarget as Element).setPointerCapture(e.pointerId);
+          down.current = { x: e.clientX, y: e.clientY };
+          moved.current = false;
+        }}
+        onPointerMove={(e) => {
+          if (!down.current) return;
+          if (Math.hypot(e.clientX - down.current.x, e.clientY - down.current.y) > 4) {
+            moved.current = true;
+            setHover(false);
+            const w = worldAt(e.clientX, e.clientY);
+            useBoardStore.getState().moveComment(comment.id, w.x, w.y);
+          }
+        }}
+        onPointerUp={() => {
+          if (!moved.current) useUiStore.getState().setOpenCommentId(open ? null : comment.id);
+          else useBoardStore.getState().commitHistory();
+          down.current = null;
+        }}
+        onPointerEnter={() => setHover(true)}
+        onPointerLeave={() => setHover(false)}
+        className={`pointer-events-auto grid size-10 -translate-x-1/2 -translate-y-full cursor-grab touch-none place-items-center rounded-full rounded-bl-none border-2 border-white text-sm font-semibold text-white shadow-md transition-transform duration-100 hover:scale-110 active:scale-95 active:cursor-grabbing ${comment.resolved && !open ? "opacity-45" : ""}`}
+        style={{ background: color }}
+      >
+        {first ? initial(first.author) : <MessageSquare className="size-5" />}
+        {comment.resolved ? (
+          <span className="absolute -right-1 -top-1 grid size-4 place-items-center rounded-full border border-white bg-cursor-fern text-white">
+            <Check className="size-2.5" />
+          </span>
+        ) : null}
+      </button>
+
+      {/* Hover preview of the latest message (only when the thread is closed). */}
+      {hover && !open && last ? (
+        <div className="animate-pop pointer-events-none absolute left-4 top-0 w-56 -translate-y-full rounded-xl border border-hairline bg-chrome p-2.5 shadow-toolbar">
+          <div className="mb-0.5 flex items-baseline gap-1.5">
+            <span className="text-xs font-semibold text-ink">{last.author}</span>
+            <span className="text-[10px] text-ink-soft">{relTime(last.ts)}</span>
+          </div>
+          <p className="line-clamp-3 whitespace-pre-wrap break-words text-sm text-ink">{last.text}</p>
+          {comment.messages.length > 1 ? (
+            <p className="mt-1 text-[11px] text-ink-soft">{comment.messages.length} comments</p>
+          ) : null}
+        </div>
+      ) : null}
+
+      {open ? <Thread comment={comment} /> : null}
     </div>
   );
 }
 
 export function CommentsLayer() {
   const viewport = useUiStore((s) => s.viewport);
-  const openId = useUiStore((s) => s.openCommentId);
-  const me = useUiStore((s) => s.me);
   const comments = useBoardStore((s) => s.comments);
+  const layerRef = useRef<HTMLDivElement | null>(null);
 
   return (
-    <div className="pointer-events-none absolute inset-0 overflow-hidden">
-      {comments.map((c) => {
-        if (c.resolved && c.id !== openId) return null;
-        const p = worldToScreen(viewport, { x: c.x, y: c.y });
-        const open = c.id === openId;
-        const first = c.messages[0];
-        const color = first?.color ?? me?.color ?? "#1A1A1A";
-        return (
-          <div key={c.id} className="absolute" style={{ left: p.x, top: p.y }}>
-            <button
-              type="button"
-              onClick={() => useUiStore.getState().setOpenCommentId(open ? null : c.id)}
-              className="pointer-events-auto grid size-10 -translate-x-1/2 -translate-y-full place-items-center rounded-full rounded-bl-none border-2 border-white text-sm font-semibold text-white shadow-md transition-transform duration-100 hover:scale-110 active:scale-95"
-              style={{ background: color }}
-            >
-              {first ? initial(first.author) : <MessageSquare className="size-5" />}
-            </button>
-            {open ? <Thread comment={c} /> : null}
-          </div>
-        );
-      })}
+    <div ref={layerRef} className="pointer-events-none absolute inset-0 overflow-hidden">
+      {comments.map((c) => (
+        <Pin key={c.id} comment={c} viewport={viewport} layerRef={layerRef} />
+      ))}
     </div>
   );
 }

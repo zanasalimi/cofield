@@ -17,6 +17,8 @@ import {
   addComment as docAddComment,
   addCommentMessage as docAddCommentMessage,
   setCommentResolved as docSetCommentResolved,
+  setCommentColor as docSetCommentColor,
+  moveComment as docMoveComment,
   removeComment as docRemoveComment,
   updateComponentProps as docUpdateComponentProps,
   createUndoManager,
@@ -125,9 +127,11 @@ export interface BoardState {
   _setMeta: (meta: Record<string, unknown>) => void;
   /** comment pins + threads */
   comments: Comment[];
-  addComment: (x: number, y: number) => string;
+  addComment: (x: number, y: number, color?: string) => string;
   addCommentMessage: (commentId: string, msg: CommentMessage) => void;
   resolveComment: (commentId: string, resolved: boolean) => void;
+  setCommentColor: (commentId: string, color: string) => void;
+  moveComment: (commentId: string, x: number, y: number) => void;
   removeComment: (commentId: string) => void;
   _setComments: (comments: Comment[]) => void;
   addShape: (type: ShapeType, rect: { x: number; y: number; w: number; h: number }) => string;
@@ -179,10 +183,10 @@ export const useBoardStore = create<BoardState>((set, get) => ({
   _setMeta: (meta) => set({ meta }),
 
   comments: [],
-  addComment: (x, y) => {
+  addComment: (x, y, color = "#6B6B66") => {
     const id = nextId();
-    if (bound) docAddComment(bound, id, x, y);
-    else set((s) => ({ comments: [...s.comments, { id, x, y, resolved: false, messages: [] }] }));
+    if (bound) docAddComment(bound, id, x, y, color);
+    else set((s) => ({ comments: [...s.comments, { id, x, y, resolved: false, color, messages: [] }] }));
     return id;
   },
   addCommentMessage: (commentId, msg) => {
@@ -195,6 +199,14 @@ export const useBoardStore = create<BoardState>((set, get) => ({
   resolveComment: (commentId, resolved) => {
     if (bound) docSetCommentResolved(bound, commentId, resolved);
     else set((s) => ({ comments: s.comments.map((c) => (c.id === commentId ? { ...c, resolved } : c)) }));
+  },
+  setCommentColor: (commentId, color) => {
+    if (bound) docSetCommentColor(bound, commentId, color);
+    else set((s) => ({ comments: s.comments.map((c) => (c.id === commentId ? { ...c, color } : c)) }));
+  },
+  moveComment: (commentId, x, y) => {
+    if (bound) docMoveComment(bound, commentId, x, y);
+    else set((s) => ({ comments: s.comments.map((c) => (c.id === commentId ? { ...c, x, y } : c)) }));
   },
   removeComment: (commentId) => {
     if (bound) docRemoveComment(bound, commentId);

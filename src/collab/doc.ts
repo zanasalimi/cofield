@@ -35,13 +35,14 @@ export function createBoardDoc(doc: Y.Doc = new Y.Doc()): BoardDoc {
 }
 
 /** Create an empty comment pin at a world point. */
-export function addComment(board: BoardDoc, id: string, x: number, y: number): void {
+export function addComment(board: BoardDoc, id: string, x: number, y: number, color = "#6B6B66"): void {
   board.doc.transact(() => {
     const c = new Y.Map<unknown>();
     c.set("id", id);
     c.set("x", x);
     c.set("y", y);
     c.set("resolved", false);
+    c.set("color", color);
     c.set("messages", new Y.Array());
     board.comments.set(id, c);
   });
@@ -56,6 +57,10 @@ export function addCommentMessage(board: BoardDoc, commentId: string, msg: Comme
 
 export function setCommentResolved(board: BoardDoc, commentId: string, resolved: boolean): void {
   board.comments.get(commentId)?.set("resolved", resolved);
+}
+
+export function setCommentColor(board: BoardDoc, commentId: string, color: string): void {
+  board.comments.get(commentId)?.set("color", color);
 }
 
 export function moveComment(board: BoardDoc, commentId: string, x: number, y: number): void {
@@ -81,6 +86,7 @@ export function readComments(board: BoardDoc): Comment[] {
       x: c.get("x") as number,
       y: c.get("y") as number,
       resolved: (c.get("resolved") as boolean) ?? false,
+      color: (c.get("color") as string) ?? "#6B6B66",
       messages: ((c.get("messages") as Y.Array<CommentMessage>)?.toArray() ?? []).slice(),
     });
   });

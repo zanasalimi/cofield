@@ -105,6 +105,8 @@ export interface Comment {
   x: number;
   y: number;
   resolved: boolean;
+  /** pin / thread theme colour */
+  color: string;
   messages: CommentMessage[];
 }
 
