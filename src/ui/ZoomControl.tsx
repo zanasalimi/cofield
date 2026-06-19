@@ -4,7 +4,7 @@
  */
 "use client";
 
-import { Maximize } from "lucide-react";
+import { Maximize, Download } from "lucide-react";
 import { useUiStore } from "@/store/ui-store";
 import { useBoardStore } from "@/store/board-store";
 import { fitRect } from "@/canvas/viewport/viewport";
@@ -32,20 +32,29 @@ export function ZoomControl() {
   };
 
   return (
-    <div className="pointer-events-auto flex items-center gap-1 rounded-lg border border-hairline bg-chrome px-1 py-1 shadow-toolbar">
+    <div className="pointer-events-auto flex items-center gap-1 rounded-xl border border-hairline bg-chrome px-1 py-1 shadow-toolbar">
+      <button
+        type="button"
+        onClick={() => window.dispatchEvent(new Event("cofield:export"))}
+        title="Export PNG (⌘⇧E)"
+        className="grid size-9 place-items-center rounded-lg text-ink-soft transition-transform duration-100 hover:bg-ink/5 hover:text-ink active:scale-90"
+        aria-label="Export board as PNG"
+      >
+        <Download className="size-[18px]" />
+      </button>
       <button
         type="button"
         onClick={fitAll}
         title="Zoom to fit (Shift+1)"
-        className="grid size-7 place-items-center rounded-md text-ink-soft transition-transform duration-100 hover:text-ink active:scale-90"
+        className="grid size-9 place-items-center rounded-lg text-ink-soft transition-transform duration-100 hover:bg-ink/5 hover:text-ink active:scale-90"
         aria-label="Zoom to fit"
       >
-        <Maximize className="size-4" />
+        <Maximize className="size-[18px]" />
       </button>
       <button
         type="button"
         onClick={() => setViewport({ ...useUiStore.getState().viewport, zoom: 1 })}
-        className="rounded-md px-2 py-0.5 text-xs tabular-nums text-ink-soft transition-transform duration-100 hover:text-ink active:scale-95"
+        className="rounded-lg px-2.5 py-1 text-sm tabular-nums text-ink-soft transition-transform duration-100 hover:bg-ink/5 hover:text-ink active:scale-95"
         aria-label="Reset zoom to 100%"
       >
         {Math.round(zoom * 100)}%

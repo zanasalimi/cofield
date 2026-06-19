@@ -154,7 +154,7 @@ export function SelectionToolbar() {
           <div className="relative">
             <button type="button" title="Font" onClick={() => toggle("font")} className={btn(open === "font")}>
               <span className="px-0.5 text-[13px]" style={{ fontFamily: fontStack(st.fontFamily) }}>
-                {st.fontFamily ?? "Sans"}
+                {st.fontFamily ?? "Geist"}
               </span>
               <ChevronDown className="size-3" />
             </button>

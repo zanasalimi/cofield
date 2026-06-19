@@ -7,7 +7,6 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { Download } from "lucide-react";
 import { Canvas2DRenderer, setImageLoadCallback } from "./renderer/Canvas2DRenderer";
 import type { Renderer } from "./renderer/Renderer";
 import { pan, zoomAt, screenToWorld, visibleWorldRect, fitRect } from "./viewport/viewport";
@@ -57,7 +56,7 @@ function cursorForSelected(shape: Shape, world: Point, zoom: number): string | n
   if (shape.type === "connector" || shape.locked) return null;
   const tol = 11 / zoom;
   const cx = shape.x + shape.w / 2;
-  if (Math.hypot(world.x - cx, world.y - (shape.y - 22 / zoom)) <= tol) return "grab"; // rotate
+  if (Math.hypot(world.x - cx, world.y - (shape.y - 30 / zoom)) <= tol) return "grab"; // rotate
   const off = 14 / zoom;
   const dots: Point[] = [
     { x: cx, y: shape.y - off },
@@ -67,7 +66,7 @@ function cursorForSelected(shape: Shape, world: Point, zoom: number): string | n
   ];
   if (dots.some((d) => Math.hypot(world.x - d.x, world.y - d.y) <= tol)) return "crosshair";
   const pts = handlePoints({ x: shape.x, y: shape.y, w: shape.w, h: shape.h });
-  for (const h of Object.keys(pts) as ResizeHandle[]) {
+  for (const h of ["nw", "ne", "se", "sw"] as ResizeHandle[]) {
     if (Math.hypot(world.x - pts[h].x, world.y - pts[h].y) <= tol) return RESIZE_CURSOR[h];
   }
   return null;
@@ -761,15 +760,6 @@ export function Canvas({ boardId }: CanvasProps) {
       <div className="absolute left-1/2 top-4 -translate-x-1/2">
         <AvatarStack presences={presences} me={me} />
       </div>
-      <button
-        type="button"
-        onClick={() => exportRef.current?.()}
-        title="Export board as PNG (⌘⇧E)"
-        aria-label="Export board as PNG"
-        className="absolute bottom-4 right-20 grid size-9 place-items-center rounded-lg border border-hairline bg-chrome text-ink-soft shadow-toolbar transition-transform duration-100 hover:text-ink active:scale-90"
-      >
-        <Download className="size-4" />
-      </button>
       <HoverConnectLayer />
       <TextOverlay />
       <SelectionToolbar />

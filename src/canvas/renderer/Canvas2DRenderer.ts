@@ -11,8 +11,8 @@ import type { Shape } from "@/collab/types";
 import { fontStack } from "@/canvas/fonts";
 
 const SELECT = "#4262FF"; // Miro-like selection blue
-const HANDLE = 8; // handle box size, screen px
-const ROT_OFFSET = 22; // rotation handle distance above the top edge, screen px
+const HANDLE = 9; // handle box size, screen px
+const ROT_OFFSET = 30; // rotation handle distance above the top edge, screen px (clears the connection point)
 
 // Images decode asynchronously; cache the elements and repaint once each loads.
 const imageCache = new Map<string, HTMLImageElement>();
@@ -221,21 +221,18 @@ function drawSelection(
   ctx.fill();
   ctx.stroke();
 
-  // Eight resize handles: corners + edge midpoints.
+  // Four corner resize handles (round, Miro-style). Edge midpoints stay free
+  // for the connection points, so resizing and relating never conflict.
   const pts: [number, number][] = [
     [x, y],
-    [x + w / 2, y],
     [x + w, y],
-    [x + w, y + h / 2],
     [x + w, y + h],
-    [x + w / 2, y + h],
     [x, y + h],
-    [x, y + h / 2],
   ];
   ctx.fillStyle = "#ffffff";
   for (const [px, py] of pts) {
     ctx.beginPath();
-    ctx.rect(px - HANDLE / 2, py - HANDLE / 2, HANDLE, HANDLE);
+    ctx.arc(px, py, HANDLE / 2, 0, Math.PI * 2);
     ctx.fill();
     ctx.stroke();
   }

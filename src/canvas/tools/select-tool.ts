@@ -8,9 +8,11 @@ import type { Point, Rect, Shape, Side } from "@/collab/types";
 import type { Tool, ToolContext, ToolEvent } from "./types";
 import { handlePoints, applyResize, applyRotation, type ResizeHandle } from "@/canvas/geometry/transform";
 
-const HANDLE_HIT_PX = 11;
-const ROT_OFFSET_PX = 22;
+const HANDLE_HIT_PX = 12;
+const ROT_OFFSET_PX = 30;
 const DOT_OFFSET_PX = 14;
+/** Only corners resize; edge midpoints belong to the connection points. */
+const CORNER_HANDLES: ResizeHandle[] = ["nw", "ne", "se", "sw"];
 /** Connection-dot order, matching the four edges checked below. */
 const DOT_SIDES: Side[] = ["top", "right", "bottom", "left"];
 
@@ -82,7 +84,7 @@ export function createSelectTool(): Tool {
             }
             const rect: Rect = { x: shape.x, y: shape.y, w: shape.w, h: shape.h };
             const pts = handlePoints(rect);
-            for (const h of Object.keys(pts) as ResizeHandle[]) {
+            for (const h of CORNER_HANDLES) {
               if (dist(event.world, pts[h]) <= tol) {
                 mode = "resize";
                 resizeHandle = h;
