@@ -121,6 +121,10 @@ export interface BoardState {
   reorder: (ids: string[], where: "front" | "back" | "forward" | "backward") => void;
   /** Lock / unlock shapes (locked = not movable). */
   setLocked: (ids: string[], locked: boolean) => void;
+  /** Align selected shapes to a shared edge / centre. */
+  align: (ids: string[], mode: "left" | "centerH" | "right" | "top" | "middleV" | "bottom") => void;
+  /** Evenly distribute selected shapes by centre along an axis. */
+  distribute: (ids: string[], axis: "h" | "v") => void;
   getShape: (id: string) => Shape | undefined;
   /** Per-user undo / redo of document edits. */
   undo: () => void;
@@ -216,6 +220,51 @@ export const useBoardStore = create<BoardState>((set, get) => ({
   },
   setLocked: (ids, locked) => {
     for (const id of ids) get().updateShape(id, { locked });
+  },
+  align: (ids, mode) => {
+    const idset = new Set(ids);
+    const sel = get().shapes.filter((s) => idset.has(s.id) && s.type !== "connector" && !s.locked);
+    if (sel.length < 2) return;
+    const minX = Math.min(...sel.map((s) => s.x));
+    const maxX = Math.max(...sel.map((s) => s.x + s.w));
+    const minY = Math.min(...sel.map((s) => s.y));
+    const maxY = Math.max(...sel.map((s) => s.y + s.h));
+    const cx = (minX + maxX) / 2;
+    const cy = (minY + maxY) / 2;
+    const run = () => {
+      for (const s of sel) {
+        if (mode === "left") get().updateShape(s.id, { x: minX });
+        else if (mode === "right") get().updateShape(s.id, { x: maxX - s.w });
+        else if (mode === "centerH") get().updateShape(s.id, { x: cx - s.w / 2 });
+        else if (mode === "top") get().updateShape(s.id, { y: minY });
+        else if (mode === "bottom") get().updateShape(s.id, { y: maxY - s.h });
+        else get().updateShape(s.id, { y: cy - s.h / 2 });
+      }
+    };
+    if (bound) bound.doc.transact(run);
+    else run();
+  },
+  distribute: (ids, axis) => {
+    const idset = new Set(ids);
+    const sel = get().shapes.filter((s) => idset.has(s.id) && s.type !== "connector" && !s.locked);
+    if (sel.length < 3) return;
+    const run = () => {
+      const sorted = [...sel].sort((a, b) =>
+        axis === "h" ? a.x + a.w / 2 - (b.x + b.w / 2) : a.y + a.h / 2 - (b.y + b.h / 2),
+      );
+      const first = sorted[0]!;
+      const last = sorted[sorted.length - 1]!;
+      const lo = axis === "h" ? first.x + first.w / 2 : first.y + first.h / 2;
+      const hi = axis === "h" ? last.x + last.w / 2 : last.y + last.h / 2;
+      const step = (hi - lo) / (sorted.length - 1);
+      sorted.forEach((s, i) => {
+        const center = lo + step * i;
+        if (axis === "h") get().updateShape(s.id, { x: center - s.w / 2 });
+        else get().updateShape(s.id, { y: center - s.h / 2 });
+      });
+    };
+    if (bound) bound.doc.transact(run);
+    else run();
   },
 
   undo: () => undoMgr?.undo(),

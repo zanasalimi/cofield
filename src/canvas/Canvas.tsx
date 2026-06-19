@@ -21,6 +21,7 @@ import { useBoard } from "@/collab/use-board";
 import { CursorsLayer } from "@/presence/CursorsLayer";
 import { TextOverlay } from "./TextOverlay";
 import { SelectionToolbar } from "./SelectionToolbar";
+import { AlignBar } from "./AlignBar";
 import { ContextMenu } from "./ContextMenu";
 import type { Point, Shape, ShapeType, Side } from "@/collab/types";
 
@@ -561,6 +562,7 @@ export function Canvas({ boardId }: CanvasProps) {
       <CursorsLayer presences={presences} viewport={viewport} />
       <TextOverlay />
       <SelectionToolbar />
+      <AlignBar />
       <ContextMenu />
     </div>
   );
