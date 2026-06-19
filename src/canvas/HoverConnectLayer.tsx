@@ -1,0 +1,175 @@
+/**
+ * Animated connection points for the hovered shape (DOM, so they can animate).
+ * Hovering a point shows a low-opacity ghost of the node a click would create;
+ * clicking quick-creates a connected node (and opens it for a label); dragging
+ * draws a connector to whatever shape you release on. Replaces the old static
+ * canvas-drawn dots.
+ */
+"use client";
+
+import { useRef, useState } from "react";
+import type { Shape, ShapeType, Side } from "@/collab/types";
+import { useUiStore } from "@/store/ui-store";
+import { useBoardStore } from "@/store/board-store";
+import { worldToScreen, screenToWorld } from "./viewport/viewport";
+import { hitTestTopmost } from "./geometry/hit-test";
+
+const GAP = 56; // world-space gap to a quick-created node
+const SIDES: { side: Side; ux: number; uy: number; ax: number; ay: number }[] = [
+  { side: "top", ux: 0, uy: -1, ax: 0.5, ay: 0 },
+  { side: "right", ux: 1, uy: 0, ax: 1, ay: 0.5 },
+  { side: "bottom", ux: 0, uy: 1, ax: 0.5, ay: 1 },
+  { side: "left", ux: -1, uy: 0, ax: 0, ay: 0.5 },
+];
+const OPPOSITE: Record<Side, Side> = { top: "bottom", bottom: "top", left: "right", right: "left" };
+
+function nearestSide(s: Shape, p: { x: number; y: number }): Side {
+  const mids: [Side, number, number][] = [
+    ["top", s.x + s.w / 2, s.y],
+    ["right", s.x + s.w, s.y + s.h / 2],
+    ["bottom", s.x + s.w / 2, s.y + s.h],
+    ["left", s.x, s.y + s.h / 2],
+  ];
+  let best: Side = "top";
+  let bd = Infinity;
+  for (const [side, mx, my] of mids) {
+    const d = Math.hypot(p.x - mx, p.y - my);
+    if (d < bd) {
+      bd = d;
+      best = side;
+    }
+  }
+  return best;
+}
+
+/** World top-left of the node a quick-create on `side` would produce. */
+function ghostRect(shape: Shape, side: Side): { x: number; y: number; w: number; h: number } {
+  const w = shape.w;
+  const h = shape.h;
+  if (side === "right") return { x: shape.x + shape.w + GAP, y: shape.y, w, h };
+  if (side === "left") return { x: shape.x - shape.w - GAP, y: shape.y, w, h };
+  if (side === "bottom") return { x: shape.x, y: shape.y + shape.h + GAP, w, h };
+  return { x: shape.x, y: shape.y - shape.h - GAP, w, h };
+}
+
+const NODE_TYPES = new Set<ShapeType>(["rect", "ellipse", "triangle", "diamond", "star"]);
+
+export function HoverConnectLayer() {
+  const hoveredId = useUiStore((s) => s.hoveredId);
+  const activeTool = useUiStore((s) => s.activeTool);
+  const viewport = useUiStore((s) => s.viewport);
+  const shapes = useBoardStore((s) => s.shapes);
+  const [over, setOver] = useState<Side | null>(null);
+
+  if (activeTool !== "select" || !hoveredId) return null;
+  const shape = shapes.find((s) => s.id === hoveredId);
+  if (!shape || shape.type === "connector" || shape.type === "image" || shape.locked) return null;
+
+  return (
+    <div className="pointer-events-none absolute inset-0 overflow-hidden">
+      {over ? <Ghost shape={shape} side={over} viewport={viewport} /> : null}
+      {SIDES.map((s) => {
+        const off = 14 / viewport.zoom;
+        const pt = worldToScreen(viewport, {
+          x: shape.x + shape.w * s.ax + s.ux * off,
+          y: shape.y + shape.h * s.ay + s.uy * off,
+        });
+        return (
+          <ConnectPoint
+            key={s.side}
+            shape={shape}
+            side={s.side}
+            x={pt.x}
+            y={pt.y}
+            onOver={() => setOver(s.side)}
+            onOut={() => setOver((o) => (o === s.side ? null : o))}
+          />
+        );
+      })}
+    </div>
+  );
+}
+
+function Ghost({ shape, side, viewport }: { shape: Shape; side: Side; viewport: { x: number; y: number; zoom: number } }) {
+  const r = ghostRect(shape, side);
+  const tl = worldToScreen(viewport, { x: r.x, y: r.y });
+  const radius = shape.type === "ellipse" ? "9999px" : shape.type === "rect" ? "8px" : "6px";
+  return (
+    <div
+      className="animate-pop absolute border-2 border-dashed border-[#4262FF]/45 bg-[#4262FF]/10"
+      style={{ left: tl.x, top: tl.y, width: r.w * viewport.zoom, height: r.h * viewport.zoom, borderRadius: radius }}
+    />
+  );
+}
+
+function ConnectPoint({
+  shape,
+  side,
+  x,
+  y,
+  onOver,
+  onOut,
+}: {
+  shape: Shape;
+  side: Side;
+  x: number;
+  y: number;
+  onOver: () => void;
+  onOut: () => void;
+}) {
+  const start = useRef<{ x: number; y: number } | null>(null);
+  const dragging = useRef(false);
+
+  const worldAt = (e: React.PointerEvent) =>
+    screenToWorld(useUiStore.getState().viewport, { x: e.clientX, y: e.clientY });
+
+  const onDown = (e: React.PointerEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    (e.currentTarget as Element).setPointerCapture(e.pointerId);
+    start.current = { x: e.clientX, y: e.clientY };
+    dragging.current = false;
+    useUiStore.getState().setConnecting({ from: shape.id, fromSide: side, point: worldAt(e) });
+  };
+  const onMove = (e: React.PointerEvent) => {
+    if (!start.current) return;
+    if (Math.hypot(e.clientX - start.current.x, e.clientY - start.current.y) > 4) dragging.current = true;
+    useUiStore.getState().setConnecting({ from: shape.id, fromSide: side, point: worldAt(e) });
+  };
+  const onUp = (e: React.PointerEvent) => {
+    if (!start.current) return;
+    const board = useBoardStore.getState();
+    if (dragging.current) {
+      const world = worldAt(e);
+      const targetId = hitTestTopmost(board.shapes, world);
+      const target = targetId && targetId !== shape.id ? board.getShape(targetId) : undefined;
+      if (target) board.addConnector(shape.id, target.id, side, nearestSide(target, world));
+    } else {
+      // Click → quick-create a connected node, ready to label.
+      const r = ghostRect(shape, side);
+      const type: ShapeType = NODE_TYPES.has(shape.type) ? shape.type : "rect";
+      const id = board.addShape(type, r);
+      board.addConnector(shape.id, id, side, OPPOSITE[side]);
+      useUiStore.getState().setSelection([id]);
+      useUiStore.getState().setEditingId(id);
+    }
+    board.commitHistory();
+    useUiStore.getState().setConnecting(null);
+    start.current = null;
+    dragging.current = false;
+  };
+
+  return (
+    <button
+      type="button"
+      aria-label={`Connect ${side}`}
+      onPointerDown={onDown}
+      onPointerMove={onMove}
+      onPointerUp={onUp}
+      onPointerEnter={onOver}
+      onPointerLeave={onOut}
+      className="animate-pop pointer-events-auto absolute size-3.5 -translate-x-1/2 -translate-y-1/2 cursor-crosshair rounded-full border-[1.5px] border-[#4262FF] bg-white shadow-sm transition-transform duration-100 hover:scale-[1.6]"
+      style={{ left: x, top: y }}
+    />
+  );
+}

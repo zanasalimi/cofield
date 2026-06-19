@@ -26,6 +26,7 @@ import { TextOverlay } from "./TextOverlay";
 import { SelectionToolbar } from "./SelectionToolbar";
 import { AlignBar } from "./AlignBar";
 import { ContextMenu } from "./ContextMenu";
+import { HoverConnectLayer } from "./HoverConnectLayer";
 import type { Point, Shape, ShapeType, Side } from "@/collab/types";
 
 const CURSOR_FOR_TOOL: Record<string, string> = {
@@ -254,7 +255,6 @@ export function Canvas({ boardId }: CanvasProps) {
   const toolRef = useRef<Tool | null>(null);
   const spaceDown = useRef(false);
   const dragMode = useRef<"pan" | "tool" | null>(null);
-  const hoveredIdRef = useRef<string | null>(null);
   const exportRef = useRef<(() => void) | null>(null);
 
   // Only the chrome that is React-rendered subscribes here (grid, cursors,
@@ -315,7 +315,7 @@ export function Canvas({ boardId }: CanvasProps) {
         }
         return null;
       },
-      getHovered: () => hoveredIdRef.current,
+      getHovered: () => useUiStore.getState().hoveredId,
       getViewport: () => useUiStore.getState().viewport,
       setConnecting: (c) => useUiStore.getState().setConnecting(c),
       setMarquee: (rect) => useUiStore.getState().setMarquee(rect),
@@ -380,7 +380,7 @@ export function Canvas({ boardId }: CanvasProps) {
       }
       // Hover dots only when idle with the select tool (not mid-drag).
       const hovered =
-        !dragMode.current && useUiStore.getState().activeTool === "select" ? hoveredIdRef.current : null;
+        !dragMode.current && useUiStore.getState().activeTool === "select" ? useUiStore.getState().hoveredId : null;
       r.render({
         shapes: culled,
         viewport: vp,
@@ -518,6 +518,7 @@ export function Canvas({ boardId }: CanvasProps) {
         return;
       }
       dragMode.current = "tool";
+      if (ui().hoveredId) ui().setHoveredId(null);
       toolRef.current?.handle({ kind: "pointerdown", world: worldAt(e), mods: modsOf(e) }, ctx);
     };
     const onPointerMove = (e: PointerEvent) => {
@@ -526,13 +527,14 @@ export function Canvas({ boardId }: CanvasProps) {
         ui().setViewport(pan(ui().viewport, { x: e.movementX, y: e.movementY }));
       } else if (dragMode.current === "tool") {
         toolRef.current?.handle({ kind: "pointermove", world: worldAt(e), mods: modsOf(e) }, ctx);
-      } else if (ui().activeTool === "select") {
-        // Idle: update the hover affordance (connection dots on the shape under
-        // the cursor) and the cursor (resize / rotate / connect / move).
+      } else if (ui().activeTool === "select" && !ui().connecting) {
+        // Idle: update the hover affordance (connection points on the shape under
+        // the cursor) and the cursor (resize / rotate / connect / move). Frozen
+        // while a connector is being dragged so the active point stays mounted.
         const w = worldAt(e);
         const next = hoverTest(useBoardStore.getState().shapes, w, 18 / ui().viewport.zoom);
-        if (next !== hoveredIdRef.current) {
-          hoveredIdRef.current = next;
+        if (next !== ui().hoveredId) {
+          ui().setHoveredId(next);
           scheduleRender();
         }
         let cursor = "default";
@@ -543,8 +545,8 @@ export function Canvas({ boardId }: CanvasProps) {
         }
         if (cursor === "default" && next) cursor = "move";
         el.style.cursor = cursor;
-      } else if (hoveredIdRef.current) {
-        hoveredIdRef.current = null;
+      } else if (ui().hoveredId && !ui().connecting) {
+        ui().setHoveredId(null);
         scheduleRender();
       }
     };
@@ -589,8 +591,8 @@ export function Canvas({ boardId }: CanvasProps) {
     };
     const onPointerLeave = () => {
       pubCursor.current(null);
-      if (hoveredIdRef.current) {
-        hoveredIdRef.current = null;
+      if (ui().hoveredId && !ui().connecting) {
+        ui().setHoveredId(null);
         scheduleRender();
       }
     };
@@ -768,6 +770,7 @@ export function Canvas({ boardId }: CanvasProps) {
       >
         <Download className="size-4" />
       </button>
+      <HoverConnectLayer />
       <TextOverlay />
       <SelectionToolbar />
       <AlignBar />

@@ -91,14 +91,7 @@ export class Canvas2DRenderer implements Renderer {
       drawArrowhead(ctx, scene.connecting.from.x, scene.connecting.from.y, scene.connecting.to.x, scene.connecting.to.y, SELECT);
     }
 
-    // Hover affordance: connection dots on the hovered shape, so a relation can
-    // begin without selecting first (Miro behaviour). Skip if it's the single
-    // selected shape (its overlay already draws them).
-    const selectedOne = selection.length === 1 ? selection[0] : null;
-    if (scene.hovered && scene.hovered !== selectedOne) {
-      const hs = shapes.find((sh) => sh.id === scene.hovered);
-      if (hs && hs.type !== "connector") drawConnectionDots(ctx, hs, vp.x, vp.y, vp.zoom, dpr);
-    }
+    // Connection points are an animated DOM layer (HoverConnectLayer), not here.
 
     // Alignment guides (screen space, magenta — Miro convention).
     if (scene.guides && scene.guides.length) {
@@ -246,43 +239,7 @@ function drawSelection(
     ctx.fill();
     ctx.stroke();
   }
-
-  // Connection dots just outside each edge midpoint — drag one to link shapes.
-  // (Connectors returned early above, so this shape always has real geometry.)
-  drawConnectionDots(ctx, shape, vx, vy, zoom, dpr);
-}
-
-/** Four blue connection dots just outside a shape's edge midpoints (screen space,
- *  constant size). White-filled with a blue ring so they read as grabbable. */
-function drawConnectionDots(
-  ctx: CanvasRenderingContext2D,
-  shape: Shape,
-  vx: number,
-  vy: number,
-  zoom: number,
-  dpr: number,
-): void {
-  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-  const x = (shape.x - vx) * zoom;
-  const y = (shape.y - vy) * zoom;
-  const w = shape.w * zoom;
-  const h = shape.h * zoom;
-  const off = 14;
-  const dots: [number, number][] = [
-    [x + w / 2, y - off],
-    [x + w + off, y + h / 2],
-    [x + w / 2, y + h + off],
-    [x - off, y + h / 2],
-  ];
-  ctx.fillStyle = "#ffffff";
-  ctx.strokeStyle = SELECT;
-  ctx.lineWidth = 1.5;
-  for (const [px, py] of dots) {
-    ctx.beginPath();
-    ctx.arc(px, py, 4.5, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.stroke();
-  }
+  // Connection points are drawn by the DOM HoverConnectLayer (animated), not here.
 }
 
 function withRotation(ctx: CanvasRenderingContext2D, shape: Shape, draw: () => void): void {

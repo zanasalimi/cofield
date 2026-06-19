@@ -26,6 +26,8 @@ export interface UiState {
   contextMenu: { x: number; y: number } | null;
   /** userId of the presence whose viewport we are following, or null */
   followingId: string | null;
+  /** shape currently hovered (drives the DOM connection-point affordance) */
+  hoveredId: string | null;
   connection: ConnectionState;
 
   setActiveTool: (tool: ToolId) => void;
@@ -37,6 +39,7 @@ export interface UiState {
   setGuides: (guides: SnapGuide[]) => void;
   setContextMenu: (menu: { x: number; y: number } | null) => void;
   setFollowing: (userId: string | null) => void;
+  setHoveredId: (id: string | null) => void;
   setConnection: (state: ConnectionState) => void;
 }
 
@@ -50,6 +53,7 @@ export const useUiStore = create<UiState>((set) => ({
   guides: [],
   contextMenu: null,
   followingId: null,
+  hoveredId: null,
   connection: "connecting",
 
   setActiveTool: (activeTool) => set({ activeTool }),
@@ -61,5 +65,6 @@ export const useUiStore = create<UiState>((set) => ({
   setGuides: (guides) => set({ guides }),
   setContextMenu: (contextMenu) => set({ contextMenu }),
   setFollowing: (followingId) => set({ followingId }),
+  setHoveredId: (hoveredId) => set({ hoveredId }),
   setConnection: (connection) => set({ connection }),
 }));
