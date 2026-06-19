@@ -266,11 +266,21 @@ function withRotation(ctx: CanvasRenderingContext2D, shape: Shape, draw: () => v
   ctx.restore();
 }
 
+/** Canvas dash array for a stroke style, scaled to the line width. */
+function dashArray(style: ShapeStyle): number[] {
+  const w = Math.max(1, style.strokeWidth || 1);
+  if (style.strokeDash === "dashed") return [w * 3, w * 2.2];
+  if (style.strokeDash === "dotted") return [0.1, w * 2];
+  return [];
+}
+
 function drawShape(ctx: CanvasRenderingContext2D, shape: Shape): void {
   const { style } = shape;
   ctx.fillStyle = style.fill;
   ctx.strokeStyle = style.stroke;
   ctx.lineWidth = style.strokeWidth;
+  ctx.setLineDash(dashArray(style));
+  ctx.lineCap = style.strokeDash === "dotted" ? "round" : "butt";
   const prevAlpha = ctx.globalAlpha;
   if (style.opacity !== undefined && style.opacity < 1) ctx.globalAlpha = Math.max(0, style.opacity);
 
@@ -409,11 +419,14 @@ function drawShape(ctx: CanvasRenderingContext2D, shape: Shape): void {
     }
 
     // Centred text label for diagram nodes (diagrams.net style) — every box,
-    // ellipse, triangle, diamond and star can hold a label in its middle.
+    // ellipse, triangle, diamond and star can hold a label in its middle. Reset
+    // the dash so underline/strike text never inherits the border pattern.
+    ctx.setLineDash([]);
     if (shape.content && LABELLED.has(shape.type))
       drawLabel(ctx, shape.content, shape.x, shape.y, shape.w, shape.h, style, 14, "#1A1A1A", true, 8);
   });
   ctx.globalAlpha = prevAlpha;
+  ctx.setLineDash([]);
 }
 
 /** Shape types that carry a centred label. */

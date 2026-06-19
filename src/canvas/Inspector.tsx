@@ -6,7 +6,7 @@
  */
 "use client";
 
-import { ChevronDown, Check } from "lucide-react";
+import { ChevronDown, Check, Pipette } from "lucide-react";
 import { getComponentDef, type CustomField } from "@/canvas/components/registry";
 import { useUiStore } from "@/store/ui-store";
 import { useBoardStore } from "@/store/board-store";
@@ -147,15 +147,16 @@ function ColorPick({ value, onChange }: { value: string; onChange: (v: unknown) 
             />
           ))}
         </div>
-        <label className="mt-2.5 flex items-center gap-2 border-t border-hairline pt-2.5 text-xs text-ink-soft">
-          <input
-            type="color"
-            value={value}
-            onChange={(e) => onChange(e.target.value)}
-            className="size-7 cursor-pointer rounded-md border border-hairline bg-transparent"
-            aria-label="Custom colour"
-          />
-          <span className="tabular-nums">{value.toUpperCase()}</span>
+        <label className="mt-2.5 flex cursor-pointer items-center gap-2 border-t border-hairline pt-2.5 text-xs text-ink-soft">
+          <span
+            className="grid size-7 place-items-center rounded-md text-white"
+            style={{ background: "conic-gradient(from 90deg, #ff5c5c, #ffd93b, #6ddf6d, #4dd0e1, #5b8cff, #c44cd9, #ff5c5c)" }}
+          >
+            <Pipette className="size-3.5 drop-shadow-[0_1px_1px_rgba(0,0,0,0.4)]" />
+          </span>
+          Custom
+          <span className="ml-auto tabular-nums">{value.toUpperCase()}</span>
+          <input type="color" value={value} onChange={(e) => onChange(e.target.value)} className="sr-only" aria-label="Custom colour" />
         </label>
       </PopoverContent>
     </Popover>

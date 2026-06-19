@@ -183,31 +183,25 @@ export function Toolbar() {
         {insertOpen ? (
           <>
             <div className="fixed inset-0 z-10" onClick={() => setInsertOpen(false)} />
-            <div className="animate-pop-up absolute bottom-full left-1/2 z-20 mb-2 flex -translate-x-1/2 flex-col gap-0.5 rounded-2xl border border-hairline bg-chrome p-1.5 shadow-toolbar">
+            <div className="animate-pop-up absolute bottom-full left-1/2 z-20 mb-2 flex w-52 -translate-x-1/2 flex-col gap-0.5 rounded-2xl border border-hairline bg-chrome p-2 shadow-toolbar">
               {componentList().map((def) => {
                 const DefIcon = def.icon;
                 return (
-                  <Tooltip key={String(def.kind)}>
-                    <TooltipTrigger asChild>
-                      <button
-                        type="button"
-                        aria-label={def.label}
-                        onClick={() => {
-                          useUiStore.getState().setPendingInsert(def.kind);
-                          setInsertOpen(false);
-                        }}
-                        className={`flex h-11 items-center gap-2 rounded-xl px-3 transition-transform duration-100 active:scale-90 ${
-                          pendingInsert === def.kind ? "bg-primary/10 text-primary" : "text-ink-soft hover:bg-ink/5 hover:text-ink"
-                        }`}
-                      >
-                        <DefIcon className="size-[20px] shrink-0" />
-                        <span className="text-sm font-medium">{def.label}</span>
-                      </button>
-                    </TooltipTrigger>
-                    <TooltipContent side="right" sideOffset={6}>
-                      {def.label}
-                    </TooltipContent>
-                  </Tooltip>
+                  <button
+                    key={String(def.kind)}
+                    type="button"
+                    aria-label={def.label}
+                    onClick={() => {
+                      useUiStore.getState().setPendingInsert(def.kind);
+                      setInsertOpen(false);
+                    }}
+                    className={`flex h-12 w-full items-center gap-3 rounded-xl px-3.5 transition-transform duration-100 active:scale-[0.97] ${
+                      pendingInsert === def.kind ? "bg-primary/10 text-primary" : "text-ink-soft hover:bg-ink/5 hover:text-ink"
+                    }`}
+                  >
+                    <DefIcon className="size-[22px] shrink-0" />
+                    <span className="whitespace-nowrap text-[15px] font-medium">{def.label}</span>
+                  </button>
                 );
               })}
             </div>

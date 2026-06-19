@@ -183,11 +183,13 @@ function ConnectPoint({
       const target = targetId && targetId !== shape.id ? board.getShape(targetId) : undefined;
       if (target) board.addConnector(shape.id, target.id, side, nearestSide(target, world));
     } else {
-      // Click → create a connected duplicate, ready to label.
+      // Click → create a connected duplicate of the same kind. Text-editable
+      // types enter edit mode immediately; components just select (they edit
+      // through their own interior, not the text overlay).
       const id = board.quickConnect(shape.id, side);
       if (id) {
         useUiStore.getState().setSelection([id]);
-        useUiStore.getState().setEditingId(id);
+        if (shape.type !== "component" && shape.type !== "image") useUiStore.getState().setEditingId(id);
       }
     }
     board.commitHistory();

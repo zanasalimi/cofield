@@ -29,6 +29,8 @@ export interface ShapeStyle {
   fill: string;
   stroke: string;
   strokeWidth: number;
+  /** border / connector dash pattern */
+  strokeDash?: "solid" | "dashed" | "dotted";
   /** text/sticky typography */
   fontSize?: number;
   bold?: boolean;

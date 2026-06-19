@@ -286,8 +286,6 @@ export const useBoardStore = create<BoardState>((set, get) => ({
     const s = get().shapes.find((sh) => sh.id === id);
     if (!s) return null;
     const GAP = 56;
-    const NODE = new Set<ShapeType>(["rect", "ellipse", "triangle", "diamond", "star"]);
-    const type: ShapeType = NODE.has(s.type) ? s.type : "rect";
     const opp: Record<Side, Side> = { top: "bottom", bottom: "top", left: "right", right: "left" };
     let x = s.x;
     let y = s.y;
@@ -295,9 +293,21 @@ export const useBoardStore = create<BoardState>((set, get) => ({
     else if (side === "left") x = s.x - s.w - GAP;
     else if (side === "bottom") y = s.y + s.h + GAP;
     else y = s.y - s.h - GAP;
-    let newId = "";
+    // Clone the source shape (same type / kind / props / content / style) — the
+    // hover preview shows exactly this shape, so the click must create that
+    // object, not always a rectangle.
+    const newId = nextId();
+    const clone: Shape = {
+      ...s,
+      id: newId,
+      x,
+      y,
+      props: s.props ? { ...s.props } : undefined,
+      points: undefined, // a freehand stroke can't be re-placed as a node clone
+    };
     const make = () => {
-      newId = get().addShape(type, { x, y, w: s.w, h: s.h });
+      if (bound) docAddShape(bound, clone);
+      else set((st) => ({ shapes: [...st.shapes, clone] }));
       get().addConnector(id, newId, side, opp[side]);
     };
     if (bound) bound.doc.transact(make);

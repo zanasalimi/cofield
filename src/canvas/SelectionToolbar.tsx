@@ -34,6 +34,8 @@ import {
   Star,
   StickyNote,
   Type,
+  Pipette,
+  MessageSquarePlus,
 } from "lucide-react";
 import type { Shape, ShapeStyle, ShapeType } from "@/collab/types";
 import { FONT_NAMES, fontStack } from "./fonts";
@@ -87,6 +89,35 @@ function ColorGrid({ colors, onPick, withNone }: { colors: string[]; onPick: (c:
           aria-label={`Colour ${c}`}
         />
       ))}
+      {/* Custom colour — a clean rainbow chip (no default input chrome). */}
+      <label
+        title="Custom colour"
+        className="grid size-8 cursor-pointer place-items-center rounded-md text-white transition-transform hover:scale-110 active:scale-95"
+        style={{ background: "conic-gradient(from 90deg, #ff5c5c, #ffd93b, #6ddf6d, #4dd0e1, #5b8cff, #c44cd9, #ff5c5c)" }}
+      >
+        <Pipette className="size-3.5 drop-shadow-[0_1px_1px_rgba(0,0,0,0.4)]" />
+        <input type="color" onChange={(e) => onPick(e.target.value)} className="sr-only" aria-label="Pick a custom colour" />
+      </label>
+    </div>
+  );
+}
+
+/** Three inline line-style buttons (solid / dashed / dotted). */
+function DashControl({ value, onPick }: { value?: "solid" | "dashed" | "dotted"; onPick: (d: "solid" | "dashed" | "dotted") => void }) {
+  const cur = value ?? "solid";
+  return (
+    <div className="flex items-center gap-0.5">
+      {(["solid", "dashed", "dotted"] as const).map((d) => (
+        <button
+          key={d}
+          type="button"
+          title={`${d[0]!.toUpperCase()}${d.slice(1)} line`}
+          onClick={() => onPick(d)}
+          className={`grid h-9 flex-1 place-items-center rounded-lg transition-colors hover:bg-muted ${cur === d ? "bg-muted text-ink" : "text-ink-soft"}`}
+        >
+          <span className="w-5 border-t-2 border-current" style={{ borderTopStyle: d }} />
+        </button>
+      ))}
     </div>
   );
 }
@@ -107,7 +138,10 @@ export function SelectionToolbar() {
 
   const isConnector = shape.type === "connector";
   const isImage = shape.type === "image";
-  const hasFill = !isConnector && !isImage && shape.type !== "text";
+  const isDraw = shape.type === "draw";
+  const isLine = isConnector || isDraw; // stroke-only objects (no fill, no border box)
+  const hasFill = !isLine && !isImage && shape.type !== "text";
+  const hasBorder = hasFill; // a filled shape has an editable border
   const hasText = LABELLED.has(shape.type);
   const canSwitch = LABELLED.has(shape.type);
   const fs = st.fontSize ?? (shape.type === "text" ? 16 : 14);
@@ -173,11 +207,11 @@ export function SelectionToolbar() {
         </Popover>
       ) : null}
 
-      {isConnector ? (
+      {isLine ? (
         <>
           <Popover>
             <PopoverTrigger asChild>
-              <Button variant="ghost" size="icon-lg" title="Line colour">
+              <Button variant="ghost" size="icon-lg" title={isDraw ? "Pen colour" : "Line colour"}>
                 <span className="size-6 rounded-full border border-black/15" style={{ background: st.stroke }} />
               </Button>
             </PopoverTrigger>
@@ -197,7 +231,36 @@ export function SelectionToolbar() {
               <span className="rounded-full bg-current" style={{ width: 18, height: 2 + i * 2 }} />
             </Button>
           ))}
+          {!isDraw ? <DashControl value={st.strokeDash} onPick={(d) => set({ strokeDash: d })} /> : null}
         </>
+      ) : null}
+
+      {hasBorder ? (
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button variant="ghost" size="icon-lg" title="Border">
+              <span className="size-6 rounded-md border-[2.5px]" style={{ borderColor: st.stroke, borderStyle: st.strokeDash === "dotted" ? "dotted" : st.strokeDash === "dashed" ? "dashed" : "solid" }} />
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent align="start" className="flex w-56 flex-col gap-2.5">
+            <ColorGrid colors={LINE_COLORS} onPick={(c) => set({ stroke: c })} />
+            <div className="flex items-center gap-1">
+              {WIDTHS.map((w, i) => (
+                <Button
+                  key={w}
+                  variant="ghost"
+                  size="icon-lg"
+                  title={`${["Thin", "Medium", "Thick"][i]} border`}
+                  onClick={() => set({ strokeWidth: w })}
+                  className={`flex-1 ${Math.abs((st.strokeWidth ?? 2) - w) < 0.6 ? "bg-muted" : ""}`}
+                >
+                  <span className="rounded-full bg-current" style={{ width: 20, height: 1 + i * 2 }} />
+                </Button>
+              ))}
+            </div>
+            <DashControl value={st.strokeDash} onPick={(d) => set({ strokeDash: d })} />
+          </PopoverContent>
+        </Popover>
       ) : null}
 
       {hasText ? (
@@ -351,6 +414,19 @@ export function SelectionToolbar() {
           </form>
         </PopoverContent>
       </Popover>
+
+      <Button
+        variant="ghost"
+        size="icon-lg"
+        title="Comment"
+        className={iconBtn}
+        onClick={() => {
+          const id = useBoardStore.getState().addComment(shape.x + shape.w, shape.y);
+          useUiStore.getState().setOpenCommentId(id);
+        }}
+      >
+        <MessageSquarePlus />
+      </Button>
 
       <Button variant="ghost" size="icon-lg" title={shape.locked ? "Unlock" : "Lock"} className={`${iconBtn} ${shape.locked ? "bg-muted" : ""}`} onClick={() => useBoardStore.getState().setLocked([shape.id], !shape.locked)}>
         {shape.locked ? <Unlock /> : <Lock />}
