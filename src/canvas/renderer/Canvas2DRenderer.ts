@@ -8,6 +8,7 @@
  */
 import type { Renderer, RenderScene } from "./Renderer";
 import type { Shape } from "@/collab/types";
+import { fontStack } from "@/canvas/fonts";
 
 const SELECT = "#4262FF"; // Miro-like selection blue
 const HANDLE = 8; // handle box size, screen px
@@ -304,6 +305,8 @@ function drawShape(ctx: CanvasRenderingContext2D, shape: Shape): void {
   ctx.fillStyle = style.fill;
   ctx.strokeStyle = style.stroke;
   ctx.lineWidth = style.strokeWidth;
+  const prevAlpha = ctx.globalAlpha;
+  if (style.opacity !== undefined && style.opacity < 1) ctx.globalAlpha = Math.max(0, style.opacity);
 
   withRotation(ctx, shape, () => {
     switch (shape.type) {
@@ -320,8 +323,8 @@ function drawShape(ctx: CanvasRenderingContext2D, shape: Shape): void {
         ctx.restore();
         if (shape.content) {
           const fs = style.fontSize ?? 14;
-          ctx.fillStyle = "#1A1A1A";
-          ctx.font = `${style.bold ? "600 " : ""}${fs}px ui-sans-serif, system-ui, sans-serif`;
+          ctx.fillStyle = style.textColor ?? "#1A1A1A";
+          ctx.font = `${style.bold ? "600 " : ""}${fs}px ${fontStack(style.fontFamily)}`;
           ctx.textBaseline = "top";
           wrapText(ctx, shape.content, shape.x + 10, shape.y + 10, shape.w - 20, fs * 1.25, style.align ?? "left");
         }
@@ -386,8 +389,8 @@ function drawShape(ctx: CanvasRenderingContext2D, shape: Shape): void {
       }
       case "text": {
         const fs = style.fontSize ?? 16;
-        ctx.fillStyle = style.stroke;
-        ctx.font = `${style.bold ? "600 " : ""}${fs}px ui-sans-serif, system-ui, sans-serif`;
+        ctx.fillStyle = style.textColor ?? style.stroke;
+        ctx.font = `${style.bold ? "600 " : ""}${fs}px ${fontStack(style.fontFamily)}`;
         ctx.textBaseline = "top";
         if (shape.content) wrapText(ctx, shape.content, shape.x, shape.y, shape.w, fs * 1.2, style.align ?? "left");
         break;
@@ -436,6 +439,7 @@ function drawShape(ctx: CanvasRenderingContext2D, shape: Shape): void {
     // ellipse, triangle, diamond and star can hold a label in its middle.
     if (shape.content && LABELLED.has(shape.type)) drawCenteredLabel(ctx, shape);
   });
+  ctx.globalAlpha = prevAlpha;
 }
 
 /** Shape types that carry a centred label. */
@@ -443,8 +447,8 @@ const LABELLED = new Set<Shape["type"]>(["rect", "ellipse", "triangle", "diamond
 
 function drawCenteredLabel(ctx: CanvasRenderingContext2D, shape: Shape): void {
   const fs = shape.style.fontSize ?? 14;
-  ctx.fillStyle = "#1A1A1A";
-  ctx.font = `${shape.style.bold ? "600 " : ""}${fs}px ui-sans-serif, system-ui, sans-serif`;
+  ctx.fillStyle = shape.style.textColor ?? "#1A1A1A";
+  ctx.font = `${shape.style.bold ? "600 " : ""}${fs}px ${fontStack(shape.style.fontFamily)}`;
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
   const cx = shape.x + shape.w / 2;

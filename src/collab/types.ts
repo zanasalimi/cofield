@@ -29,6 +29,12 @@ export interface ShapeStyle {
   fontSize?: number;
   bold?: boolean;
   align?: "left" | "center" | "right";
+  /** named font family (key into FONT_STACKS) */
+  fontFamily?: string;
+  /** label / text colour (falls back to ink) */
+  textColor?: string;
+  /** 0..1 shape opacity */
+  opacity?: number;
 }
 
 /** A shape edge a connector can anchor to. */
@@ -62,6 +68,8 @@ export interface Shape {
   toSide?: Side;
   /** a locked shape cannot be moved, resized or rotated until unlocked */
   locked?: boolean;
+  /** optional hyperlink attached to the shape */
+  link?: string;
   createdBy: UserId;
 }
 
