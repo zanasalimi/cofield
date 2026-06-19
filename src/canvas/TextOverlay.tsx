@@ -31,7 +31,13 @@ export function TextOverlay() {
 
   const pos = worldToScreen(viewport, { x: shape.x, y: shape.y });
   const isSticky = shape.type === "sticky";
-  const pad = isSticky ? 10 : 0;
+  const isText = shape.type === "text";
+  const isDiagram = !isSticky && !isText; // rect / ellipse / triangle / diamond / star
+  const z = viewport.zoom;
+  const fs = (shape.style.fontSize ?? (isText ? 16 : 14)) * z;
+  const hpad = (isSticky ? 10 : isDiagram ? 8 : 0) * z;
+  // Vertically centre the label inside diagram nodes (single-line baseline).
+  const vpad = isDiagram ? Math.max(0, (shape.h * z - fs * 1.25) / 2) : isSticky ? 10 * z : 0;
 
   return (
     <textarea
@@ -44,20 +50,22 @@ export function TextOverlay() {
         e.stopPropagation();
       }}
       spellCheck={false}
-      className="pointer-events-auto absolute resize-none overflow-hidden border-none outline-none"
+      className="pointer-events-auto absolute resize-none overflow-hidden border-none bg-transparent outline-none"
       style={{
         left: pos.x,
         top: pos.y,
-        width: shape.w * viewport.zoom,
-        height: shape.h * viewport.zoom,
-        padding: pad * viewport.zoom,
+        width: shape.w * z,
+        height: shape.h * z,
+        paddingTop: vpad,
+        paddingLeft: hpad,
+        paddingRight: hpad,
         background: isSticky ? shape.style.fill : "transparent",
-        color: isSticky ? "#1A1A1A" : shape.style.stroke || "#1A1A1A",
-        fontSize: (shape.style.fontSize ?? (isSticky ? 14 : 16)) * viewport.zoom,
+        color: isText ? shape.style.stroke || "#1A1A1A" : "#1A1A1A",
+        fontSize: fs,
         fontWeight: shape.style.bold ? 600 : 400,
-        textAlign: shape.style.align ?? "left",
+        textAlign: isDiagram ? "center" : shape.style.align ?? "left",
         fontFamily: "ui-sans-serif, system-ui, sans-serif",
-        lineHeight: 1.2,
+        lineHeight: 1.25,
       }}
     />
   );

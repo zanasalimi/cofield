@@ -558,7 +558,9 @@ export function Canvas({ boardId }: CanvasProps) {
       const hit = ctx.hitTest(world);
       if (!hit) return;
       const shape = useBoardStore.getState().getShape(hit);
-      if (shape && (shape.type === "sticky" || shape.type === "text")) {
+      // Any node with a text body is double-click editable (diagrams.net style).
+      const editable = shape && shape.type !== "connector" && shape.type !== "image" && shape.type !== "draw" && shape.type !== "arrow";
+      if (editable) {
         ui().setSelection([hit]);
         ui().setEditingId(hit);
       }

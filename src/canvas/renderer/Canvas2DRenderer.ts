@@ -431,7 +431,45 @@ function drawShape(ctx: CanvasRenderingContext2D, shape: Shape): void {
         }
         break;
     }
+
+    // Centred text label for diagram nodes (diagrams.net style) — every box,
+    // ellipse, triangle, diamond and star can hold a label in its middle.
+    if (shape.content && LABELLED.has(shape.type)) drawCenteredLabel(ctx, shape);
   });
+}
+
+/** Shape types that carry a centred label. */
+const LABELLED = new Set<Shape["type"]>(["rect", "ellipse", "triangle", "diamond", "star"]);
+
+function drawCenteredLabel(ctx: CanvasRenderingContext2D, shape: Shape): void {
+  const fs = shape.style.fontSize ?? 14;
+  ctx.fillStyle = "#1A1A1A";
+  ctx.font = `${shape.style.bold ? "600 " : ""}${fs}px ui-sans-serif, system-ui, sans-serif`;
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  const cx = shape.x + shape.w / 2;
+  const cy = shape.y + shape.h / 2;
+  const maxW = Math.max(8, shape.w - 16);
+  const lineH = fs * 1.25;
+  const lines: string[] = [];
+  for (const para of (shape.content ?? "").split("\n")) {
+    let line = "";
+    for (const word of para.split(/\s+/)) {
+      if (!word) continue;
+      const test = line ? line + " " + word : word;
+      if (ctx.measureText(test).width > maxW && line) {
+        lines.push(line);
+        line = word;
+      } else {
+        line = test;
+      }
+    }
+    lines.push(line);
+  }
+  const startY = cy - ((lines.length - 1) * lineH) / 2;
+  lines.forEach((ln, i) => ctx.fillText(ln, cx, startY + i * lineH));
+  ctx.textAlign = "left";
+  ctx.textBaseline = "alphabetic";
 }
 
 function drawArrowhead(ctx: CanvasRenderingContext2D, fx: number, fy: number, tx: number, ty: number, color: string): void {
