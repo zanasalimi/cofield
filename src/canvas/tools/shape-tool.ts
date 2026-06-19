@@ -10,7 +10,7 @@ const DEFAULT_W = 120;
 const DEFAULT_H = 80;
 const CLICK_EPS = 4;
 
-export function createShapeTool(kind: Extract<ToolId, "rect" | "ellipse" | "arrow">): Tool {
+export function createShapeTool(kind: Extract<ToolId, "rect" | "ellipse" | "triangle" | "diamond" | "star" | "arrow">): Tool {
   let id: string | null = null;
   let start: Point | null = null;
 

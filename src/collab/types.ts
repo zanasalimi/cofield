@@ -11,6 +11,9 @@ export type BoardId = string;
 export type ShapeType =
   | "rect"
   | "ellipse"
+  | "triangle"
+  | "diamond"
+  | "star"
   | "arrow"
   | "draw"
   | "sticky"

@@ -5,7 +5,7 @@
  */
 "use client";
 
-import { MousePointer2, Hand, Square, Circle, MoveUpRight, Pencil, StickyNote, Type } from "lucide-react";
+import { MousePointer2, Hand, Square, Circle, Triangle, Diamond, Star, MoveUpRight, Pencil, StickyNote, Type } from "lucide-react";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useUiStore } from "@/store/ui-store";
@@ -18,6 +18,9 @@ const TOOLS: { id: ToolId; label: string; key: string; Icon: typeof Square }[] =
   { id: "text", label: "Text", key: "T", Icon: Type },
   { id: "rect", label: "Rectangle", key: "R", Icon: Square },
   { id: "ellipse", label: "Ellipse", key: "O", Icon: Circle },
+  { id: "triangle", label: "Triangle", key: "", Icon: Triangle },
+  { id: "diamond", label: "Diamond", key: "", Icon: Diamond },
+  { id: "star", label: "Star", key: "", Icon: Star },
   { id: "arrow", label: "Arrow", key: "L", Icon: MoveUpRight },
   { id: "draw", label: "Draw", key: "P", Icon: Pencil },
 ];

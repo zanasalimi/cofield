@@ -313,6 +313,45 @@ function drawShape(ctx: CanvasRenderingContext2D, shape: Shape): void {
         ctx.fill();
         if (style.strokeWidth > 0) ctx.stroke();
         break;
+      case "triangle":
+        ctx.beginPath();
+        ctx.moveTo(shape.x + shape.w / 2, shape.y);
+        ctx.lineTo(shape.x + shape.w, shape.y + shape.h);
+        ctx.lineTo(shape.x, shape.y + shape.h);
+        ctx.closePath();
+        ctx.fill();
+        if (style.strokeWidth > 0) ctx.stroke();
+        break;
+      case "diamond":
+        ctx.beginPath();
+        ctx.moveTo(shape.x + shape.w / 2, shape.y);
+        ctx.lineTo(shape.x + shape.w, shape.y + shape.h / 2);
+        ctx.lineTo(shape.x + shape.w / 2, shape.y + shape.h);
+        ctx.lineTo(shape.x, shape.y + shape.h / 2);
+        ctx.closePath();
+        ctx.fill();
+        if (style.strokeWidth > 0) ctx.stroke();
+        break;
+      case "star": {
+        const cx = shape.x + shape.w / 2;
+        const cy = shape.y + shape.h / 2;
+        const outerX = shape.w / 2;
+        const outerY = shape.h / 2;
+        ctx.beginPath();
+        for (let i = 0; i < 10; i++) {
+          const ang = -Math.PI / 2 + (i * Math.PI) / 5;
+          const rx = i % 2 === 0 ? outerX : outerX * 0.4;
+          const ry = i % 2 === 0 ? outerY : outerY * 0.4;
+          const px = cx + Math.cos(ang) * rx;
+          const py = cy + Math.sin(ang) * ry;
+          if (i === 0) ctx.moveTo(px, py);
+          else ctx.lineTo(px, py);
+        }
+        ctx.closePath();
+        ctx.fill();
+        if (style.strokeWidth > 0) ctx.stroke();
+        break;
+      }
       case "text": {
         const fs = style.fontSize ?? 16;
         ctx.fillStyle = style.stroke;

@@ -29,6 +29,9 @@ export function createTool(id: ToolId): Tool {
       return createPanTool();
     case "rect":
     case "ellipse":
+    case "triangle":
+    case "diamond":
+    case "star":
     case "arrow":
       return createShapeTool(id);
     case "draw":

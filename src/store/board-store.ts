@@ -40,6 +40,9 @@ function nextId(): string {
 const DEFAULT_STYLE: Record<ShapeType, ShapeStyle> = {
   rect: { fill: "#FFE8A3", stroke: "#1A1A1A", strokeWidth: 2 },
   ellipse: { fill: "#BFE3FF", stroke: "#1F5C8B", strokeWidth: 2 },
+  triangle: { fill: "#BBE5B3", stroke: "#1A1A1A", strokeWidth: 2 },
+  diamond: { fill: "#FFC2D1", stroke: "#1A1A1A", strokeWidth: 2 },
+  star: { fill: "#D9C2FF", stroke: "#1A1A1A", strokeWidth: 2 },
   sticky: { fill: "#FF9F1C", stroke: "#1A1A1A", strokeWidth: 0 },
   text: { fill: "transparent", stroke: "#1A1A1A", strokeWidth: 0 },
   arrow: { fill: "transparent", stroke: "#1A1A1A", strokeWidth: 2 },
