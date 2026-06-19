@@ -32,6 +32,15 @@ export const tableDef: ComponentDef<TableProps> = {
     };
   },
   measure: (p) => ({ w: p.colW.reduce((a, b) => a + b, 0), h: p.rowH.reduce((a, b) => a + b, 0) }),
+  reconcile(props, patch) {
+    const merged = { ...props, ...patch };
+    const rows = Math.max(1, Math.min(30, Math.round(merged.rows)));
+    const cols = Math.max(1, Math.min(12, Math.round(merged.cols)));
+    const colW = Array.from({ length: cols }, (_, c) => props.colW[c] ?? COL);
+    const rowH = Array.from({ length: rows }, (_, r) => props.rowH[r] ?? ROW);
+    const cells = blankCells(rows, cols, props.cells);
+    return { ...merged, rows, cols, colW, rowH, cells };
+  },
   customSchema: [
     { kind: "number", key: "rows", label: "Rows", min: 1, max: 30, step: 1 },
     { kind: "number", key: "cols", label: "Columns", min: 1, max: 12, step: 1 },

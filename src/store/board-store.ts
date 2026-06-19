@@ -253,8 +253,33 @@ export const useBoardStore = create<BoardState>((set, get) => ({
   },
 
   updateComponentProps: (id, patch) => {
-    if (bound) docUpdateComponentProps(bound, id, patch);
-    else set((s) => ({ shapes: s.shapes.map((sh) => (sh.id === id ? { ...sh, props: { ...sh.props, ...patch } } : sh)) }));
+    const shape = get().shapes.find((sh) => sh.id === id);
+    if (!shape || shape.type !== "component" || !shape.kind) {
+      // Fallback: no shape cached yet (e.g. just bound, cache not populated) — write patch only.
+      if (bound) docUpdateComponentProps(bound, id, patch);
+      else set((s) => ({ shapes: s.shapes.map((sh) => (sh.id === id ? { ...sh, props: { ...sh.props, ...patch } } : sh)) }));
+      return;
+    }
+    let def: ReturnType<typeof getComponentDef> | undefined;
+    try { def = getComponentDef(shape.kind); } catch { def = undefined; }
+    if (def?.reconcile) {
+      const next = def.reconcile(shape.props as Record<string, unknown>, patch);
+      const size = def.measure ? def.measure(next) : { w: shape.w, h: shape.h };
+      if (bound) {
+        // Write the full reconciled props map + updated w/h to the Yjs doc atomically.
+        docUpdateComponentProps(bound, id, next);
+        docUpdateShape(bound, id, { w: size.w, h: size.h });
+      } else {
+        set((s) => ({
+          shapes: s.shapes.map((sh) =>
+            sh.id === id ? { ...sh, props: next, w: size.w, h: size.h } : sh,
+          ),
+        }));
+      }
+    } else {
+      if (bound) docUpdateComponentProps(bound, id, patch);
+      else set((s) => ({ shapes: s.shapes.map((sh) => (sh.id === id ? { ...sh, props: { ...sh.props, ...patch } } : sh)) }));
+    }
   },
 
   quickConnect: (id, side) => {

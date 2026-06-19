@@ -20,6 +20,8 @@ export interface ComponentDef<P = Record<string, unknown>> {
   Interior?: React.FC<{ shape: Shape }>;
   customSchema: CustomField[];
   measure?(props: P): { w: number; h: number };
+  /** Called by the store when inspector edits arrive; merges the patch and rebuilds any derived fields (e.g. colW/rowH/cells for a table). Returns the fully-reconciled props. */
+  reconcile?(props: P, patch: Partial<P>): P;
 }
 
 /** Pure: return a new props object with one key replaced. */

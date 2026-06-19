@@ -18,6 +18,10 @@ const HANDLE = 9; // handle box size, screen px
 const imageCache = new Map<string, HTMLImageElement>();
 let onImageLoad: (() => void) | null = null;
 
+// Dev-only: warn once per component kind when drawChrome throws, so genuinely
+// broken components surface without spamming every animation frame.
+const _warnedKinds = new Set<string>();
+
 /** Register a callback fired when a lazily-loaded image finishes decoding. */
 export function setImageLoadCallback(cb: (() => void) | null): void {
   onImageLoad = cb;
@@ -388,10 +392,17 @@ function drawShape(ctx: CanvasRenderingContext2D, shape: Shape): void {
       case "component": {
         try {
           getComponentDef(shape.kind!).drawChrome(ctx, shape, { x: 0, y: 0, zoom: 1 });
-        } catch {
+        } catch (err) {
           ctx.strokeStyle = shape.style.stroke;
           ctx.lineWidth = shape.style.strokeWidth || 1;
           ctx.strokeRect(shape.x, shape.y, shape.w, shape.h);
+          if (process.env.NODE_ENV !== "production") {
+            const kind = String(shape.kind ?? "unknown");
+            if (!_warnedKinds.has(kind)) {
+              _warnedKinds.add(kind);
+              console.warn(`[Canvas2DRenderer] drawChrome failed for component kind "${kind}":`, err);
+            }
+          }
         }
         break;
       }

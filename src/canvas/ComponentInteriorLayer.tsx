@@ -17,6 +17,9 @@ export function ComponentInteriorLayer() {
   const hasInterior =
     shape?.type === "component" &&
     !!shape.kind &&
+    // Suppress interior on rotated shapes: a plain scale(zoom) overlay can't
+    // match a rotated canvas shape, so a desynced overlay is worse than none.
+    !shape.rotation &&
     !!getComponentDef(shape.kind)?.Interior;
 
   // Register the active interior id so scheduleRender can blank canvas text.
