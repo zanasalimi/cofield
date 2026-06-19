@@ -92,7 +92,7 @@ export class Canvas2DRenderer implements Renderer {
       ctx.moveTo(scene.connecting.from.x, scene.connecting.from.y);
       ctx.lineTo(scene.connecting.to.x, scene.connecting.to.y);
       ctx.stroke();
-      drawArrowhead(ctx, scene.connecting.from.x, scene.connecting.from.y, scene.connecting.to.x, scene.connecting.to.y, SELECT);
+      drawMarker(ctx, scene.connecting.from.x, scene.connecting.from.y, scene.connecting.to.x, scene.connecting.to.y, "arrow", SELECT);
     }
 
     // Connection points are an animated DOM layer (HoverConnectLayer), not here.
@@ -377,27 +377,24 @@ function drawShape(ctx: CanvasRenderingContext2D, shape: Shape): void {
           ctx.stroke();
         }
         break;
-      case "connector":
-        if (shape.points && shape.points.length >= 8) {
-          // Cubic bezier [A, cp1, cp2, B] — a smooth curve leaving each shape
-          // perpendicular to its side (Miro/diagrams.net style).
-          const p = shape.points;
+      case "connector": {
+        const p = shape.points;
+        if (p && p.length >= 4) {
+          const curved = (style.routing ?? "curved") === "curved" && p.length >= 8;
           ctx.lineCap = "round";
           ctx.lineJoin = "round";
           ctx.beginPath();
           ctx.moveTo(p[0]!, p[1]!);
-          ctx.bezierCurveTo(p[2]!, p[3]!, p[4]!, p[5]!, p[6]!, p[7]!);
+          if (curved) ctx.bezierCurveTo(p[2]!, p[3]!, p[4]!, p[5]!, p[6]!, p[7]!);
+          else for (let i = 2; i < p.length; i += 2) ctx.lineTo(p[i]!, p[i + 1]!);
           ctx.stroke();
-          drawArrowhead(ctx, p[4]!, p[5]!, p[6]!, p[7]!, style.stroke);
-        } else if (shape.points && shape.points.length >= 4) {
-          const p = shape.points;
-          ctx.lineCap = "round";
-          ctx.beginPath();
-          ctx.moveTo(p[0]!, p[1]!);
-          ctx.lineTo(p[2]!, p[3]!);
-          ctx.stroke();
-          drawArrowhead(ctx, p[0]!, p[1]!, p[2]!, p[3]!, style.stroke);
+          // Endpoint markers. Default: a plain arrow at the end, none at the start.
+          const n = p.length;
+          drawMarker(ctx, p[2]!, p[3]!, p[0]!, p[1]!, style.startArrow ?? "none", style.stroke);
+          drawMarker(ctx, p[n - 4]!, p[n - 3]!, p[n - 2]!, p[n - 1]!, style.endArrow ?? "arrow", style.stroke);
         }
+        break;
+      }
         break;
       case "component": {
         try {
@@ -509,15 +506,59 @@ function drawLabel(
   ctx.textAlign = "left";
 }
 
-function drawArrowhead(ctx: CanvasRenderingContext2D, fx: number, fy: number, tx: number, ty: number, color: string): void {
+/** Draw a connector endpoint marker at (tx,ty), pointing along (fx,fy)→(tx,ty). */
+function drawMarker(
+  ctx: CanvasRenderingContext2D,
+  fx: number,
+  fy: number,
+  tx: number,
+  ty: number,
+  kind: NonNullable<ShapeStyle["endArrow"]>,
+  color: string,
+): void {
+  if (kind === "none") return;
   const angle = Math.atan2(ty - fy, tx - fx);
-  const size = 11;
+  const ux = Math.cos(angle);
+  const uy = Math.sin(angle);
+  const px = -uy;
+  const py = ux;
+  const size = 12;
+  ctx.save();
+  ctx.setLineDash([]);
   ctx.fillStyle = color;
-  ctx.beginPath();
-  ctx.moveTo(tx, ty);
-  ctx.lineTo(tx - size * Math.cos(angle - 0.42), ty - size * Math.sin(angle - 0.42));
-  ctx.lineTo(tx - size * Math.cos(angle + 0.42), ty - size * Math.sin(angle + 0.42));
-  ctx.closePath();
-  ctx.fill();
+  ctx.strokeStyle = color;
+  if (kind === "arrow") {
+    ctx.beginPath();
+    ctx.moveTo(tx, ty);
+    ctx.lineTo(tx - size * Math.cos(angle - 0.42), ty - size * Math.sin(angle - 0.42));
+    ctx.lineTo(tx - size * Math.cos(angle + 0.42), ty - size * Math.sin(angle + 0.42));
+    ctx.closePath();
+    ctx.fill();
+  } else if (kind === "open") {
+    ctx.lineWidth = 2;
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+    ctx.beginPath();
+    ctx.moveTo(tx - size * Math.cos(angle - 0.5), ty - size * Math.sin(angle - 0.5));
+    ctx.lineTo(tx, ty);
+    ctx.lineTo(tx - size * Math.cos(angle + 0.5), ty - size * Math.sin(angle + 0.5));
+    ctx.stroke();
+  } else if (kind === "circle") {
+    ctx.beginPath();
+    ctx.arc(tx - ux * size * 0.35, ty - uy * size * 0.35, size * 0.4, 0, Math.PI * 2);
+    ctx.fill();
+  } else if (kind === "diamond") {
+    const d = size * 0.5;
+    const cx = tx - ux * d;
+    const cy = ty - uy * d;
+    ctx.beginPath();
+    ctx.moveTo(cx + ux * d, cy + uy * d);
+    ctx.lineTo(cx + px * d, cy + py * d);
+    ctx.lineTo(cx - ux * d, cy - uy * d);
+    ctx.lineTo(cx - px * d, cy - py * d);
+    ctx.closePath();
+    ctx.fill();
+  }
+  ctx.restore();
 }
 

@@ -30,14 +30,38 @@ export function geoAnchor(s: Shape, other: Shape): { p: Point; dir: Point } {
   return sideAnchor(s, side);
 }
 
-/** A smooth cubic-bezier connector between two shapes: it leaves each shape
- *  perpendicular to its anchored (or facing) side and curves to the other, the
- *  way Miro and diagrams.net draw relations. Returns [A, cp1, cp2, B] flat. */
-export function connectorCurve(from: Shape, fromSide: Side | undefined, to: Shape, toSide: Side | undefined): number[] {
+export type Routing = "straight" | "elbow" | "curved";
+
+/**
+ * Resolve the flat point list for a connector under a routing mode. `curved`
+ * returns a cubic bezier [A, cp1, cp2, B] (each shape left perpendicular to its
+ * side); `straight` a 2-point line [A, B]; `elbow` an orthogonal 4-point path.
+ */
+export function connectorPath(
+  from: Shape,
+  fromSide: Side | undefined,
+  to: Shape,
+  toSide: Side | undefined,
+  routing: Routing = "curved",
+): number[] {
   const a = fromSide ? sideAnchor(from, fromSide) : geoAnchor(from, to);
   const b = toSide ? sideAnchor(to, toSide) : geoAnchor(to, from);
+  if (routing === "straight") return [a.p.x, a.p.y, b.p.x, b.p.y];
+  if (routing === "elbow") {
+    if (Math.abs(b.p.x - a.p.x) >= Math.abs(b.p.y - a.p.y)) {
+      const mx = (a.p.x + b.p.x) / 2;
+      return [a.p.x, a.p.y, mx, a.p.y, mx, b.p.y, b.p.x, b.p.y];
+    }
+    const my = (a.p.y + b.p.y) / 2;
+    return [a.p.x, a.p.y, a.p.x, my, b.p.x, my, b.p.x, b.p.y];
+  }
   const k = Math.max(40, Math.min(160, Math.hypot(b.p.x - a.p.x, b.p.y - a.p.y) * 0.45));
   return [a.p.x, a.p.y, a.p.x + a.dir.x * k, a.p.y + a.dir.y * k, b.p.x + b.dir.x * k, b.p.y + b.dir.y * k, b.p.x, b.p.y];
+}
+
+/** Back-compat alias: the default (curved) connector curve. */
+export function connectorCurve(from: Shape, fromSide: Side | undefined, to: Shape, toSide: Side | undefined): number[] {
+  return connectorPath(from, fromSide, to, toSide, "curved");
 }
 
 /** Flatten a connector to on-curve points: sample the bezier ([A,cp1,cp2,B]) or
@@ -62,7 +86,7 @@ export function resolveConnector(conn: Shape, byId: Map<string, Shape>): Shape |
   const from = byId.get(conn.from);
   const to = byId.get(conn.to);
   if (!from || !to) return null;
-  const points = connectorCurve(from, conn.fromSide, to, conn.toSide);
+  const points = connectorPath(from, conn.fromSide, to, conn.toSide, (conn.style?.routing as Routing) ?? "curved");
   let minX = Infinity;
   let minY = Infinity;
   let maxX = -Infinity;

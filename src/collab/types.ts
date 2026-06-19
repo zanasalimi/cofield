@@ -25,12 +25,20 @@ export type ShapeType =
 /** Rich, data-bearing element kinds rendered via the component registry. */
 export type ComponentKind = "frame" | "table" | "code";
 
+/** Endpoint marker shapes a connector can wear at either end. */
+export type ArrowHead = "none" | "arrow" | "open" | "circle" | "diamond";
+
 export interface ShapeStyle {
   fill: string;
   stroke: string;
   strokeWidth: number;
   /** border / connector dash pattern */
   strokeDash?: "solid" | "dashed" | "dotted";
+  /** connector routing */
+  routing?: "straight" | "elbow" | "curved";
+  /** connector endpoint markers */
+  startArrow?: ArrowHead;
+  endArrow?: ArrowHead;
   /** text/sticky typography */
   fontSize?: number;
   bold?: boolean;

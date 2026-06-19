@@ -36,8 +36,13 @@ import {
   Type,
   Pipette,
   MessageSquarePlus,
+  Spline,
+  CornerDownRight,
+  ArrowRight,
+  ChevronRight,
+  ArrowRightLeft,
 } from "lucide-react";
-import type { Shape, ShapeStyle, ShapeType } from "@/collab/types";
+import type { Shape, ShapeStyle, ShapeType, ArrowHead } from "@/collab/types";
 import { FONT_NAMES, fontStack } from "./fonts";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
@@ -98,6 +103,34 @@ function ColorGrid({ colors, onPick, withNone }: { colors: string[]; onPick: (c:
         <Pipette className="size-3.5 drop-shadow-[0_1px_1px_rgba(0,0,0,0.4)]" />
         <input type="color" onChange={(e) => onPick(e.target.value)} className="sr-only" aria-label="Pick a custom colour" />
       </label>
+    </div>
+  );
+}
+
+const ARROW_OPTS: { v: ArrowHead; Icon: typeof Minus; label: string }[] = [
+  { v: "none", Icon: Minus, label: "None" },
+  { v: "arrow", Icon: ArrowRight, label: "Arrow" },
+  { v: "open", Icon: ChevronRight, label: "Open" },
+  { v: "circle", Icon: Circle, label: "Circle" },
+  { v: "diamond", Icon: Diamond, label: "Diamond" },
+];
+
+/** A labelled row of endpoint-marker choices (start or end). */
+function ArrowRow({ label, value, onPick }: { label: string; value: ArrowHead; onPick: (a: ArrowHead) => void }) {
+  return (
+    <div className="flex items-center gap-1">
+      <span className="w-8 text-xs text-ink-soft">{label}</span>
+      {ARROW_OPTS.map(({ v, Icon, label: l }) => (
+        <button
+          key={v}
+          type="button"
+          title={l}
+          onClick={() => onPick(v)}
+          className={`grid size-8 place-items-center rounded-lg transition-colors hover:bg-muted ${value === v ? "bg-muted text-ink" : "text-ink-soft"}`}
+        >
+          <Icon className="size-4" />
+        </button>
+      ))}
     </div>
   );
 }
@@ -232,6 +265,50 @@ export function SelectionToolbar() {
             </Button>
           ))}
           {!isDraw ? <DashControl value={st.strokeDash} onPick={(d) => set({ strokeDash: d })} /> : null}
+        </>
+      ) : null}
+
+      {isConnector ? (
+        <>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="ghost" size="icon-lg" title="Line shape" className={iconBtn}>
+                <Spline />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent align="start" className="flex gap-1 p-1">
+              {([["curved", "Curved", Spline], ["elbow", "Elbow", CornerDownRight], ["straight", "Straight", Minus]] as const).map(([r, label, Icon]) => (
+                <Button
+                  key={r}
+                  variant="ghost"
+                  size="icon-lg"
+                  title={label}
+                  className={`${iconBtn} ${(st.routing ?? "curved") === r ? "bg-muted" : ""}`}
+                  onClick={() => set({ routing: r })}
+                >
+                  <Icon />
+                </Button>
+              ))}
+            </PopoverContent>
+          </Popover>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="ghost" size="icon-lg" title="Arrow ends" className={iconBtn}>
+                <ArrowRight />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent align="start" className="flex w-auto flex-col gap-1.5 p-2">
+              <ArrowRow label="Start" value={st.startArrow ?? "none"} onPick={(a) => set({ startArrow: a })} />
+              <ArrowRow label="End" value={st.endArrow ?? "arrow"} onPick={(a) => set({ endArrow: a })} />
+              <button
+                type="button"
+                onClick={() => set({ startArrow: st.endArrow ?? "arrow", endArrow: st.startArrow ?? "none" })}
+                className="mt-0.5 flex items-center justify-center gap-1.5 rounded-lg py-1.5 text-sm text-ink-soft transition-colors hover:bg-muted"
+              >
+                <ArrowRightLeft className="size-4" /> Swap ends
+              </button>
+            </PopoverContent>
+          </Popover>
         </>
       ) : null}
 
