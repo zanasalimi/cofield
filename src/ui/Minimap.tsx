@@ -130,7 +130,10 @@ export function Minimap() {
           onPointerMove={(e) => dragging.current && recenter(e.clientX, e.clientY)}
           onPointerUp={() => (dragging.current = false)}
         >
-          <canvas ref={canvasRef} width={MAP_W} height={MAP_H} className="block size-full" />
+          {/* No width/height attributes: the renderer owns the DPR-scaled backing
+              store; React-controlled size attrs would reset it every re-render and
+              wipe the drawing (blank minimap on HiDPI displays). */}
+          <canvas ref={canvasRef} className="block size-full" />
           <div
             className="pointer-events-none absolute rounded-[3px] border-2 border-primary bg-primary/10"
             style={{ left: tl.x, top: tl.y, width: indW, height: indH }}

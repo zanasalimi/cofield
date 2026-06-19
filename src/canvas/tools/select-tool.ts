@@ -46,7 +46,7 @@ function nearestSide(s: Shape, p: Point): Side {
 export function createSelectTool(): Tool {
   let mode: "move" | "resize" | "rotate" | "connect" | "marquee" | null = null;
   let startWorld: Point | null = null;
-  let origins: Map<string, Point> | null = null;
+  let origins: Map<string, { x: number; y: number; points?: number[] }> | null = null;
   let resizeHandle: ResizeHandle | null = null;
   let origRect: Rect | null = null;
   let activeId: string | null = null;
@@ -163,7 +163,9 @@ export function createSelectTool(): Tool {
         origins = new Map();
         for (const id of next) {
           const s = ctx.getShape(id);
-          if (s && !s.locked) origins.set(id, { x: s.x, y: s.y });
+          // Freehand strokes carry absolute world points — capture them so the
+          // move offsets the whole path, not just the bounding box.
+          if (s && !s.locked) origins.set(id, { x: s.x, y: s.y, points: s.type === "draw" ? s.points?.slice() : undefined });
         }
       } else if (event.kind === "pointermove") {
         if (mode === "move" && startWorld && origins) {
@@ -192,7 +194,11 @@ export function createSelectTool(): Tool {
           } else {
             ctx.setGuides([]);
           }
-          for (const [id, origin] of origins) ctx.updateShape(id, { x: origin.x + dx, y: origin.y + dy });
+          for (const [id, origin] of origins) {
+            const patch: Partial<Shape> = { x: origin.x + dx, y: origin.y + dy };
+            if (origin.points) patch.points = origin.points.map((v, i) => (i % 2 === 0 ? v + dx : v + dy));
+            ctx.updateShape(id, patch);
+          }
         } else if (mode === "resize" && startWorld && origRect && resizeHandle && activeId) {
           const delta = { x: event.world.x - startWorld.x, y: event.world.y - startWorld.y };
           const r = applyResize(origRect, resizeHandle, delta);
