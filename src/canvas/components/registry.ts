@@ -33,7 +33,7 @@ export function applyCustomField(
 
 const registry = new Map<ComponentKind, ComponentDef>();
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- P is invariant (it appears in both defaults() return and measure(props) arg), so per-kind ComponentDef<P> can't unify; the registry stores mixed-P defs behind a type-erased Map
 export function registerComponent(def: ComponentDef<any>): void {
   registry.set(def.kind, def);
 }
