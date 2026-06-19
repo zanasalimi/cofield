@@ -135,7 +135,11 @@ function ConnectPoint({
   const onDown = (e: React.PointerEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    (e.currentTarget as Element).setPointerCapture(e.pointerId);
+    try {
+      (e.currentTarget as Element).setPointerCapture(e.pointerId);
+    } catch {
+      /* capture is best-effort */
+    }
     start.current = { x: e.clientX, y: e.clientY };
     dragging.current = false;
     useUiStore.getState().setConnecting({ from: shape.id, fromSide: side, point: worldAt(e) });

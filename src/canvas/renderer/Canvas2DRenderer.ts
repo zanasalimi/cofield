@@ -172,7 +172,15 @@ function drawSelection(
     ctx.lineCap = "round";
     ctx.beginPath();
     ctx.moveTo((pts[0]! - vx) * zoom, (pts[1]! - vy) * zoom);
-    for (let i = 2; i < pts.length; i += 2) ctx.lineTo((pts[i]! - vx) * zoom, (pts[i + 1]! - vy) * zoom);
+    if (pts.length >= 8) {
+      ctx.bezierCurveTo(
+        (pts[2]! - vx) * zoom, (pts[3]! - vy) * zoom,
+        (pts[4]! - vx) * zoom, (pts[5]! - vy) * zoom,
+        (pts[6]! - vx) * zoom, (pts[7]! - vy) * zoom,
+      );
+    } else {
+      for (let i = 2; i < pts.length; i += 2) ctx.lineTo((pts[i]! - vx) * zoom, (pts[i + 1]! - vy) * zoom);
+    }
     ctx.stroke();
     ctx.fillStyle = "#ffffff";
     ctx.lineWidth = 1.5;
@@ -366,25 +374,25 @@ function drawShape(ctx: CanvasRenderingContext2D, shape: Shape): void {
         }
         break;
       case "connector":
-        if (shape.points && shape.points.length >= 4) {
-          const pts = shape.points;
-          const n = pts.length;
+        if (shape.points && shape.points.length >= 8) {
+          // Cubic bezier [A, cp1, cp2, B] — a smooth curve leaving each shape
+          // perpendicular to its side (Miro/diagrams.net style).
+          const p = shape.points;
           ctx.lineCap = "round";
           ctx.lineJoin = "round";
-          // Rounded elbow: line through the waypoints, each interior corner arced.
           ctx.beginPath();
-          ctx.moveTo(pts[0]!, pts[1]!);
-          for (let i = 2; i < n - 2; i += 2) {
-            // Clamp the corner radius to half the shorter adjacent segment so a
-            // short jog rounds cleanly instead of curling back on itself.
-            const d1 = Math.hypot(pts[i]! - pts[i - 2]!, pts[i + 1]! - pts[i - 1]!);
-            const d2 = Math.hypot(pts[i + 2]! - pts[i]!, pts[i + 3]! - pts[i + 1]!);
-            const r = Math.min(12, d1 / 2, d2 / 2);
-            ctx.arcTo(pts[i]!, pts[i + 1]!, pts[i + 2]!, pts[i + 3]!, r);
-          }
-          ctx.lineTo(pts[n - 2]!, pts[n - 1]!);
+          ctx.moveTo(p[0]!, p[1]!);
+          ctx.bezierCurveTo(p[2]!, p[3]!, p[4]!, p[5]!, p[6]!, p[7]!);
           ctx.stroke();
-          drawArrowhead(ctx, pts[n - 4]!, pts[n - 3]!, pts[n - 2]!, pts[n - 1]!, style.stroke);
+          drawArrowhead(ctx, p[4]!, p[5]!, p[6]!, p[7]!, style.stroke);
+        } else if (shape.points && shape.points.length >= 4) {
+          const p = shape.points;
+          ctx.lineCap = "round";
+          ctx.beginPath();
+          ctx.moveTo(p[0]!, p[1]!);
+          ctx.lineTo(p[2]!, p[3]!);
+          ctx.stroke();
+          drawArrowhead(ctx, p[0]!, p[1]!, p[2]!, p[3]!, style.stroke);
         }
         break;
     }

@@ -123,93 +123,38 @@ function sideAnchor(s: Shape, side: Side): { p: Point; dir: Point } {
   }
 }
 
-/** Drop consecutive-duplicate and collinear midpoints so aligned routes collapse
- *  to a clean straight line and no zero-length jog survives to curl a corner. */
-function simplifyOrtho(flat: number[]): number[] {
-  const pts: Point[] = [];
-  for (let i = 0; i < flat.length; i += 2) {
-    const p = { x: flat[i]!, y: flat[i + 1]! };
-    const last = pts[pts.length - 1];
-    if (!last || Math.abs(last.x - p.x) > 0.5 || Math.abs(last.y - p.y) > 0.5) pts.push(p);
-  }
-  const out: Point[] = [];
-  for (let i = 0; i < pts.length; i++) {
-    const a = pts[i - 1];
-    const b = pts[i]!;
-    const c = pts[i + 1];
-    if (a && c) {
-      const collinearH = Math.abs(a.y - b.y) < 0.5 && Math.abs(b.y - c.y) < 0.5;
-      const collinearV = Math.abs(a.x - b.x) < 0.5 && Math.abs(b.x - c.x) < 0.5;
-      if (collinearH || collinearV) continue;
-    }
-    out.push(b);
-  }
-  const res: number[] = [];
-  for (const p of out) res.push(p.x, p.y);
-  return res;
+/** The anchor + outward direction on the side of `s` that faces `other`. */
+function geoAnchor(s: Shape, other: Shape): { p: Point; dir: Point } {
+  const dx = other.x + other.w / 2 - (s.x + s.w / 2);
+  const dy = other.y + other.h / 2 - (s.y + s.h / 2);
+  const side: Side = Math.abs(dx) >= Math.abs(dy) ? (dx >= 0 ? "right" : "left") : dy >= 0 ? "bottom" : "top";
+  return sideAnchor(s, side);
 }
 
-/** Elbow route that EXITS the grabbed side and ENTERS the dropped side: each end
- *  leaves perpendicular to its edge (a short stub), then jogs orthogonally to meet. */
-function routeSides(from: Shape, fromSide: Side, to: Shape, toSide: Side): number[] {
-  const STUB = 22;
-  const a = sideAnchor(from, fromSide);
-  const b = sideAnchor(to, toSide);
-  const ap = { x: a.p.x + a.dir.x * STUB, y: a.p.y + a.dir.y * STUB };
-  const bp = { x: b.p.x + b.dir.x * STUB, y: b.p.y + b.dir.y * STUB };
-  const pts = [a.p.x, a.p.y, ap.x, ap.y];
-  if (a.dir.x !== 0) {
-    if (b.dir.x !== 0) {
-      const mx = (ap.x + bp.x) / 2;
-      pts.push(mx, ap.y, mx, bp.y);
-    } else {
-      pts.push(bp.x, ap.y);
-    }
-  } else {
-    if (b.dir.y !== 0) {
-      const my = (ap.y + bp.y) / 2;
-      pts.push(ap.x, my, bp.x, my);
-    } else {
-      pts.push(ap.x, bp.y);
-    }
-  }
-  pts.push(bp.x, bp.y, b.p.x, b.p.y);
-  return simplifyOrtho(pts);
+/** A smooth cubic-bezier connector between two shapes: it leaves each shape
+ *  perpendicular to its anchored (or facing) side and curves to the other, the
+ *  way Miro and diagrams.net draw relations. Returns [A, cp1, cp2, B] flat. */
+function connectorCurve(from: Shape, fromSide: Side | undefined, to: Shape, toSide: Side | undefined): number[] {
+  const a = fromSide ? sideAnchor(from, fromSide) : geoAnchor(from, to);
+  const b = toSide ? sideAnchor(to, toSide) : geoAnchor(to, from);
+  const k = Math.max(40, Math.min(160, Math.hypot(b.p.x - a.p.x, b.p.y - a.p.y) * 0.45));
+  return [a.p.x, a.p.y, a.p.x + a.dir.x * k, a.p.y + a.dir.y * k, b.p.x + b.dir.x * k, b.p.y + b.dir.y * k, b.p.x, b.p.y];
 }
 
-/** Right-angle (elbow) route between two shapes — anchored at the edge midpoints
- *  of whichever sides face each other, with one orthogonal jog between them. Used
- *  when a connector carries no explicit anchor sides (legacy connectors). */
-const ALIGN_EPS = 8; // shapes this close to aligned get a clean straight line
-
-function orthogonalRoute(from: Shape, to: Shape): number[] {
-  const acx = from.x + from.w / 2;
-  const acy = from.y + from.h / 2;
-  const bcx = to.x + to.w / 2;
-  const bcy = to.y + to.h / 2;
-  const dx = bcx - acx;
-  const dy = bcy - acy;
-  if (Math.abs(dx) >= Math.abs(dy)) {
-    // Side-by-side: exit left/right.
-    const ax = dx >= 0 ? from.x + from.w : from.x;
-    const bx = dx >= 0 ? to.x : to.x + to.w;
-    // Roughly level → straight line; no zero-length jog to curl.
-    if (Math.abs(dy) <= ALIGN_EPS) {
-      const y = (acy + bcy) / 2;
-      return [ax, y, bx, y];
-    }
-    const midX = (ax + bx) / 2;
-    return [ax, acy, midX, acy, midX, bcy, bx, bcy];
+/** Flatten a connector to on-curve points: sample the bezier ([A,cp1,cp2,B]) or
+ *  pass through a straight [A,B]. Used for hit-testing along the actual curve. */
+function sampleConnector(p: number[], n: number): number[] {
+  if (p.length < 8) return p;
+  const out: number[] = [];
+  for (let i = 0; i <= n; i++) {
+    const t = i / n;
+    const mt = 1 - t;
+    out.push(
+      mt * mt * mt * p[0]! + 3 * mt * mt * t * p[2]! + 3 * mt * t * t * p[4]! + t * t * t * p[6]!,
+      mt * mt * mt * p[1]! + 3 * mt * mt * t * p[3]! + 3 * mt * t * t * p[5]! + t * t * t * p[7]!,
+    );
   }
-  // Stacked: exit top/bottom.
-  const ay = dy >= 0 ? from.y + from.h : from.y;
-  const by = dy >= 0 ? to.y : to.y + to.h;
-  if (Math.abs(dx) <= ALIGN_EPS) {
-    const x = (acx + bcx) / 2;
-    return [x, ay, x, by];
-  }
-  const midY = (ay + by) / 2;
-  return [acx, ay, acx, midY, bcx, midY, bcx, by];
+  return out;
 }
 
 /** Shortest distance from point p to the segment a–b. */
@@ -222,14 +167,13 @@ function distToSegment(p: Point, ax: number, ay: number, bx: number, by: number)
   return Math.hypot(p.x - (ax + t * dx), p.y - (ay + t * dy));
 }
 
-/** Resolve a connector's live elbow path from its linked shapes; null if dangling. */
+/** Resolve a connector's live curve from its linked shapes; null if dangling. */
 function resolveConnector(conn: Shape, byId: Map<string, Shape>): Shape | null {
   if (!conn.from || !conn.to) return null;
   const from = byId.get(conn.from);
   const to = byId.get(conn.to);
   if (!from || !to) return null;
-  const points =
-    conn.fromSide && conn.toSide ? routeSides(from, conn.fromSide, to, conn.toSide) : orthogonalRoute(from, to);
+  const points = connectorCurve(from, conn.fromSide, to, conn.toSide);
   let minX = Infinity;
   let minY = Infinity;
   let maxX = -Infinity;
@@ -308,8 +252,10 @@ export function Canvas({ boardId }: CanvasProps) {
           const rc = resolveConnector(sh, byId);
           const p = rc?.points;
           if (!p) continue;
-          for (let j = 0; j < p.length - 2; j += 2) {
-            if (distToSegment(world, p[j]!, p[j + 1]!, p[j + 2]!, p[j + 3]!) <= tol) return sh.id;
+          // Sample the bezier (or use the 2-point line) and test each segment.
+          const poly = sampleConnector(p, 18);
+          for (let j = 0; j < poly.length - 2; j += 2) {
+            if (distToSegment(world, poly[j]!, poly[j + 1]!, poly[j + 2]!, poly[j + 3]!) <= tol) return sh.id;
           }
         }
         return null;
