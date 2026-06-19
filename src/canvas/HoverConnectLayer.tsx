@@ -8,7 +8,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { ArrowUp, ArrowRight, ArrowDown, ArrowLeft } from "lucide-react";
+import { ArrowUp, ArrowRight, ArrowDown, ArrowLeft } from "@phosphor-icons/react";
 import type { Shape, ShapeType, Side } from "@/collab/types";
 import { useUiStore } from "@/store/ui-store";
 import { useBoardStore } from "@/store/board-store";
@@ -218,7 +218,7 @@ function ConnectPoint({
         className="animate-pop pointer-events-auto absolute grid size-9 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full bg-[#4262FF] text-white shadow-md transition-transform duration-100 hover:scale-110 active:scale-95"
         style={{ left: x, top: y }}
       >
-        <Arrow className="size-5" strokeWidth={2.5} />
+        <Arrow className="size-5" />
       </button>
     );
   }

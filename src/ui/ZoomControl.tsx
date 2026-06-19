@@ -4,7 +4,7 @@
  */
 "use client";
 
-import { Undo2, Redo2, Minus, Plus, MessageSquare } from "lucide-react";
+import { ArrowUUpLeft as Undo2, ArrowUUpRight as Redo2, Minus, Plus, ChatCircle as MessageSquare } from "@phosphor-icons/react";
 import { useUiStore } from "@/store/ui-store";
 import { useBoardStore } from "@/store/board-store";
 import { zoomAt } from "@/canvas/viewport/viewport";

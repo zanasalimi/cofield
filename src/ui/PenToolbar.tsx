@@ -5,7 +5,7 @@
  */
 "use client";
 
-import { Pen, Highlighter, Eraser } from "lucide-react";
+import { PencilSimple as Pen, Highlighter, Eraser } from "@phosphor-icons/react";
 import { useUiStore } from "@/store/ui-store";
 import { Slider } from "@/components/ui/slider";
 

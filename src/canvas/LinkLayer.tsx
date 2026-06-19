@@ -4,7 +4,7 @@
  */
 "use client";
 
-import { Link2 } from "lucide-react";
+import { LinkSimple as Link2 } from "@phosphor-icons/react";
 import { useUiStore } from "@/store/ui-store";
 import { useBoardStore } from "@/store/board-store";
 import { worldToScreen } from "./viewport/viewport";

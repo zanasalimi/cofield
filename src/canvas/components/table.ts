@@ -1,4 +1,4 @@
-import { Table } from "lucide-react";
+import { Table } from "@phosphor-icons/react";
 import type { ComponentDef } from "./registry";
 import { TableInterior } from "./table-interior";
 

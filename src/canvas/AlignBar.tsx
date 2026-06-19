@@ -5,15 +5,15 @@
 "use client";
 
 import {
-  AlignStartVertical,
+  AlignLeft as AlignStartVertical,
   AlignCenterVertical,
-  AlignEndVertical,
-  AlignStartHorizontal,
+  AlignRight as AlignEndVertical,
+  AlignTop as AlignStartHorizontal,
   AlignCenterHorizontal,
-  AlignEndHorizontal,
-  AlignHorizontalDistributeCenter,
-  AlignVerticalDistributeCenter,
-} from "lucide-react";
+  AlignBottom as AlignEndHorizontal,
+  Rows as AlignHorizontalDistributeCenter,
+  Columns as AlignVerticalDistributeCenter,
+} from "@phosphor-icons/react";
 import { useUiStore } from "@/store/ui-store";
 import { useBoardStore } from "@/store/board-store";
 import { worldToScreen } from "./viewport/viewport";

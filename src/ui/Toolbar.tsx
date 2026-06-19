@@ -7,21 +7,21 @@
 
 import { useState } from "react";
 import {
-  MousePointer2,
+  Cursor as MousePointer2,
   Hand,
-  Type,
-  StickyNote,
+  TextT as Type,
+  Note as StickyNote,
   Square,
   Circle,
   Triangle,
   Diamond,
   Star,
-  MoveUpRight,
-  Pencil,
+  ArrowUpRight as MoveUpRight,
+  PencilSimple as Pencil,
   Shapes,
-  MessageSquare,
-  SquarePlus,
-} from "lucide-react";
+  ChatCircle as MessageSquare,
+  PlusSquare as SquarePlus,
+} from "@phosphor-icons/react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useUiStore } from "@/store/ui-store";
 import type { ToolId } from "@/canvas/tools/types";

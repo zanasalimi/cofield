@@ -8,7 +8,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { MessageSquare, Check, Send, Trash2, X, Smile, MoreHorizontal } from "lucide-react";
+import { ChatCircle as MessageSquare, Check, PaperPlaneRight as Send, Trash as Trash2, X, Smiley as Smile, DotsThree as MoreHorizontal } from "@phosphor-icons/react";
 import type { Comment } from "@/collab/types";
 import { useUiStore } from "@/store/ui-store";
 import { useBoardStore } from "@/store/board-store";

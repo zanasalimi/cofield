@@ -1,4 +1,4 @@
-import { Code2 } from "lucide-react";
+import { Code as Code2 } from "@phosphor-icons/react";
 import type { ComponentDef } from "./registry";
 import { roundRectPath } from "@/canvas/renderer/shapes-util";
 import { CodeInterior } from "./code-interior";

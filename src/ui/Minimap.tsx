@@ -7,7 +7,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { ChevronDown, Maximize } from "lucide-react";
+import { CaretDown as ChevronDown, ArrowsOut as Maximize } from "@phosphor-icons/react";
 import type { Shape } from "@/collab/types";
 import { useUiStore } from "@/store/ui-store";
 import { useBoardStore } from "@/store/board-store";

@@ -1,4 +1,4 @@
-import { Frame } from "lucide-react";
+import { FrameCorners as Frame } from "@phosphor-icons/react";
 import type { ComponentDef } from "./registry";
 import { roundRectPath } from "@/canvas/renderer/shapes-util";
 

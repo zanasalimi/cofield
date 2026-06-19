@@ -1,4 +1,4 @@
-import type { LucideIcon } from "lucide-react";
+import type { Icon } from "@phosphor-icons/react";
 import type * as React from "react";
 import type { Shape, ComponentKind } from "@/collab/types";
 import type { Viewport } from "@/canvas/viewport/viewport";
@@ -14,7 +14,7 @@ export type CustomField =
 export interface ComponentDef<P = Record<string, unknown>> {
   kind: ComponentKind;
   label: string;
-  icon: LucideIcon;
+  icon: Icon;
   group: "structural" | "wireframe" | "software" | "flow";
   defaults(): { props: P; w: number; h: number };
   drawChrome(ctx: CanvasRenderingContext2D, shape: Shape, vp: Viewport): void;
