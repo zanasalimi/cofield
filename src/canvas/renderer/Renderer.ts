@@ -14,6 +14,8 @@ export interface RenderScene {
   viewport: Viewport;
   /** Selected shape ids (local). */
   selection: string[];
+  /** true while text is being edited — selection shows as a plain box, no handles. */
+  editing?: boolean;
   /** Shape the pointer hovers — shows connection dots so a relation can start without selecting. */
   hovered?: string | null;
   /** A connector being dragged from a connection dot to the pointer (world coords). */

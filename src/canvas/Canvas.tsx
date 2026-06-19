@@ -330,6 +330,7 @@ export function Canvas({ boardId }: CanvasProps) {
         shapes: culled,
         viewport: vp,
         selection: useUiStore.getState().selection,
+        editing: !!useUiStore.getState().editingId,
         hovered,
         connecting: ghost,
         dropTarget,

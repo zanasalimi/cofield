@@ -131,7 +131,7 @@ export class Canvas2DRenderer implements Renderer {
     // Selection overlay in screen space (constant-size handles).
     if (selection.length === 1) {
       const shape = shapes.find((sh) => sh.id === selection[0]);
-      if (shape) drawSelection(ctx, shape, vp.x, vp.y, vp.zoom, dpr);
+      if (shape) drawSelection(ctx, shape, vp.x, vp.y, vp.zoom, dpr, scene.editing ?? false);
     } else if (selection.length > 1) {
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       ctx.strokeStyle = SELECT;
@@ -157,9 +157,19 @@ function drawSelection(
   vy: number,
   zoom: number,
   dpr: number,
+  editing: boolean,
 ): void {
   // Work in CSS px (device = css * dpr).
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+  // While editing text, show only a calm box — no handles or rotation cluttering
+  // the shape you're typing in.
+  if (editing && shape.type !== "connector") {
+    ctx.strokeStyle = SELECT;
+    ctx.lineWidth = 1.5;
+    ctx.strokeRect((shape.x - vx) * zoom, (shape.y - vy) * zoom, shape.w * zoom, shape.h * zoom);
+    return;
+  }
 
   // A connector selects as a highlighted line with endpoint handles — no box,
   // resize or rotation handles (its geometry is its two anchored shapes).

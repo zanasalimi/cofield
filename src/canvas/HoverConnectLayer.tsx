@@ -57,6 +57,7 @@ export function HoverConnectLayer() {
   const hoveredId = useUiStore((s) => s.hoveredId);
   const selection = useUiStore((s) => s.selection);
   const dragging = useUiStore((s) => s.dragging);
+  const editingId = useUiStore((s) => s.editingId);
   const activeTool = useUiStore((s) => s.activeTool);
   const viewport = useUiStore((s) => s.viewport);
   const shapes = useBoardStore((s) => s.shapes);
@@ -67,7 +68,7 @@ export function HoverConnectLayer() {
   const targetId = (selection.length === 1 ? selection[0] : null) ?? hoveredId;
   useEffect(() => setOver(null), [targetId]);
 
-  if (activeTool !== "select" || dragging || !targetId) return null;
+  if (activeTool !== "select" || dragging || editingId || !targetId) return null;
   const shape = shapes.find((s) => s.id === targetId);
   if (!shape || shape.type === "connector" || shape.type === "image" || shape.locked) return null;
 
