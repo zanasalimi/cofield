@@ -1,13 +1,14 @@
 /**
- * The board view — the canvas itself. A board is a room joined by URL.
- * The floating toolbar and presence layers mount over the canvas surface.
+ * The board view — a full-width header over the canvas surface. The toolbar,
+ * help, minimap and zoom chrome float over the canvas (BrainScape layout).
  */
 import { redirect } from "next/navigation";
 import { Canvas } from "@/canvas/Canvas";
+import { TopBar } from "@/ui/TopBar";
 import { Toolbar } from "@/ui/Toolbar";
-import { BoardBar } from "@/ui/BoardBar";
+import { Minimap } from "@/ui/Minimap";
+import { HelpButton } from "@/ui/HelpButton";
 import { ZoomControl } from "@/ui/ZoomControl";
-import { ShareButton } from "@/components/boards/ShareButton";
 import { getCurrentUser } from "@/auth/server";
 import { isMember } from "@/boards/server";
 
@@ -29,27 +30,24 @@ export default async function BoardPage({ params }: BoardPageProps) {
   }
 
   return (
-    <div className="relative h-dvh w-dvw overflow-hidden">
-      <Canvas boardId={boardId} />
+    <div className="flex h-dvh w-dvw flex-col overflow-hidden bg-[#EDEDF0]">
+      <TopBar boardId={boardId} canShare={boardId !== DEMO_BOARD} />
 
-      {/* Floating chrome over the canvas — Miro layout. */}
-      <div className="pointer-events-none absolute left-4 top-4">
-        <BoardBar />
-      </div>
+      <div className="relative flex-1 overflow-hidden">
+        <Canvas boardId={boardId} />
 
-      <div className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2">
-        <Toolbar />
-      </div>
-
-      <div className="pointer-events-none absolute bottom-4 right-4">
-        <ZoomControl />
-      </div>
-
-      {boardId !== DEMO_BOARD && (
-        <div className="pointer-events-none absolute right-4 top-4 flex items-center gap-2">
-          <ShareButton boardId={boardId} />
+        {/* Floating chrome over the canvas. */}
+        <div className="pointer-events-none absolute bottom-5 left-1/2 -translate-x-1/2">
+          <Toolbar />
         </div>
-      )}
+        <div className="pointer-events-none absolute bottom-5 left-5">
+          <HelpButton />
+        </div>
+        <div className="pointer-events-none absolute bottom-5 right-5 flex flex-col items-end gap-2.5">
+          <Minimap />
+          <ZoomControl />
+        </div>
+      </div>
     </div>
   );
 }

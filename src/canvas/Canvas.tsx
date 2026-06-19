@@ -20,7 +20,6 @@ import { useUiStore } from "@/store/ui-store";
 import { useBoardStore } from "@/store/board-store";
 import { useBoard } from "@/collab/use-board";
 import { CursorsLayer } from "@/presence/CursorsLayer";
-import { AvatarStack } from "@/presence/AvatarStack";
 import { TextOverlay } from "./TextOverlay";
 import { SelectionToolbar } from "./SelectionToolbar";
 import { AlignBar } from "./AlignBar";
@@ -222,10 +221,14 @@ export function Canvas({ boardId }: CanvasProps) {
     publishSelection(selection);
   }, [selection, publishSelection]);
 
-  // Mirror identity into the UI store so comments can attribute their author.
+  // Mirror identity + presence into the UI store so the header (outside the
+  // canvas) can render the avatar stack and comments can attribute their author.
   useEffect(() => {
     useUiStore.getState().setMe(me);
   }, [me]);
+  useEffect(() => {
+    useUiStore.getState().setPresences(presences);
+  }, [presences]);
 
   // Broadcast our viewport so others can follow it.
   useEffect(() => {
@@ -756,9 +759,6 @@ export function Canvas({ boardId }: CanvasProps) {
     >
       <canvas ref={canvasRef} className="block h-full w-full touch-none" aria-label="Collaborative canvas" />
       <CursorsLayer presences={presences} viewport={viewport} />
-      <div className="absolute left-1/2 top-4 -translate-x-1/2">
-        <AvatarStack presences={presences} me={me} />
-      </div>
       <LinkLayer />
       <CommentsLayer />
       <HoverConnectLayer />

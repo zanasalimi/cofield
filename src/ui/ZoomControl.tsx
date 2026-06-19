@@ -1,64 +1,67 @@
 /**
- * Bottom-right zoom controls (Miro convention): a fit-to-content button and a
- * percentage readout that resets to 100% on click.
+ * Bottom-right control cluster (under the minimap): undo / redo, a zoom stepper
+ * with a reset-to-100% readout, and a comment toggle. Matches the BrainScape row.
  */
 "use client";
 
-import { Maximize, Download } from "lucide-react";
+import { Undo2, Redo2, Minus, Plus, MessageSquare } from "lucide-react";
 import { useUiStore } from "@/store/ui-store";
 import { useBoardStore } from "@/store/board-store";
-import { fitRect } from "@/canvas/viewport/viewport";
-import { shapeBounds } from "@/canvas/geometry/hit-test";
+import { zoomAt } from "@/canvas/viewport/viewport";
+
+function ClusterButton({ label, onClick, active, children }: { label: string; onClick: () => void; active?: boolean; children: React.ReactNode }) {
+  return (
+    <button
+      type="button"
+      aria-label={label}
+      title={label}
+      onClick={onClick}
+      className={`grid size-10 place-items-center rounded-xl transition-transform duration-100 active:scale-90 [&_svg]:size-[18px] ${
+        active ? "bg-primary/10 text-primary" : "text-ink-soft hover:bg-ink/5 hover:text-ink"
+      }`}
+    >
+      {children}
+    </button>
+  );
+}
 
 export function ZoomControl() {
   const zoom = useUiStore((s) => s.viewport.zoom);
-  const setViewport = useUiStore((s) => s.setViewport);
+  const commentMode = useUiStore((s) => s.commentMode);
 
-  const fitAll = () => {
-    const shapes = useBoardStore.getState().shapes.filter((s) => s.type !== "connector");
-    if (shapes.length === 0) return;
-    let minX = Infinity;
-    let minY = Infinity;
-    let maxX = -Infinity;
-    let maxY = -Infinity;
-    for (const s of shapes) {
-      const b = shapeBounds(s);
-      minX = Math.min(minX, b.x);
-      minY = Math.min(minY, b.y);
-      maxX = Math.max(maxX, b.x + b.w);
-      maxY = Math.max(maxY, b.y + b.h);
-    }
-    setViewport(fitRect({ x: minX, y: minY, w: maxX - minX, h: maxY - minY }, window.innerWidth, window.innerHeight));
+  const stepZoom = (factor: number) => {
+    const vp = useUiStore.getState().viewport;
+    const anchor = { x: window.innerWidth / 2, y: (window.innerHeight - 64) / 2 };
+    useUiStore.getState().setViewport(zoomAt(vp, anchor, factor));
   };
 
   return (
-    <div className="pointer-events-auto flex items-center gap-1 rounded-2xl border border-hairline bg-chrome px-1.5 py-1.5 shadow-toolbar">
+    <div className="pointer-events-auto flex items-center gap-0.5 rounded-2xl border border-hairline bg-chrome p-1.5 shadow-toolbar">
+      <ClusterButton label="Undo" onClick={() => useBoardStore.getState().undo()}>
+        <Undo2 />
+      </ClusterButton>
+      <ClusterButton label="Redo" onClick={() => useBoardStore.getState().redo()}>
+        <Redo2 />
+      </ClusterButton>
+      <div className="mx-0.5 h-6 w-px bg-hairline" />
+      <ClusterButton label="Zoom out" onClick={() => stepZoom(1 / 1.2)}>
+        <Minus />
+      </ClusterButton>
       <button
         type="button"
-        onClick={() => window.dispatchEvent(new Event("cofield:export"))}
-        title="Export PNG (⌘⇧E)"
-        className="grid size-11 place-items-center rounded-xl text-ink-soft transition-transform duration-100 hover:bg-ink/5 hover:text-ink active:scale-90"
-        aria-label="Export board as PNG"
-      >
-        <Download className="size-5" />
-      </button>
-      <button
-        type="button"
-        onClick={fitAll}
-        title="Zoom to fit (Shift+1)"
-        className="grid size-11 place-items-center rounded-xl text-ink-soft transition-transform duration-100 hover:bg-ink/5 hover:text-ink active:scale-90"
-        aria-label="Zoom to fit"
-      >
-        <Maximize className="size-5" />
-      </button>
-      <button
-        type="button"
-        onClick={() => setViewport({ ...useUiStore.getState().viewport, zoom: 1 })}
-        className="rounded-xl px-3 py-1.5 text-base tabular-nums text-ink-soft transition-transform duration-100 hover:bg-ink/5 hover:text-ink active:scale-95"
+        onClick={() => useUiStore.getState().setViewport({ ...useUiStore.getState().viewport, zoom: 1 })}
+        className="min-w-[3.5rem] rounded-xl px-2 py-1.5 text-center text-sm font-medium tabular-nums text-ink transition-colors hover:bg-ink/5 active:scale-95"
         aria-label="Reset zoom to 100%"
       >
         {Math.round(zoom * 100)}%
       </button>
+      <ClusterButton label="Zoom in" onClick={() => stepZoom(1.2)}>
+        <Plus />
+      </ClusterButton>
+      <div className="mx-0.5 h-6 w-px bg-hairline" />
+      <ClusterButton label="Comment" active={commentMode} onClick={() => useUiStore.getState().setCommentMode(!commentMode)}>
+        <MessageSquare />
+      </ClusterButton>
     </div>
   );
 }

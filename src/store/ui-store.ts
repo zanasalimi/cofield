@@ -6,7 +6,7 @@ import { create } from "zustand";
 import type { ToolId } from "@/canvas/tools/types";
 import type { Viewport } from "@/canvas/viewport/viewport";
 import { createViewport } from "@/canvas/viewport/viewport";
-import type { ConnectionState, Point, Rect, Side } from "@/collab/types";
+import type { ConnectionState, Point, Presence, Rect, Side } from "@/collab/types";
 import type { SnapGuide } from "@/canvas/geometry/snapping";
 
 export interface UiState {
@@ -33,6 +33,8 @@ export interface UiState {
   connection: ConnectionState;
   /** the local user's identity, mirrored from presence so comments can attribute authors */
   me: { userId: string; name: string; color: string } | null;
+  /** remote presences, mirrored from Awareness so the header avatar stack can render outside the canvas */
+  presences: Presence[];
   /** true while the comment tool is armed — the next canvas click drops a pin */
   commentMode: boolean;
   /** id of the comment thread currently open, or null */
@@ -51,6 +53,7 @@ export interface UiState {
   setDragging: (dragging: boolean) => void;
   setConnection: (state: ConnectionState) => void;
   setMe: (me: { userId: string; name: string; color: string } | null) => void;
+  setPresences: (presences: Presence[]) => void;
   setCommentMode: (commentMode: boolean) => void;
   setOpenCommentId: (id: string | null) => void;
 }
@@ -69,6 +72,7 @@ export const useUiStore = create<UiState>((set) => ({
   dragging: false,
   connection: "connecting",
   me: null,
+  presences: [],
   commentMode: false,
   openCommentId: null,
 
@@ -85,6 +89,7 @@ export const useUiStore = create<UiState>((set) => ({
   setDragging: (dragging) => set({ dragging }),
   setConnection: (connection) => set({ connection }),
   setMe: (me) => set({ me }),
+  setPresences: (presences) => set({ presences }),
   setCommentMode: (commentMode) => set({ commentMode }),
   setOpenCommentId: (openCommentId) => set({ openCommentId }),
 }));

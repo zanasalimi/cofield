@@ -1,31 +1,32 @@
 /**
- * Active-user avatar stack (top-right). Shows everyone in the room as a coloured
- * initial; click a remote user to follow their viewport (click again to stop).
- * The followed user is ringed.
+ * Active-user avatar stack for the header. Reads presence from the UI store so it
+ * can mount outside the canvas. Everyone in the room shows as a coloured initial;
+ * click a remote user to follow their viewport (click again to stop). Avatars
+ * overlap (BrainScape style); the followed user is ringed.
  */
 "use client";
 
-import type { Presence } from "@/collab/types";
-import type { LocalIdentity } from "@/collab/use-board";
 import { useUiStore } from "@/store/ui-store";
 
 function initial(name: string): string {
   return name.slice(0, 1).toUpperCase();
 }
 
-export function AvatarStack({ presences, me }: { presences: Presence[]; me: LocalIdentity | null }) {
+export function AvatarStack() {
+  const me = useUiStore((s) => s.me);
+  const presences = useUiStore((s) => s.presences);
   const following = useUiStore((s) => s.followingId);
   const setFollowing = useUiStore((s) => s.setFollowing);
 
-  const others = presences.slice(0, 6);
+  const others = presences.slice(0, 5);
   const overflow = presences.length - others.length;
 
   return (
-    <div className="pointer-events-auto flex items-center gap-1 rounded-full border border-hairline bg-chrome px-1.5 py-1 shadow-toolbar">
+    <div className="flex items-center -space-x-2">
       {me ? (
         <div
           title={`${me.name} (you)`}
-          className="grid size-7 place-items-center rounded-full text-xs font-semibold text-white ring-2 ring-white"
+          className="grid size-9 place-items-center rounded-full text-sm font-semibold text-white ring-2 ring-white"
           style={{ backgroundColor: me.color }}
         >
           {initial(me.name)}
@@ -39,8 +40,8 @@ export function AvatarStack({ presences, me }: { presences: Presence[]; me: Loca
             type="button"
             title={isFollowed ? `Following ${p.name} — click to stop` : `Follow ${p.name}`}
             onClick={() => setFollowing(isFollowed ? null : p.userId)}
-            className={`grid size-7 place-items-center rounded-full text-xs font-semibold text-white transition-transform hover:scale-105 active:scale-95 ${
-              isFollowed ? "ring-2 ring-ink" : ""
+            className={`grid size-9 place-items-center rounded-full text-sm font-semibold text-white ring-2 ring-white transition-transform hover:z-10 hover:scale-110 active:scale-95 ${
+              isFollowed ? "ring-ink" : ""
             }`}
             style={{ backgroundColor: p.color }}
           >
@@ -49,7 +50,7 @@ export function AvatarStack({ presences, me }: { presences: Presence[]; me: Loca
         );
       })}
       {overflow > 0 ? (
-        <div className="grid size-7 place-items-center rounded-full bg-ink/10 text-xs font-medium text-ink-soft">
+        <div className="grid size-9 place-items-center rounded-full bg-ink/10 text-xs font-medium text-ink-soft ring-2 ring-white">
           +{overflow}
         </div>
       ) : null}

@@ -31,7 +31,7 @@ export function ShareButton({ boardId }: { boardId: string }) {
   return (
     <Dialog>
       <DialogTrigger asChild>
-        <Button size="sm" variant="secondary" className="pointer-events-auto shadow-sm">
+        <Button size="lg" variant="default" className="rounded-xl px-5 font-semibold shadow-sm">
           Share
         </Button>
       </DialogTrigger>
