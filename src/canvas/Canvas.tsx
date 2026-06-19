@@ -299,12 +299,17 @@ export function Canvas({ boardId }: CanvasProps) {
       if (!r || !el) return;
       const vp = useUiStore.getState().viewport;
       const all = useBoardStore.getState().shapes;
+      const editingId = useUiStore.getState().editingId;
       const byId = new Map(all.map((sh) => [sh.id, sh]));
       const resolved: Shape[] = [];
       for (const sh of all) {
         if (sh.type === "connector") {
           const rc = resolveConnector(sh, byId);
           if (rc) resolved.push(rc);
+        } else if (sh.id === editingId) {
+          // The textarea shows the text while editing — blank the canvas copy so
+          // they don't render as two overlapping ghosts.
+          resolved.push({ ...sh, content: "" });
         } else {
           resolved.push(sh);
         }
