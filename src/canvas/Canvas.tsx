@@ -14,6 +14,7 @@ import { pan, zoomAt, screenToWorld, visibleWorldRect, fitRect } from "./viewpor
 import { cullToViewport } from "./viewport/culling";
 import { hitTestTopmost, shapeBounds, rectsIntersect } from "./geometry/hit-test";
 import { computeSnap, SNAP_THRESHOLD } from "./geometry/snapping";
+import { handlePoints, type ResizeHandle } from "./geometry/transform";
 import { createTool, TOOL_SHORTCUTS } from "./tools";
 import type { Tool, ToolContext, ToolModifiers } from "./tools/types";
 import { useUiStore } from "@/store/ui-store";
@@ -36,6 +37,39 @@ const CURSOR_FOR_TOOL: Record<string, string> = {
 
 function center(s: Shape): Point {
   return { x: s.x + s.w / 2, y: s.y + s.h / 2 };
+}
+
+const RESIZE_CURSOR: Record<ResizeHandle, string> = {
+  nw: "nwse-resize",
+  se: "nwse-resize",
+  ne: "nesw-resize",
+  sw: "nesw-resize",
+  n: "ns-resize",
+  s: "ns-resize",
+  e: "ew-resize",
+  w: "ew-resize",
+};
+
+/** The cursor for a point over the selected shape: rotate / resize / connect /
+ *  move, or null if not over any affordance. World coords. */
+function cursorForSelected(shape: Shape, world: Point, zoom: number): string | null {
+  if (shape.type === "connector" || shape.locked) return null;
+  const tol = 11 / zoom;
+  const cx = shape.x + shape.w / 2;
+  if (Math.hypot(world.x - cx, world.y - (shape.y - 22 / zoom)) <= tol) return "grab"; // rotate
+  const off = 14 / zoom;
+  const dots: Point[] = [
+    { x: cx, y: shape.y - off },
+    { x: shape.x + shape.w + off, y: shape.y + shape.h / 2 },
+    { x: cx, y: shape.y + shape.h + off },
+    { x: shape.x - off, y: shape.y + shape.h / 2 },
+  ];
+  if (dots.some((d) => Math.hypot(world.x - d.x, world.y - d.y) <= tol)) return "crosshair";
+  const pts = handlePoints({ x: shape.x, y: shape.y, w: shape.w, h: shape.h });
+  for (const h of Object.keys(pts) as ResizeHandle[]) {
+    if (Math.hypot(world.x - pts[h].x, world.y - pts[h].y) <= tol) return RESIZE_CURSOR[h];
+  }
+  return null;
 }
 
 /** Axis-aligned union of the shapes' world bounds, or null if empty. */
@@ -494,13 +528,21 @@ export function Canvas({ boardId }: CanvasProps) {
         toolRef.current?.handle({ kind: "pointermove", world: worldAt(e), mods: modsOf(e) }, ctx);
       } else if (ui().activeTool === "select") {
         // Idle: update the hover affordance (connection dots on the shape under
-        // the cursor). Repaint only when the hovered shape actually changes.
+        // the cursor) and the cursor (resize / rotate / connect / move).
         const w = worldAt(e);
         const next = hoverTest(useBoardStore.getState().shapes, w, 18 / ui().viewport.zoom);
         if (next !== hoveredIdRef.current) {
           hoveredIdRef.current = next;
           scheduleRender();
         }
+        let cursor = "default";
+        const sel = ui().selection;
+        if (sel.length === 1) {
+          const s = useBoardStore.getState().getShape(sel[0]!);
+          if (s) cursor = cursorForSelected(s, w, ui().viewport.zoom) ?? cursor;
+        }
+        if (cursor === "default" && next) cursor = "move";
+        el.style.cursor = cursor;
       } else if (hoveredIdRef.current) {
         hoveredIdRef.current = null;
         scheduleRender();
