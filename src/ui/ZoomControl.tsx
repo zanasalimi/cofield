@@ -4,7 +4,7 @@
  */
 "use client";
 
-import { Undo2, Redo2, Minus, Plus, MessageSquare } from "@/components/icons";
+import { Undo2, Redo2, Minus, Plus } from "@/components/icons";
 import { useUiStore } from "@/store/ui-store";
 import { useBoardStore } from "@/store/board-store";
 import { zoomAt } from "@/canvas/viewport/viewport";
@@ -27,7 +27,6 @@ function ClusterButton({ label, onClick, active, children }: { label: string; on
 
 export function ZoomControl() {
   const zoom = useUiStore((s) => s.viewport.zoom);
-  const commentMode = useUiStore((s) => s.commentMode);
 
   const stepZoom = (factor: number) => {
     const vp = useUiStore.getState().viewport;
@@ -57,10 +56,6 @@ export function ZoomControl() {
       </button>
       <ClusterButton label="Zoom in" onClick={() => stepZoom(1.2)}>
         <Plus />
-      </ClusterButton>
-      <div className="mx-0.5 h-6 w-px bg-hairline" />
-      <ClusterButton label="Comment" active={commentMode} onClick={() => useUiStore.getState().setCommentMode(!commentMode)}>
-        <MessageSquare />
       </ClusterButton>
     </div>
   );

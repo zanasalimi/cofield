@@ -7,7 +7,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Workflow, LayoutGrid, Search, Settings, Download, Maximize, Home, Undo2, Redo2 } from "@/components/icons";
+import { Settings, Download, Maximize, Home, Undo2, Redo2 } from "@/components/icons";
 import { useBoardStore } from "@/store/board-store";
 import { AvatarStack } from "@/presence/AvatarStack";
 import { ShareButton } from "@/components/boards/ShareButton";
@@ -37,13 +37,10 @@ export function TopBar({ boardId, canShare }: { boardId: string; canShare: boole
 
   return (
     <header className="relative z-30 flex h-16 shrink-0 items-center justify-between border-b border-hairline bg-chrome px-5">
-      {/* Brand + breadcrumb */}
+      {/* Wordmark + breadcrumb */}
       <div className="flex min-w-0 items-center gap-3">
-        <Link href="/boards" className="flex items-center gap-2.5">
-          <span className="grid size-9 place-items-center rounded-xl bg-gradient-to-br from-[#6366F1] to-[#22D3EE] text-white shadow-sm">
-            <Workflow className="size-5" />
-          </span>
-          <span className="select-none text-lg font-bold tracking-tight text-ink">Cofield</span>
+        <Link href="/boards" className="select-none text-lg font-bold tracking-tight text-ink">
+          Cofield
         </Link>
         <span className="text-xl font-light text-ink-soft/50">/</span>
         <input
@@ -58,12 +55,6 @@ export function TopBar({ boardId, canShare }: { boardId: string; canShare: boole
 
       {/* Actions */}
       <div className="flex items-center gap-2">
-        <HeaderButton label="Apps">
-          <LayoutGrid />
-        </HeaderButton>
-        <HeaderButton label="Search">
-          <Search />
-        </HeaderButton>
         <div className="relative">
           <HeaderButton label="Board menu" onClick={() => setMenu((m) => !m)}>
             <Settings />
@@ -89,7 +80,7 @@ export function TopBar({ boardId, canShare }: { boardId: string; canShare: boole
 
         <div className="mx-1 h-7 w-px bg-hairline" />
         <AvatarStack />
-        {canShare ? <ShareButton boardId={boardId} /> : null}
+        <ShareButton boardId={boardId} canShare={canShare} />
       </div>
     </header>
   );

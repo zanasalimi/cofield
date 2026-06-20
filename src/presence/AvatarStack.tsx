@@ -22,36 +22,43 @@ export function AvatarStack() {
   const overflow = presences.length - others.length;
 
   return (
-    <div className="flex items-center -space-x-2">
+    <div className="flex items-center gap-2.5">
+      {/* Other people in the room cluster on the LEFT. */}
+      {others.length > 0 || overflow > 0 ? (
+        <div className="flex items-center -space-x-2">
+          {others.map((p) => {
+            const isFollowed = following === p.userId;
+            return (
+              <button
+                key={p.userId}
+                type="button"
+                title={isFollowed ? `Following ${p.name} — click to stop` : `Follow ${p.name}`}
+                onClick={() => setFollowing(isFollowed ? null : p.userId)}
+                className={`grid size-9 place-items-center rounded-full text-sm font-semibold text-white ring-2 ring-white transition-transform hover:z-10 hover:scale-110 active:scale-95 ${
+                  isFollowed ? "ring-ink" : ""
+                }`}
+                style={{ backgroundColor: p.color }}
+              >
+                {initial(p.name)}
+              </button>
+            );
+          })}
+          {overflow > 0 ? (
+            <div className="grid size-9 place-items-center rounded-full bg-ink/10 text-xs font-medium text-ink-soft ring-2 ring-white">
+              +{overflow}
+            </div>
+          ) : null}
+        </div>
+      ) : null}
+
+      {/* The local user sits on the RIGHT, selected: ringed with a small gap. */}
       {me ? (
         <div
           title={`${me.name} (you)`}
-          className="grid size-9 place-items-center rounded-full text-sm font-semibold text-white ring-2 ring-white"
+          className="grid size-9 place-items-center rounded-full text-sm font-semibold text-white ring-2 ring-primary ring-offset-2 ring-offset-chrome"
           style={{ backgroundColor: me.color }}
         >
           {initial(me.name)}
-        </div>
-      ) : null}
-      {others.map((p) => {
-        const isFollowed = following === p.userId;
-        return (
-          <button
-            key={p.userId}
-            type="button"
-            title={isFollowed ? `Following ${p.name} — click to stop` : `Follow ${p.name}`}
-            onClick={() => setFollowing(isFollowed ? null : p.userId)}
-            className={`grid size-9 place-items-center rounded-full text-sm font-semibold text-white ring-2 ring-white transition-transform hover:z-10 hover:scale-110 active:scale-95 ${
-              isFollowed ? "ring-ink" : ""
-            }`}
-            style={{ backgroundColor: p.color }}
-          >
-            {initial(p.name)}
-          </button>
-        );
-      })}
-      {overflow > 0 ? (
-        <div className="grid size-9 place-items-center rounded-full bg-ink/10 text-xs font-medium text-ink-soft ring-2 ring-white">
-          +{overflow}
         </div>
       ) : null}
     </div>
