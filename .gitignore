@@ -42,8 +42,14 @@ Thumbs.db
 
 # Vercel
 .vercel
+
+# Agent tooling / scratch — never ship in the repo
 .claude/
 CLAUDE.md
+.superpowers/
+docs/superpowers/
+
+# Sync server's leveldb store + local sqlite db + scratch screenshots
 data/
 /*.png
 cofield.db

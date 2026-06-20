@@ -13,7 +13,7 @@ export type CustomField =
 export interface ComponentDef<P = Record<string, unknown>> {
   kind: ComponentKind;
   label: string;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- accepts any React component (the Hugeicons wrapper)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- accepts any icon component (Lucide's loosely-typed icon props)
   icon: React.FC<any>;
   group: "structural" | "wireframe" | "software" | "flow";
   defaults(): { props: P; w: number; h: number };
