@@ -22,6 +22,7 @@ import type { Tool, ToolContext, ToolModifiers } from "./tools/types";
 import { useUiStore } from "@/store/ui-store";
 import { useBoardStore } from "@/store/board-store";
 import { useBoard } from "@/collab/use-board";
+import { toast } from "@embertoast/react";
 import { CursorsLayer } from "@/presence/CursorsLayer";
 import { FollowSync } from "@/presence/FollowSync";
 import { TextOverlay } from "./TextOverlay";
@@ -41,6 +42,8 @@ const CURSOR_FOR_TOOL: Record<string, string> = {
   text: "text",
   sticky: "copy",
 };
+
+const MAX_IMAGE_BYTES = 2 * 1024 * 1024; // 2 MB — images are stored inline in the doc
 
 function center(s: Shape): Point {
   return { x: s.x + s.w / 2, y: s.y + s.h / 2 };
@@ -299,6 +302,12 @@ export function Canvas({ boardId, user }: CanvasProps) {
 
     // Place an image file on the board at a world point (drop or paste).
     const placeImage = (file: File, world: Point) => {
+      // The data URL is replicated to every client and persisted, so cap it —
+      // a huge paste would otherwise bloat the doc for everyone.
+      if (file.size > MAX_IMAGE_BYTES) {
+        toast.error("That image is too large — keep it under 2 MB.");
+        return;
+      }
       const reader = new FileReader();
       reader.onload = () => {
         const src = reader.result as string;
