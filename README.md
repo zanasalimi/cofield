@@ -4,11 +4,8 @@
 
 [![CI](https://github.com/zanasalimi/cofield/actions/workflows/ci.yml/badge.svg)](https://github.com/zanasalimi/cofield/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-black)](LICENSE)
-[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/zanasalimi/cofield)
 
 ![Cofield: a microservices architecture on the infinite canvas. Labelled service nodes wired with elbow connectors, the floating toolbar, minimap, and a live-presence avatar.](docs/media/hero.png)
-
-**Live demo.** Open the repo in a [GitHub Codespace](https://codespaces.new/zanasalimi/cofield). It installs the dependencies and starts both the web app and the sync server (or run `pnpm demo` yourself). When the app opens, create a board, then open the same URL in a second tab to be multiplayer with yourself.
 
 ---
 
@@ -134,7 +131,7 @@ What's built, and what isn't.
 - Remote selection highlights ("Sara is editing this shape").
 - Public-link access. Access is membership-only.
 - Tombstone snapshotting and GC (specified in the ADRs, not implemented).
-- A hosted, always-on demo. Run it in a Codespace or with Docker (see above).
+- A hosted, always-on demo. Run it locally (`pnpm sync` + `pnpm dev`, or `docker compose up`).
 
 ## Contributing
 
