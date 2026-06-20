@@ -1,6 +1,6 @@
 # Cofield
 
-**A multi-team infinite canvas that stays convergent across clients — built on CRDTs, not a database race.** Open the same board in two tabs, draw in one, watch it appear in the other instantly. Go offline, keep editing, reconnect — the edits merge with zero data loss. No central server transforms your operations; every client holds a full, self-healing copy of the document.
+**An infinite collaborative canvas built on CRDTs.** Open the same board in two tabs, draw in one, and it shows up in the other right away. Keep editing while offline; when you reconnect, both sides merge without losing edits. The server only relays and stores updates — every client keeps a full copy of the document, so there's no central state for clients to fall out of sync with.
 
 <!-- Badges: wire these to the real repo once published. -->
 [![CI](https://img.shields.io/badge/CI-pending-lightgrey)](.github/workflows/ci.yml)
@@ -17,13 +17,13 @@
 
 ## The problem
 
-Realtime collaboration is where naive implementations quietly lose data. Last-write-wins clobbers concurrent edits — two people nudge the same shape, one of them silently loses. A central server that transforms every operation (OT) is famously hard to get right and couples every client to one authority. The hard version — convergent state across N clients, correct under concurrency, and tolerant of going offline — is the entire point of this project.
+Realtime editing is easy to get wrong. Last-write-wins drops concurrent edits: two people drag the same shape and one change disappears. Operational transform avoids that, but it needs a central server to rewrite every operation against the others — hard to implement correctly, and it ties every client to one authority. Getting this right across many clients, under concurrency, and through a disconnection is the part worth building.
 
-Cofield treats the **document as a replicated CRDT**, not as rows behind a lock. The server is a relay and a durable store, never an arbiter. Each shape is a per-field CRDT map, so one person moving a sticky and another recoloring it merge cleanly instead of fighting.
+Cofield stores the board as a CRDT (Yjs). The server relays and persists binary updates; it never rewrites them, and it isn't the source of truth — every client holds a full copy. Each shape is a small map of independent fields, so one person moving a shape and another recoloring it both apply.
 
 ## Architecture
 
-The Yjs document is the source of truth and it is **replicated, not centralized**. The sync server relays binary diffs and persists them; it never transforms operations. Cursors and selections ride the same socket on a separate **ephemeral** channel that is never written to disk — a cursor position has no business in the persistent document.
+The Yjs document is replicated to every client; no central copy arbitrates between them. The sync server relays binary updates and persists them, nothing more. Cursors and selections travel over the same socket on a separate awareness channel and are never written to disk — they're transient, so persisting them would only bloat the document and replay stale positions on the next load.
 
 ```mermaid
 flowchart TB
@@ -56,11 +56,11 @@ Full system design, the edit-propagation sequence, and the multi-team data model
 
 ## Key technical decisions
 
-- **CRDT (Yjs) over operational transform or last-write-wins.** OT needs a correct central transform server; LWW silently drops concurrent edits. Yjs converges deterministically with no central authority and is offline-first. The cost is honest — the document accumulates tombstones — so snapshotting and GC are designed in, not pretended away.
-- **Per-field nested `Y.Map` per shape, not one object in a flat map.** Two users editing *different fields of the same shape* (one moves it, one recolors it) merge without clobbering. This granularity is the difference between "uses a CRDT lib" and "understands CRDTs."
-- **Awareness protocol for cursors, kept out of the document.** Presence is ephemeral and high-frequency; persisting it would bloat the doc and replay stale cursors on load. It rides the socket on a separate channel, throttled and never saved.
-- **Self-hosted `y-websocket` (Node `ws`) over a managed service.** Running the protocol myself demonstrates I understand it rather than hiding behind a SaaS. The provider sits behind an interface, so swapping to PartyKit/Liveblocks later is a one-file change.
-- **Canvas2D now, WebGL behind a `Renderer` interface.** Canvas2D ships the MVP; viewport culling and world/screen separation are designed so a WebGL renderer drops in for 10k+ shapes without touching tool or geometry code.
+- **Yjs (CRDT), not operational transform or last-write-wins.** Last-write-wins drops concurrent edits; OT needs a correct central transform server. Yjs converges without a central authority and works offline. The tradeoff is that the document accumulates tombstones, which is why snapshotting and GC are part of the design rather than an afterthought.
+- **A nested `Y.Map` per shape, one key per field.** When two people edit different fields of the same shape — one moves it, one recolors it — both edits land, because each field is an independent register instead of a single value the last writer overwrites.
+- **Cursors on the Awareness channel, not in the document.** Presence is high-frequency and disposable. Keeping it in the document would grow the doc and replay stale cursors on load, so it rides the same socket on a separate channel, throttled, and is never persisted.
+- **Self-hosted `y-websocket` (Node `ws`) instead of a managed service.** Running the protocol directly keeps the stack self-hostable with no third-party dependency. The provider sits behind an interface, so moving to PartyKit or Liveblocks later is a single-file change.
+- **Canvas2D now, with a `Renderer` interface for WebGL later.** Canvas2D covers the MVP. World/screen separation and viewport culling are already in place, so a WebGL renderer can take over for large boards (10k+ shapes) without touching the tools or geometry.
 
 ## Features
 
@@ -70,9 +70,9 @@ Full system design, the edit-propagation sequence, and the multi-team data model
 **Realtime sync** — every change propagates to all clients, conflict-free, via Yjs binary diffs.
 **Presence** — live multiplayer cursors with names and stable colors, and an active-user avatar stack you can click to follow someone's viewport.
 **Offline & persistence** — edit while disconnected; reconnect and merge cleanly. Server-side leveldb means boards survive a restart.
-**Rooms & multi-team** — a board is a room joined by URL; Org → Team → Board with scoped presence and per-board roles (v1).
+**Rooms & access** — each board is a room joined by URL, gated by membership, with per-board roles (owner / editor / viewer) enforced at the sync relay, not just in the UI. Org → Team scoping is on the roadmap.
 
-The exhaustive spec — every state, shortcut, edge case, and acceptance criterion — is in **[docs/FEATURES.md](docs/FEATURES.md)**.
+The full feature spec — states, shortcuts, and edge cases — is in **[docs/FEATURES.md](docs/FEATURES.md)**.
 
 ## Run locally
 

@@ -1,12 +1,12 @@
 # Roadmap
 
-Honest status, dated. The cut lines are explicit — what was deliberately deferred matters as much as what shipped. Scope discipline is the point.
+Current status, with cut lines. This lists what shipped, what's in progress, and what was cut from this version and why.
 
 Legend: ✅ shipped · 🚧 in progress · ⬜ planned
 
 ## MVP — the realtime canvas, complete
 
-The bar: two browsers converge on identical state after concurrent edits; offline edits merge on reconnect with zero loss; cursors stay smooth with several users; the canvas is responsive at 500+ shapes; a deployed demo board is live and shareable.
+Acceptance criteria: two browsers converge on identical state after concurrent edits; offline edits merge on reconnect with no loss; cursors stay smooth with several users; the canvas stays responsive at 500+ shapes; a deployed demo board is live and shareable.
 
 - ⬜ **Infinite canvas** — pan (space-drag / scroll), zoom (ctrl-scroll / pinch), world coordinate system independent of the viewport.
 - ⬜ **Shapes** — rectangle, ellipse, line/arrow, freehand draw, sticky note, text.
@@ -15,11 +15,11 @@ The bar: two browsers converge on identical state after concurrent edits; offlin
 - ⬜ **Presence / awareness** — live cursors with names + stable colors, selection tints, active-user avatar stack.
 - ⬜ **Persistence** — board survives reload and server restart (leveldb on the server, IndexedDB on the client).
 - ⬜ **Rooms** — a board is a room; a shareable URL joins it.
-- ⬜ **Offline-safe** — edit while disconnected, reconnect, merge cleanly. Disconnected / reconnecting states designed and shown.
+- ⬜ **Offline-safe** — edit while disconnected, reconnect, and merge. Disconnected and reconnecting states are designed and shown.
 
 ## v1 — the multi-team dimension
 
-The differentiator most canvas clones skip.
+Team scoping on top of the canvas. Most canvas clones skip this.
 
 - ⬜ **Org → Team → Board model** — team membership scopes which boards a user sees; presence distinguishes teammates.
 - ⬜ **Permissions** — viewer / editor / owner per board.
@@ -29,23 +29,23 @@ The differentiator most canvas clones skip.
 
 ## v2 / stretch — named and deferred
 
-Deliberately not in scope yet. Each is here so the cut line is visible, not because it was forgotten.
+Not in scope yet. Listed here so the cut line is visible.
 
-- ⬜ **WebGL renderer** for 10k+ shapes. *Deferred because* viewport culling and the world/screen split already make Canvas2D comfortable to 500+; WebGL's cost isn't justified until boards get an order of magnitude bigger. The `Renderer` interface keeps the door open (see ADR-004).
+- ⬜ **WebGL renderer** for 10k+ shapes. *Deferred because* viewport culling and the world/screen split already keep Canvas2D fast to 500+, and WebGL isn't worth its cost until boards get an order of magnitude bigger. The `Renderer` interface keeps the door open (see ADR-004).
 - ⬜ **Export** to PNG / SVG / PDF.
 - ⬜ **Templates.**
-- ⬜ **Auth integration.** *Deferred because* the MVP proves convergence and presence without coupling to an identity provider; rooms work by URL first.
+- ⬜ **Auth integration.** *Deferred because* the MVP covers convergence and presence without coupling to an identity provider; rooms work by URL first.
 - ⬜ **Embed / iframe** live boards.
 
 ## Explicitly out of scope
 
-- **A custom CRDT.** Yjs is battle-tested; reimplementing the merge math would be ego, not engineering (ADR-001).
-- **A managed realtime backend** for the MVP. Self-hosting demonstrates the protocol; the `SyncProvider` interface allows swapping later (ADR-002).
-- **Server-authoritative operation transform.** The whole architecture rejects a central transform authority by design.
+- **A custom CRDT.** Yjs is mature and well-tested; reimplementing the merge math adds no value here (ADR-001).
+- **A managed realtime backend** for the MVP. Self-hosting keeps the protocol in view, and the `SyncProvider` interface allows swapping to a managed backend later (ADR-002).
+- **Server-authoritative operation transform.** The architecture has no central transform authority.
 
 ## Build sequence
 
-Milestones tell the build story in commit history:
+Milestones, as they appear in commit history:
 
 | Milestone | Deliverable | Demo |
 | --- | --- | --- |

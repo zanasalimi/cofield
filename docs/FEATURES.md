@@ -1,8 +1,8 @@
 # Features
 
-The exhaustive specification. Every feature is broken into sub-features, interactions, states, keyboard shortcuts, edge cases, failure modes, and acceptance criteria. Grouped by area, tiered **MVP / v1 / v2**.
+Full feature specification. Each feature lists its sub-features, interactions, states, keyboard shortcuts, edge cases, failure modes, and acceptance criteria. Grouped by area, tiered **MVP / v1 / v2**.
 
-**State vocabulary** used throughout: `idle` · `empty` · `loading` · `connected` · `disconnected` · `reconnecting` · `error`. Every surface that can be in more than one of these has each one specified.
+**State vocabulary** used throughout: `idle` · `empty` · `loading` · `connected` · `disconnected` · `reconnecting` · `error`. Any surface that can hold more than one of these specifies each.
 
 **Conventions.** "World coords" = the board's own coordinate system, independent of zoom/pan. "Screen coords" = pixels in the viewport. All geometry is computed in world coords; the viewport transform is applied only at render.
 
@@ -10,12 +10,10 @@ The exhaustive specification. Every feature is broken into sub-features, interac
 
 ## 0. Status snapshot — Cofield vs Miro
 
-Where we stand against Miro today. The goal is **not** to clone all of Miro (a
-1000-person product, hundreds of enterprise widgets and integrations) — it is to
-match the **core collaborative canvas** that proves the hard engineering (realtime
-CRDT, a smooth 60fps canvas, multiplayer presence, self-hosted infra) and skip the
-parts that add scope without strengthening that story. Detailed specs per area
-are in §1–§11 below.
+Where Cofield stands against Miro today. The goal is to match the **core
+collaborative canvas** (realtime CRDT, a 60fps canvas, multiplayer presence,
+self-hosted infra), not to reproduce Miro's full surface area of enterprise
+widgets and integrations. Per-area specs are in §1–§11 below.
 
 Legend: ✅ done · 🟡 partial · ❌ missing · ⛔ out of scope (won't build)
 
@@ -31,9 +29,9 @@ Legend: ✅ done · 🟡 partial · ❌ missing · ⛔ out of scope (won't build
 
 **Output & history** — ✅ durable server persistence (survives restart) · ❌ version history · ❌ export (PNG/PDF/SVG) · ⛔ integrations (Jira/Slack/…)
 
-### Recommended build order (what moves the needle)
+### Recommended build order
 
-**Tier 1 — canvas parity (feels finished, all core engineering):**
+**Tier 1 — canvas parity (core editing):**
 1. Undo / redo (wire Yjs UndoManager) — table stakes
 2. Marquee select
 3. Copy / paste / duplicate
@@ -42,7 +40,7 @@ Legend: ✅ done · 🟡 partial · ❌ missing · ⛔ out of scope (won't build
 6. Font controls in the context toolbar
 7. More shapes + connector color/width
 
-**Tier 2 — collaboration depth (the multiplayer "wow"):**
+**Tier 2 — collaboration depth:**
 8. Avatar stack + follow mode
 9. Comments + reactions
 10. Sharing roles (view / edit)
@@ -52,8 +50,8 @@ Legend: ✅ done · 🟡 partial · ❌ missing · ⛔ out of scope (won't build
 12. Templates, board search
 13. Export to PNG/PDF, minimap
 
-Everything ⛔ is intentionally skipped: enterprise surface area that costs weeks and
-proves nothing a portfolio reviewer cares about.
+Everything ⛔ is intentionally skipped: enterprise surface area that costs weeks
+and falls outside the core canvas this project is built to show.
 
 ---
 
@@ -64,7 +62,7 @@ The board has no edges. Content lives in an unbounded world coordinate space; th
 
 - **States.**
   - `loading` — skeleton canvas with a subtle paper texture while the doc hydrates from IndexedDB / socket.
-  - `empty` — first-load board with a centered, low-key prompt ("Pick a tool and start") and a hint to invite others; not a marketing splash.
+  - `empty` — first-load board with a centered, low-key prompt ("Pick a tool and start") and a hint to invite others.
   - `idle` — content present, no active interaction.
 - **Edge cases.** Extreme world coordinates (far from origin) must not lose float precision in a way that visibly jitters shapes; coordinate values are kept within a safe range and the origin is not assumed to be where content is.
 - **Acceptance.** Panning to ±100k world units and back returns shapes to pixel-identical screen positions. An empty board renders its empty state, not a blank white void.
@@ -104,10 +102,10 @@ The board has no edges. Content lives in an unbounded world coordinate space; th
 ## 2. Shapes & Tools
 
 ### 2.1 Tool state machine — MVP
-A single active tool at a time; tools are small reducers over pointer/keyboard events. Switching tools cancels any in-progress operation cleanly.
+A single active tool at a time; tools are small reducers over pointer/keyboard events. Switching tools cancels any in-progress operation.
 
 - **Tools & shortcuts.** `V` select · `H` pan/hand · `R` rectangle · `O` ellipse · `L` line/arrow · `P` pencil (freehand) · `S` sticky · `T` text.
-- **Edge cases.** Pressing a tool shortcut mid-draw commits or cancels the current op deterministically (never leaves a half-shape); `Esc` cancels the current tool action and returns to select.
+- **Edge cases.** Pressing a tool shortcut mid-draw commits or cancels the current op and never leaves a half-shape; `Esc` cancels the current tool action and returns to select.
 - **Acceptance.** No sequence of tool switches can leave a partial/orphan shape in the document.
 
 ### 2.2 Rectangle / Ellipse — MVP
@@ -125,7 +123,7 @@ A single active tool at a time; tools are small reducers over pointer/keyboard e
 - **Edge cases.** A very long stroke must not unbounded-grow the document; an interrupted stroke (disconnect mid-draw) still commits locally and syncs on reconnect.
 
 ### 2.5 Sticky note — MVP
-- **Interactions.** Click to place a fixed-size note; immediately enters text edit. Slightly handwritten/rounded face, soft physical shadow, flat radius — reads "tactile," not "card."
+- **Interactions.** Click to place a fixed-size note; immediately enters text edit. Slightly handwritten/rounded face, soft shadow, flat radius.
 - **States.** `empty` (placeholder "Type…"), `editing` (caret, autosize height), `idle`.
 - **Edge cases.** Empty note on blur is removed (no orphan empty stickies); very long text grows the note within a max, then scrolls.
 
@@ -169,7 +167,7 @@ A single active tool at a time; tools are small reducers over pointer/keyboard e
 
 ### 3.7 Z-order — MVP
 - **Interactions.** Bring forward / send backward / to front / to back via context menu and `⌘/Ctrl+]` / `[`. Order is the `Y.Array<ShapeId>`.
-- **Edge cases.** Concurrent reordering by two users converges deterministically (CRDT array).
+- **Edge cases.** Concurrent reordering by two users converges to the same result regardless of apply order (CRDT array).
 
 ### 3.8 Delete — MVP
 - **Interactions.** `Delete` / `Backspace` removes the selection. Deletion produces tombstones (expected; see persistence).
@@ -230,8 +228,8 @@ A single active tool at a time; tools are small reducers over pointer/keyboard e
 - **Acceptance.** Cursors are smooth with 5+ users and never persist after a user leaves.
 
 ### 5.2 Stable user colors — MVP
-- Each user is assigned one of **eight curated, saturated hues** (the brand), stable for the session and used for both cursor and selection tint. Not random HSL.
-- **Edge cases.** More than 8 users → colors cycle deterministically; the same user keeps the same color across their tabs where identity is known.
+- Each user is assigned one of **eight curated, saturated hues** (the brand), stable for the session and used for both cursor and selection tint. The hues come from a fixed palette, not randomized HSL.
+- **Edge cases.** More than 8 users → colors cycle by a fixed rule; the same user keeps the same color across their tabs where identity is known.
 
 ### 5.3 Selection tints — MVP
 - When a user selects shapes, those shapes show a tint/outline in that user's color ("Sara is editing this"). Carried on Awareness, not the document.
@@ -266,7 +264,7 @@ A single active tool at a time; tools are small reducers over pointer/keyboard e
 - **Edge cases.** Very-late offline edits merged after a GC are handled conservatively (documented tradeoff).
 
 ### 6.4 Offline → reconnect flow (the demo) — MVP
-- Go offline, edit, come back — edits merge with no loss. The headline reliability demo.
+- Go offline, edit, come back; edits merge with no loss. The primary reliability demo.
 - **States surfaced.** `disconnected` banner → `reconnecting` → toast "Synced" on success.
 
 ---
@@ -298,7 +296,7 @@ A single active tool at a time; tools are small reducers over pointer/keyboard e
 
 ### 8.2 Per-board roles — v1
 - viewer / editor / owner. Viewers get a read-only canvas (tools disabled, cursor still shown). Owners manage roles and can delete the board.
-- **States.** Read-only mode is a first-class UI state: tools greyed, a "View only" badge, edits blocked at the boundary (not just hidden).
+- **States.** Read-only is its own UI state: tools greyed, a "View only" badge, edits blocked at the server boundary rather than only hidden in the UI.
 - **Edge cases.** A role downgrade mid-session takes effect live; in-flight edits from a now-viewer are rejected at the server boundary.
 
 ### 8.3 Comments & mentions — v1
