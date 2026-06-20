@@ -25,6 +25,7 @@
     "test:watch": "vitest",
     "sync": "tsx server/index.ts",
     "sync:build": "tsc -p tsconfig.server.json",
+    "demo": "bash scripts/start-demo.sh",
     "format": "prettier --write .",
     "docker:web": "docker build -f Dockerfile.web -t cofield-web .",
     "docker:sync": "docker build -f Dockerfile.sync -t cofield-sync .",
