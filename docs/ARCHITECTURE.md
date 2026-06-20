@@ -13,11 +13,11 @@ A second rule sits alongside the first: **presence is not document state.** Curs
 ```mermaid
 flowchart TB
     subgraph ClientA["Client A (browser)"]
-        UIA["Canvas UI — React + shadcn"]
+        UIA["Canvas UI: React + shadcn"]
         DocA["Yjs Doc (shapes, order, meta)"]
         AwareA["Awareness (cursor, selection)"]
         IDBA["y-indexeddb (offline cache)"]
-        RenderA["Renderer — Canvas2D"]
+        RenderA["Renderer: Canvas2D"]
     end
 
     subgraph ClientB["Client B (browser)"]
@@ -51,14 +51,14 @@ The client boxes are nearly symmetric with the server: each holds the same docum
 | `app/` | Next.js routes: landing, `board/[boardId]`, `team/[teamId]`. SSR shell, client canvas. | no |
 | `src/canvas/Canvas.tsx` | The viewport surface: owns the `<canvas>`, routes pointer/keyboard events to the active tool. | no |
 | `src/canvas/renderer/` | `Renderer` interface + `Canvas2DRenderer`. The WebGL path implements the same interface. | partial |
-| `src/canvas/tools/` | Tool state machine — select, draw, shape, text, pan. Each tool is a small reducer. | yes (logic) |
+| `src/canvas/tools/` | Tool state machine: select, draw, shape, text, pan. Each tool is a small reducer. | yes (logic) |
 | `src/canvas/geometry/` | Hit-testing, marquee intersection, resize/rotate transforms, snapping. Pure functions in world space. | **yes** |
 | `src/canvas/viewport/` | Pan/zoom, world↔screen transforms, viewport culling. | **yes** |
 | `src/collab/doc.ts` | Yjs doc setup and typed shape helpers (the nested-`Y.Map`-per-shape model). | **yes** |
 | `src/collab/provider.ts` | WebSocket provider behind a `SyncProvider` interface (swappable transport). | partial |
 | `src/collab/awareness.ts` | Read/write presence on the Awareness channel; throttle outgoing cursor updates. | partial |
 | `src/collab/offline.ts` | `y-indexeddb` wiring for the offline cache + instant load. | no |
-| `src/presence/` | Cursor layer, selection tints, avatar stack — renders ephemeral state. | no |
+| `src/presence/` | Cursor layer and avatar stack; renders ephemeral presence state. | no |
 | `src/store/` | Zustand: active tool and UI-only state. Never the document. | yes (logic) |
 | `src/ui/` | Re-themed shadcn primitives (toolbar, popover, dialog, avatar, command). | no |
 | `server/index.ts` | `ws` server: auth-gates each room join, then relays sync + awareness. Durable doc storage is leveldb via `YPERSISTENCE`. | no |
@@ -68,7 +68,7 @@ The client boxes are nearly symmetric with the server: each holds the same docum
 
 ## Data model
 
-### Persistent — the Yjs document (converges across clients)
+### Persistent: the Yjs document (converges across clients)
 
 ```
 Y.Doc
@@ -91,7 +91,7 @@ interface Shape {
 
 **Why each shape is a nested `Y.Map` and not a plain object in one big map:** if a shape were a single value, two users editing different fields of it concurrently would clobber each other on merge. For example, one drags it (changes `x`/`y`) while the other recolors it (changes `style.fill`). As a nested `Y.Map`, each field is an independently mergeable CRDT register, so both edits survive and the shape converges to "moved *and* recolored." This field-level granularity is what makes concurrent edits to the same shape safe.
 
-### Ephemeral — Awareness (never persisted)
+### Ephemeral: Awareness (never persisted)
 
 ```ts
 interface Presence {
@@ -121,7 +121,9 @@ sequenceDiagram
 
 The local edit is optimistic and repaints on the same frame; the network round-trip is off the interaction's critical path. When Client B receives the diff, Yjs merges it into B's copy by the same CRDT rules A applied, so both end identical regardless of message order or concurrency.
 
-## Multi-team model (v1)
+## Access model (and the planned team layer)
+
+Access today is board-level: a board has members with roles (owner, editor, viewer), and membership gates both the board page and the websocket room join. The role is enforced at the relay, so a viewer's connection is read-only rather than trusted to behave. The Org and Team structure below is the intended next layer, not yet built.
 
 ```mermaid
 erDiagram
@@ -133,16 +135,16 @@ erDiagram
     USER ||--o{ PRESENCE : "casts"
 ```
 
-Org → Team → Board is a product dimension most canvas clones skip. Team membership scopes which boards a user sees; presence is scoped per board and visually distinguishes teammates. `PRESENCE` is dashed-in here as a relationship, but it is **never stored**. It exists only as live Awareness state for the duration of a session.
+With teams in place, membership would scope which boards a user sees, and presence would be scoped per board to distinguish teammates. `PRESENCE` is shown as a relationship, but it is **never stored**. It exists only as live Awareness state for the duration of a session.
 
-## Performance model — where the time goes
+## Performance model: where the time goes
 
 The hot path is the paint loop, and the main optimization is **viewport culling**.
 
 - **World vs screen separation.** All geometry (positions, sizes, hit-tests, transforms) is computed in world coordinates. The viewport applies a single transform (pan + zoom) only at render time. This keeps selection and resize math correct at any zoom and means a pan/zoom is a transform change, not a data change.
 - **Viewport culling.** A board with 1000+ shapes cannot repaint every shape every frame. Each frame, only shapes whose world-space bounds intersect the visible rectangle are drawn. Culling is a spatial query against the viewport rect, so everything off-screen costs nothing.
 - **Dirty-rect repaint.** When a small region changes (a cursor moves, one shape nudges), repaint only the affected rectangle rather than the whole canvas.
-- **Cursor throttling + interpolation.** Outgoing cursor updates are throttled to ~30–60 ms on the Awareness channel; receivers interpolate between samples so motion looks smooth without flooding the socket. Presence never touches the document, so it never triggers a doc diff.
+- **Cursor throttling + interpolation.** Outgoing cursor updates are throttled to ~30 to 60 ms on the Awareness channel; receivers interpolate between samples so motion looks smooth without flooding the socket. Presence never touches the document, so it never triggers a doc diff.
 - **Renderer interface.** Canvas2D ships the MVP. Because culling and the world/screen split already exist, a `WebGLRenderer` implementing the same `Renderer` interface drops in for 10k+ shapes without changing tool or geometry code.
 
 ### Document growth and tombstones
@@ -160,7 +162,7 @@ CRDTs accumulate tombstones for deleted items so that concurrent operations refe
 
 Two services, modeled exactly in `docker-compose.yml`:
 
-- **web** — Next.js standalone output on `node:24-alpine`, served on `:3000`.
-- **sync** — the Node `ws` + Yjs relay on `:4321`, with the leveldb store on a named `canvas-data` volume so boards survive `docker compose restart`.
+- **web.** Next.js standalone output on `node:24-alpine`, served on `:3000`.
+- **sync.** The Node `ws` + Yjs relay on `:4321`, with the leveldb store on a named `canvas-data` volume so boards survive `docker compose restart`.
 
 `NEXT_PUBLIC_WS_URL` tells the browser where to reach the sync service. In production the web app deploys to a serverless host while the sync server runs on a small always-on host. The sync server holds long-lived sockets and a durable store, so it cannot be serverless.

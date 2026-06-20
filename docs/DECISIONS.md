@@ -84,7 +84,7 @@ Architecture decisions and their tradeoffs. Each entry records a choice between 
 
 ---
 
-## ADR-005: Tombstone growth — snapshot + optional GC, accepted as a known cost
+## ADR-005: Tombstone growth: snapshot + optional GC, accepted as a known cost
 
 **Status:** accepted · 2026-02-10
 

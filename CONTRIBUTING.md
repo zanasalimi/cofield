@@ -16,8 +16,8 @@ Requires Node 24+ and [pnpm](https://pnpm.io).
 
 ```bash
 pnpm install
-pnpm sync   # terminal 1 — Yjs sync server
-pnpm dev    # terminal 2 — Next.js web app
+pnpm sync   # terminal 1: Yjs sync server
+pnpm dev    # terminal 2: Next.js web app
 ```
 
 Or run the whole stack in containers:
