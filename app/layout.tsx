@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import "@embertoast/react/styles.css";
 import { Geist } from "next/font/google";
+import { Toaster } from "@/components/ui/toaster";
 import { cn } from "@/lib/utils";
 import { TooltipProvider } from "@/components/ui/tooltip";
 
@@ -22,6 +24,7 @@ export default function RootLayout({
       {/* font-sans / font-hand are wired to next/font in M0 polish */}
       <body className="min-h-dvh bg-paper text-ink antialiased">
         <TooltipProvider delayDuration={300}>{children}</TooltipProvider>
+        <Toaster />
       </body>
     </html>
   );

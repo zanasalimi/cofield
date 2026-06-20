@@ -8,6 +8,9 @@ importers:
 
   .:
     dependencies:
+      '@embertoast/react':
+        specifier: ^0.1.0
+        version: 0.1.0(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
       '@radix-ui/react-avatar':
         specifier: ^1.1.2
         version: 1.1.12(@types/react-dom@19.2.3(@types/react@19.2.17))(@types/react@19.2.17)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
@@ -71,9 +74,6 @@ importers:
       shadcn:
         specifier: ^4.11.0
         version: 4.11.0(typescript@5.9.3)
-      sonner:
-        specifier: ^1.7.1
-        version: 1.7.4(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
       tailwind-merge:
         specifier: ^2.6.1
         version: 2.6.1
@@ -347,6 +347,15 @@ packages:
     engines: {bun: '>=1', deno: '>=2.7.10', node: '>=16'}
     peerDependencies:
       '@noble/ciphers': ^1.0.0
+
+  '@embertoast/core@0.1.0':
+    resolution: {integrity: sha512-65qwn/XtdQUxS0mjOBpdnSvdEkvbsfZSX7zcDRJzM/ywIpPEcl4b5QkgtL9qpjuzxyN8nSBJx6kfxi5WjTLxWg==}
+
+  '@embertoast/react@0.1.0':
+    resolution: {integrity: sha512-+bbt9q79hmqujBPOx06uUWjIarOBWeUdt0tEolVv96dzIOK7M54EJJt8io1rQvX2t+EAhZyYo42sCDPCqMO1Xg==}
+    peerDependencies:
+      react: '>=18'
+      react-dom: '>=18'
 
   '@emnapi/core@1.10.0':
     resolution: {integrity: sha512-yq6OkJ4p82CAfPl0u9mQebQHKPJkY7WrIuk205cTYnYe+k2Z8YBh11FrbRG/H6ihirqcacOgl2BIO8oyMQLeXw==}
@@ -4790,12 +4799,6 @@ packages:
   sisteransi@1.0.5:
     resolution: {integrity: sha512-bLGGlR1QxBcynn2d5YmDX4MGjlZvy2MRBDRNHLJ8VI6l6+9FUiyTFNJ0IveOSP0bcXgVDPRcfGqA0pjaqUpfVg==}
 
-  sonner@1.7.4:
-    resolution: {integrity: sha512-DIS8z4PfJRbIyfVFDVnK9rO3eYDtse4Omcm6bt0oEr5/jtLgysmjuBl1frJ9E/EQZrFmKx2A8m/s5s9CRXIzhw==}
-    peerDependencies:
-      react: ^18.0.0 || ^19.0.0 || ^19.0.0-rc
-      react-dom: ^18.0.0 || ^19.0.0 || ^19.0.0-rc
-
   source-map-js@1.2.1:
     resolution: {integrity: sha512-UXWMKhLOwVKb728IUtQPXxfYU+usdybtUrK/8uGE8CQMvrhOpwvzDBwj0QhSL7MQc7vIsISBG8VQ8+IDQxpfQA==}
     engines: {node: '>=0.10.0'}
@@ -5588,6 +5591,14 @@ snapshots:
   '@ecies/ciphers@0.2.6(@noble/ciphers@1.3.0)':
     dependencies:
       '@noble/ciphers': 1.3.0
+
+  '@embertoast/core@0.1.0': {}
+
+  '@embertoast/react@0.1.0(react-dom@19.2.7(react@19.2.7))(react@19.2.7)':
+    dependencies:
+      '@embertoast/core': 0.1.0
+      react: 19.2.7
+      react-dom: 19.2.7(react@19.2.7)
 
   '@emnapi/core@1.10.0':
     dependencies:
@@ -10037,11 +10048,6 @@ snapshots:
       simple-concat: 1.0.1
 
   sisteransi@1.0.5: {}
-
-  sonner@1.7.4(react-dom@19.2.7(react@19.2.7))(react@19.2.7):
-    dependencies:
-      react: 19.2.7
-      react-dom: 19.2.7(react@19.2.7)
 
   source-map-js@1.2.1: {}
 

@@ -177,3 +177,51 @@
     transform-origin: left center;
   }
 }
+
+/* embertoast — retheme the dark default to Cofield's light, tactile surface.
+   Status colours map to the brand cursor hues; type + radius match the chrome. */
+[data-embertoast-toaster] {
+  --et-font: var(--font-sans);
+  --et-radius: 14px;
+  --et-width: 380px;
+  --et-pad-x: 16px;
+  --et-pad-y: 14px;
+  --et-bg: #ffffff;
+  --et-bg-highlight: rgba(26, 26, 26, 0.025);
+  --et-border: #e7e5e0;
+  --et-shadow: 0 1px 1px rgba(26, 26, 26, 0.04), 0 10px 28px -10px rgba(26, 26, 26, 0.22),
+    0 4px 12px -8px rgba(26, 26, 26, 0.16);
+  --et-title: #1a1a1a;
+  --et-body: #5b5a55;
+  --et-muted: #8a887f;
+  --et-faint: #d6d4cd;
+  --et-link: #1a1a1a;
+  --et-color-default: #8a887f;
+  --et-color-success: #3fa34d;
+  --et-color-error: #ff5c5c;
+  --et-color-warning: #ff9f1c;
+  --et-color-info: #2d9cdb;
+  --et-color-loading: #5b5a55;
+  --et-icon-glyph: #ffffff;
+  --et-btn-bg: #1a1a1a;
+  --et-btn-bg-hover: #000000;
+  --et-btn-border: transparent;
+  --et-btn-fg: #ffffff;
+}
+
+/* Auth/dashboard entrance — a calm staggered rise, strong ease-out. */
+@keyframes cofield-rise {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@layer utilities {
+  .animate-rise {
+    animation: cofield-rise 480ms cubic-bezier(0.23, 1, 0.32, 1) both;
+  }
+}
