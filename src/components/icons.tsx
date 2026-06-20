@@ -52,6 +52,7 @@ export {
   RotateCw,
   Workflow,
   LayoutGrid,
+  LayoutTemplate,
   Search,
   Settings,
   Download,

@@ -8,6 +8,7 @@
 import { create } from "zustand";
 import type * as Y from "yjs";
 import type { Shape, ShapeType, ShapeStyle, Side, Comment, CommentMessage, ComponentKind } from "@/collab/types";
+import type { TemplateData } from "@/templates/types";
 import {
   addShape as docAddShape,
   updateShape as docUpdateShape,
@@ -140,6 +141,9 @@ export interface BoardState {
   addImage: (src: string, rect: { x: number; y: number; w: number; h: number }) => string;
   /** Insert a component shape using registry defaults; returns its id. */
   addComponent: (kind: ComponentKind, at: { x: number; y: number }) => string;
+  /** Insert a template (nodes + connectors) as one atomic step, centred on
+   *  `origin` (world coords); returns the new shape ids for selection. */
+  importTemplate: (template: TemplateData, origin: { x: number; y: number }) => string[];
   /** Patch a component shape's props. */
   updateComponentProps: (id: string, patch: Record<string, unknown>) => void;
   /** Create a connected duplicate of a shape on the given side; returns its id. */
@@ -262,6 +266,66 @@ export const useBoardStore = create<BoardState>((set, get) => ({
     if (bound) docAddShape(bound, shape);
     else set((s) => ({ shapes: [...s.shapes, shape] }));
     return id;
+  },
+
+  importTemplate: (template, origin) => {
+    const { nodes, edges = [] } = template;
+    if (nodes.length === 0) return [];
+    // Centre the template's bounding box on the drop origin.
+    const minX = Math.min(...nodes.map((n) => n.x));
+    const minY = Math.min(...nodes.map((n) => n.y));
+    const maxX = Math.max(...nodes.map((n) => n.x + n.w));
+    const maxY = Math.max(...nodes.map((n) => n.y + n.h));
+    const ox = origin.x - (minX + maxX) / 2;
+    const oy = origin.y - (minY + maxY) / 2;
+    const idMap = new Map<string, string>();
+    for (const n of nodes) idMap.set(n.ref, nextId());
+    const created: string[] = [];
+    const run = () => {
+      for (const n of nodes) {
+        const id = idMap.get(n.ref)!;
+        putShape({
+          id,
+          type: n.type,
+          x: n.x + ox,
+          y: n.y + oy,
+          w: n.w,
+          h: n.h,
+          rotation: 0,
+          style: { ...DEFAULT_STYLE[n.type], ...n.style },
+          content: n.content,
+          kind: n.kind,
+          props: n.props,
+          createdBy: "me",
+        });
+        created.push(id);
+      }
+      for (const e of edges) {
+        const from = idMap.get(e.from);
+        const to = idMap.get(e.to);
+        if (!from || !to) continue;
+        const id = nextId();
+        putShape({
+          id,
+          type: "connector",
+          x: 0,
+          y: 0,
+          w: 0,
+          h: 0,
+          rotation: 0,
+          from,
+          to,
+          fromSide: e.fromSide,
+          toSide: e.toSide,
+          style: { ...DEFAULT_STYLE.connector, ...e.style },
+          createdBy: "me",
+        });
+        created.push(id);
+      }
+    };
+    if (bound) bound.doc.transact(run);
+    else run();
+    return created;
   },
 
   updateComponentProps: (id, patch) => {

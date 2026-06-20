@@ -11,6 +11,7 @@ import { Minimap } from "@/ui/Minimap";
 import { HelpButton } from "@/ui/HelpButton";
 import { ZoomControl } from "@/ui/ZoomControl";
 import { Inspector } from "@/canvas/Inspector";
+import { TemplateGallery } from "@/templates/TemplateGallery";
 import { getCurrentUser } from "@/auth/server";
 import { isMember } from "@/boards/server";
 
@@ -45,8 +46,11 @@ export default async function BoardPage({ params }: BoardPageProps) {
           <PenToolbar />
           <Toolbar />
         </div>
-        <div className="pointer-events-none absolute bottom-3 left-3 hidden sm:bottom-5 sm:left-5 sm:block">
-          <HelpButton />
+        <div className="pointer-events-none absolute bottom-3 left-3 flex items-center gap-2 sm:bottom-5 sm:left-5">
+          <TemplateGallery />
+          <div className="hidden sm:block">
+            <HelpButton />
+          </div>
         </div>
         {/* Minimap + zoom are desktop conveniences — mobile uses touch pinch/scroll. */}
         <div className="pointer-events-none absolute bottom-5 right-5 hidden flex-col items-end gap-2.5 sm:flex">
