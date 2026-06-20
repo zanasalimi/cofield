@@ -3,8 +3,10 @@
  *
  * The server is a relay, NOT an authority: it runs the standard y-websocket sync
  * protocol (sync step 1/2 + update relay) and broadcasts awareness; it never
- * transforms operations. Each room is one board. Durable leveldb persistence
- * (boards survive restart) lands in M5; auth-gating the join lands in M3.
+ * transforms operations. Each room is one board. The join is auth-gated against
+ * the session + board membership, and each room's document is persisted to
+ * leveldb (via `YPERSISTENCE`) so boards survive a restart — only the document,
+ * never the ephemeral awareness channel.
  *
  * Run with `pnpm sync` (dev) or as the `sync` service in docker-compose.
  *
@@ -12,12 +14,18 @@
  * second `yjs` would trip Yjs's single-instance constructor checks.
  */
 import { WebSocketServer } from "ws";
-// y-websocket ships its server helpers as CJS without type declarations.
-// @ts-expect-error -- no types for the server utils entrypoint
-import { setupWSConnection } from "y-websocket/bin/utils";
 import { authorizeBoard } from "./auth";
 
 const PORT = Number(process.env.PORT ?? 4321);
+
+// Durable doc store. y-websocket's connection helper binds leveldb automatically
+// when YPERSISTENCE points at a directory; default it so a plain `pnpm sync`
+// persists too (Docker overrides this to the /data volume). Must be set before
+// the helper module is imported, since it reads the env at load time.
+process.env.YPERSISTENCE ??= "./data";
+// y-websocket ships its server helpers as CJS without type declarations.
+// @ts-expect-error -- no types for the server utils entrypoint
+const { setupWSConnection } = await import("y-websocket/bin/utils");
 
 function start(): void {
   const wss = new WebSocketServer({ port: PORT });

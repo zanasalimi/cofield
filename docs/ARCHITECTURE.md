@@ -61,9 +61,8 @@ The crux is that the client boxes are nearly symmetric with the server: each hol
 | `src/presence/` | Cursor layer, selection tints, avatar stack — renders ephemeral state. | no |
 | `src/store/` | Zustand: active tool and UI-only state. Never the document. | yes (logic) |
 | `src/ui/` | Re-themed shadcn primitives (toolbar, popover, dialog, avatar, command). | no |
-| `server/index.ts` | `ws` server, room routing, wires persistence + awareness per room. | no |
-| `server/persistence.ts` | `y-leveldb` bind/unbind, snapshot hooks. | no |
-| `server/rooms.ts` | Room/team/auth glue; maps a socket to a board room. | yes (logic) |
+| `server/index.ts` | `ws` server: auth-gates each room join, then relays sync + awareness. Durable doc storage is leveldb via `YPERSISTENCE`. | no |
+| `server/auth.ts` | Validates the session cookie + board membership before a socket joins a room. | no |
 
 The clean split is the headline: `src/collab/` and `src/canvas/geometry/` are **pure** and tested without a browser, because CRDT convergence and hit-testing are exactly the things worth proving deterministically.
 
@@ -162,6 +161,6 @@ CRDTs accumulate tombstones for deleted items so that concurrent operations refe
 Two services, modeled exactly in `docker-compose.yml`:
 
 - **web** — Next.js standalone output on `node:24-alpine`, served on `:3000`.
-- **sync** — the Node `ws` + Yjs relay on `:1234`, with the leveldb store on a named `canvas-data` volume so boards survive `docker compose restart`.
+- **sync** — the Node `ws` + Yjs relay on `:4321`, with the leveldb store on a named `canvas-data` volume so boards survive `docker compose restart`.
 
 `NEXT_PUBLIC_WS_URL` tells the browser where to reach the sync service. In production the web app deploys to a serverless host while the sync server runs on a small always-on host (it holds long-lived sockets and a durable store, so it cannot be serverless).

@@ -15,7 +15,7 @@ RUN corepack enable
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 # NEXT_PUBLIC_* is inlined at build time; pass the real WS URL for the image.
-ARG NEXT_PUBLIC_WS_URL=ws://localhost:1234
+ARG NEXT_PUBLIC_WS_URL=ws://localhost:4321
 ENV NEXT_PUBLIC_WS_URL=$NEXT_PUBLIC_WS_URL
 RUN pnpm build
 
