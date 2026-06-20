@@ -27,7 +27,7 @@ ENV NODE_ENV=production
 ENV PORT=4321
 ENV YPERSISTENCE=/data
 RUN corepack enable && \
-    addgroup -g 1001 -S nodejs && adduser -S sync -u 1001
+    addgroup -g 1001 -S nodejs && adduser -S cofield -u 1001 -G nodejs
 
 COPY package.json pnpm-lock.yaml* ./
 # Only the deps the sync server needs at runtime.
@@ -36,9 +36,9 @@ COPY --from=build /app/dist/server ./server
 
 # Durable stores: /data = y-leveldb (canvas-data volume), /db = the shared
 # SQLite auth db the web app writes (account-data volume).
-RUN mkdir -p /data /db && chown -R sync:nodejs /data /db
+RUN mkdir -p /data /db && chown -R cofield:nodejs /data /db
 VOLUME ["/data", "/db"]
 
-USER sync
+USER cofield
 EXPOSE 4321
 CMD ["node", "server/index.js"]

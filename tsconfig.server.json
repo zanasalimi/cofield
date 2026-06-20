@@ -10,7 +10,7 @@
     "esModuleInterop": true,
     "resolveJsonModule": true,
     "verbatimModuleSyntax": true,
-    "outDir": "dist/server",
+    "outDir": "dist",
     "rootDir": ".",
     "noEmit": false,
     "declaration": false,
