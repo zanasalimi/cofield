@@ -52,6 +52,23 @@ export function listIncomingInvites(email: string): IncomingInvite[] {
     .sort((a, b) => b.createdAt - a.createdAt);
 }
 
+export interface BoardInvite {
+  email: string;
+  status: string;
+}
+
+/** Pending invites for a board — people invited who haven't joined yet, one row
+ *  per email (re-inviting the same address doesn't duplicate the entry). */
+export function listBoardInvites(boardId: string): BoardInvite[] {
+  const rows = getDb()
+    .select({ email: invites.inviteeEmail, status: invites.status })
+    .from(invites)
+    .where(and(eq(invites.boardId, boardId), eq(invites.status, "pending")))
+    .all() as BoardInvite[];
+  const byEmail = new Map(rows.map((r) => [r.email, r]));
+  return [...byEmail.values()];
+}
+
 export function getInvite(id: string): Invite | undefined {
   return getDb().select().from(invites).where(eq(invites.id, id)).get();
 }

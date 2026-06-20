@@ -6,9 +6,18 @@
 import { randomUUID } from "node:crypto";
 import { and, eq, inArray } from "drizzle-orm";
 import { getDb } from "@/db/client";
-import { boards, memberships, type Board } from "@/db/schema";
+import { boards, memberships, users, type Board } from "@/db/schema";
 
 export type BoardWithRole = Board & { role: string };
+
+/** A real member of a board: the user joined to their role. */
+export interface BoardMember {
+  id: string;
+  name: string;
+  email: string;
+  color: string;
+  role: string;
+}
 
 export function createBoard(ownerId: string, name: string): Board {
   const db = getDb();
@@ -55,4 +64,38 @@ export function listBoardsForUser(userId: string): BoardWithRole[] {
 
 export function getBoard(boardId: string): Board | undefined {
   return getDb().select().from(boards).where(eq(boards.id, boardId)).get();
+}
+
+/** Real members of a board (joined users + their role), owner first. */
+export function listMembers(boardId: string): BoardMember[] {
+  const rows = getDb()
+    .select({ id: users.id, name: users.name, email: users.email, color: users.color, role: memberships.role })
+    .from(memberships)
+    .innerJoin(users, eq(memberships.userId, users.id))
+    .where(eq(memberships.boardId, boardId))
+    .all() as BoardMember[];
+  return rows.sort((a, b) => (a.role === "owner" ? -1 : b.role === "owner" ? 1 : 0));
+}
+
+export function getMemberRole(boardId: string, userId: string): string | undefined {
+  return getDb()
+    .select({ role: memberships.role })
+    .from(memberships)
+    .where(and(eq(memberships.boardId, boardId), eq(memberships.userId, userId)))
+    .get()?.role;
+}
+
+export function setMemberRole(boardId: string, userId: string, role: string): void {
+  getDb()
+    .update(memberships)
+    .set({ role })
+    .where(and(eq(memberships.boardId, boardId), eq(memberships.userId, userId)))
+    .run();
+}
+
+export function removeMember(boardId: string, userId: string): void {
+  getDb()
+    .delete(memberships)
+    .where(and(eq(memberships.boardId, boardId), eq(memberships.userId, userId)))
+    .run();
 }
