@@ -107,9 +107,22 @@ function toYMap(shape: Shape): Y.Map<unknown> {
   return ym;
 }
 
+// The document is replicated from untrusted peers, so sanitize the few fields a
+// malicious editor could weaponize when another client renders them.
+const MAX_POINTS = 20_000; // a freehand stroke is a few hundred; beyond this is abuse
+/** Allow only http(s) URLs — blocks `javascript:`/`data:` hrefs (XSS on a link). */
+function safeLink(u: unknown): string | undefined {
+  return typeof u === "string" && /^https?:\/\//i.test(u) ? u : undefined;
+}
+/** Allow an inline image or an http(s) URL; reject anything else. */
+function safeImageSrc(u: unknown): string | undefined {
+  return typeof u === "string" && (/^data:image\//i.test(u) || /^https?:\/\//i.test(u)) ? u : undefined;
+}
+
 function fromYMap(ym: Y.Map<unknown>): Shape | null {
   const id = ym.get("id") as ShapeId | undefined;
   if (!id) return null;
+  const rawPoints = ym.get("points");
   return {
     id,
     type: ym.get("type") as ShapeType,
@@ -120,14 +133,14 @@ function fromYMap(ym: Y.Map<unknown>): Shape | null {
     rotation: (ym.get("rotation") as number) ?? 0,
     style: ym.get("style") as ShapeStyle,
     content: ym.get("content") as string | undefined,
-    points: ym.get("points") as number[] | undefined,
-    src: ym.get("src") as string | undefined,
+    points: Array.isArray(rawPoints) ? (rawPoints as number[]).slice(0, MAX_POINTS) : undefined,
+    src: safeImageSrc(ym.get("src")),
     from: ym.get("from") as string | undefined,
     to: ym.get("to") as string | undefined,
     fromSide: ym.get("fromSide") as Side | undefined,
     toSide: ym.get("toSide") as Side | undefined,
     locked: ym.get("locked") as boolean | undefined,
-    link: ym.get("link") as string | undefined,
+    link: safeLink(ym.get("link")),
     createdBy: ym.get("createdBy") as string,
     kind: ym.get("kind") as Shape["kind"],
     props: (ym.get("props") as Y.Map<unknown> | undefined)?.toJSON() as Record<string, unknown> | undefined,
