@@ -7,13 +7,9 @@
 [![License: MIT](https://img.shields.io/badge/license-MIT-black)](LICENSE)
 [![Live demo](https://img.shields.io/badge/demo-pending-lightgrey)](#)
 
-<!--
-HERO MEDIA — replace with a 5-12s muted autoplay loop:
-split-screen, two browser windows, a shape drawn in one appears in the other,
-ghost cursors moving. This is the single highest-leverage asset in the repo.
-Drop the file in docs/media/ and reference it here.
--->
-> _Hero loop lands in `docs/media/` — two windows, shapes syncing live, cursors flying._
+![Cofield — a microservices architecture on the infinite canvas: labelled service nodes wired with elbow connectors, the floating toolbar, minimap, and live-presence avatar.](docs/media/hero.png)
+
+<!-- A short muted screen-capture loop (two windows syncing live) would land here too; the still above is generated from the in-app template gallery. -->
 
 **[Live demo](#) · [90-second walkthrough](#)** — open the demo board, then open it again in a second tab. You're now multiplayer with yourself.
 
