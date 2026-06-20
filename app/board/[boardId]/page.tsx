@@ -41,16 +41,19 @@ export default async function BoardPage({ params }: BoardPageProps) {
       <div className="relative flex-1 overflow-hidden">
         <Canvas boardId={boardId} user={me} />
 
-        {/* Floating chrome over the canvas. */}
+        {/* Floating chrome over the canvas. On phones the corners are too tight
+            for a centred full-width toolbar, so Templates stacks above it here
+            and only moves to the bottom-left corner from sm up. */}
         <div className="pointer-events-none absolute bottom-3 left-1/2 flex -translate-x-1/2 flex-col items-center gap-2 sm:bottom-5">
           <PenToolbar />
+          <div className="pointer-events-auto sm:hidden">
+            <TemplateGallery />
+          </div>
           <Toolbar />
         </div>
-        <div className="pointer-events-none absolute bottom-3 left-3 flex items-center gap-2 sm:bottom-5 sm:left-5">
+        <div className="pointer-events-none absolute bottom-5 left-5 hidden items-center gap-2 sm:flex">
           <TemplateGallery />
-          <div className="hidden sm:block">
-            <HelpButton />
-          </div>
+          <HelpButton />
         </div>
         {/* Minimap + zoom are desktop conveniences — mobile uses touch pinch/scroll. */}
         <div className="pointer-events-none absolute bottom-5 right-5 hidden flex-col items-end gap-2.5 sm:flex">

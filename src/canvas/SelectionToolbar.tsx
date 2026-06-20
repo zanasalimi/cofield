@@ -192,7 +192,7 @@ export function SelectionToolbar() {
 
   return (
     <div
-      className="animate-pop pointer-events-auto absolute z-10 flex -translate-x-1/2 items-center gap-1 rounded-[20px] border border-hairline bg-chrome p-2 shadow-toolbar"
+      className="animate-pop pointer-events-auto absolute z-10 flex max-w-[calc(100vw-1rem)] -translate-x-1/2 flex-wrap items-center justify-center gap-1 rounded-[20px] border border-hairline bg-chrome p-2 shadow-toolbar"
       style={{ left: anchor.x, top: Math.max(8, anchor.y - 76) }}
     >
       {canSwitch ? (
