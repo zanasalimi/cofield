@@ -12,7 +12,8 @@ import "@/canvas/components";
 import type { Renderer } from "./renderer/Renderer";
 import { pan, zoomAt, screenToWorld, visibleWorldRect, fitRect } from "./viewport/viewport";
 import { cullToViewport } from "./viewport/culling";
-import { hitTestTopmost, shapeBounds, rectsIntersect } from "./geometry/hit-test";
+import { hitTestTopmost, shapeBounds, rectsIntersect, unionBounds } from "./geometry/hit-test";
+import { exportBoardPng } from "./export-png";
 import { sideAnchor, sampleConnector, resolveConnector } from "./geometry/connectors";
 import { computeSnap, SNAP_THRESHOLD } from "./geometry/snapping";
 import { handlePoints, type ResizeHandle } from "./geometry/transform";
@@ -78,22 +79,6 @@ function cursorForSelected(shape: Shape, world: Point, zoom: number): string | n
   return null;
 }
 
-/** Axis-aligned union of the shapes' world bounds, or null if empty. */
-function unionBounds(shapes: Shape[]): { x: number; y: number; w: number; h: number } | null {
-  if (shapes.length === 0) return null;
-  let minX = Infinity;
-  let minY = Infinity;
-  let maxX = -Infinity;
-  let maxY = -Infinity;
-  for (const s of shapes) {
-    const b = shapeBounds(s);
-    minX = Math.min(minX, b.x);
-    minY = Math.min(minY, b.y);
-    maxX = Math.max(maxX, b.x + b.w);
-    maxY = Math.max(maxY, b.y + b.h);
-  }
-  return { x: minX, y: minY, w: maxX - minX, h: maxY - minY };
-}
 
 /** Topmost non-connector shape whose body — expanded to include its connection
  *  dots — contains the world point. Drives the hover-to-connect affordance. */
@@ -292,49 +277,7 @@ export function Canvas({ boardId, user }: CanvasProps) {
     });
   }
 
-  function exportPng() {
-    const all = useBoardStore.getState().shapes;
-    const byId = new Map(all.map((sh) => [sh.id, sh]));
-    const resolved: Shape[] = [];
-    for (const sh of all) {
-      if (sh.type === "connector") {
-        const rc = resolveConnector(sh, byId);
-        if (rc) resolved.push(rc);
-      } else {
-        resolved.push(sh);
-      }
-    }
-    const b = unionBounds(resolved);
-    if (!b) return;
-    const pad = 40;
-    const scale = 2;
-    const wCss = b.w + pad * 2;
-    const hCss = b.h + pad * 2;
-    const off = document.createElement("canvas");
-    const r = new Canvas2DRenderer();
-    r.mount(off);
-    r.resize(wCss, hCss, scale);
-    r.render({ shapes: resolved, viewport: { x: b.x - pad, y: b.y - pad, zoom: 1 }, selection: [] });
-    // Composite onto the paper background and download.
-    const final = document.createElement("canvas");
-    final.width = Math.ceil(wCss * scale);
-    final.height = Math.ceil(hCss * scale);
-    const fctx = final.getContext("2d");
-    if (!fctx) return;
-    fctx.fillStyle = "#FFFFFF";
-    fctx.fillRect(0, 0, final.width, final.height);
-    fctx.drawImage(off, 0, 0);
-    final.toBlob((blob) => {
-      if (!blob) return;
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `cofield-${boardId}.png`;
-      a.click();
-      URL.revokeObjectURL(url);
-    }, "image/png");
-  }
-  exportRef.current = exportPng;
+  exportRef.current = () => exportBoardPng(boardId);
 
   const pendingInsert = useUiStore((s) => s.pendingInsert);
   useEffect(() => {

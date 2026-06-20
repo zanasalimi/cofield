@@ -14,7 +14,7 @@ import {
   MAX_ZOOM,
 } from "@/canvas/viewport/viewport";
 import { cullToViewport } from "@/canvas/viewport/culling";
-import { rectsIntersect, shapeContainsPoint, hitTestTopmost } from "@/canvas/geometry/hit-test";
+import { rectsIntersect, shapeContainsPoint, hitTestTopmost, unionBounds } from "@/canvas/geometry/hit-test";
 import { sampleConnector } from "@/canvas/geometry/connectors";
 import type { Shape, Rect } from "@/collab/types";
 
@@ -93,6 +93,20 @@ describe("hit-testing", () => {
     expect(hitTestTopmost(shapes, { x: 5, y: 5 })).toBe("under");
     // Empty space → null.
     expect(hitTestTopmost(shapes, { x: 200, y: 200 })).toBeNull();
+  });
+});
+
+describe("unionBounds", () => {
+  it("returns null for an empty set", () => {
+    expect(unionBounds([])).toBeNull();
+  });
+
+  it("encloses every shape, including a left-pointing arrow's normalized bounds", () => {
+    const a = shape("a", 0, 0, 50, 50);
+    const leftArrow: Shape = { ...shape("arr", 200, 100, 0, 0), type: "arrow", w: -80, h: -20 }; // points up-left
+    const u = unionBounds([a, leftArrow])!;
+    // arrow spans x[120..200], y[80..100]; union with a (0..50, 0..50)
+    expect(u).toEqual({ x: 0, y: 0, w: 200, h: 100 });
   });
 });
 

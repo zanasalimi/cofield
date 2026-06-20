@@ -70,6 +70,24 @@ export function shapeBounds(shape: Shape): Rect {
   return { x: minX, y: minY, w: maxX - minX, h: maxY - minY };
 }
 
+/** The axis-aligned bounds enclosing every shape, or null for an empty set.
+ *  Used by zoom-to-fit and PNG export. */
+export function unionBounds(shapes: Shape[]): Rect | null {
+  if (shapes.length === 0) return null;
+  let minX = Infinity;
+  let minY = Infinity;
+  let maxX = -Infinity;
+  let maxY = -Infinity;
+  for (const s of shapes) {
+    const b = shapeBounds(s);
+    minX = Math.min(minX, b.x);
+    minY = Math.min(minY, b.y);
+    maxX = Math.max(maxX, b.x + b.w);
+    maxY = Math.max(maxY, b.y + b.h);
+  }
+  return { x: minX, y: minY, w: maxX - minX, h: maxY - minY };
+}
+
 /** True if two world rects intersect (boundary-inclusive). */
 export function rectsIntersect(a: Rect, b: Rect): boolean {
   return a.x <= b.x + b.w && b.x <= a.x + a.w && a.y <= b.y + b.h && b.y <= a.y + a.h;
