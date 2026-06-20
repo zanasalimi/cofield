@@ -31,21 +31,29 @@ function parseCookie(header: string | undefined, name: string): string | null {
   return null;
 }
 
-export function authorizeBoard(cookieHeader: string | undefined, boardId: string): boolean {
-  if (boardId === DEMO_BOARD) return true;
+export type BoardAccess = "owner" | "editor" | "viewer";
+
+/**
+ * The caller's role on a board, or null if they can't join at all. The demo room
+ * is a public, writable playground (treated as editor). For a real board this is
+ * the membership role, which the relay uses to gate writes for viewers.
+ */
+export function boardRole(cookieHeader: string | undefined, boardId: string): BoardAccess | null {
+  if (boardId === DEMO_BOARD) return "editor";
   const token = parseCookie(cookieHeader, SESSION_COOKIE);
-  if (!token) return false;
+  if (!token) return null;
   try {
     const session = getDb()
       .prepare("SELECT user_id AS userId, expires_at AS expiresAt FROM sessions WHERE token = ?")
       .get(token) as { userId: string; expiresAt: number } | undefined;
-    if (!session || session.expiresAt < Date.now()) return false;
-    const member = getDb()
-      .prepare("SELECT 1 FROM memberships WHERE board_id = ? AND user_id = ?")
-      .get(boardId, session.userId);
-    return Boolean(member);
+    if (!session || session.expiresAt < Date.now()) return null;
+    const row = getDb()
+      .prepare("SELECT role FROM memberships WHERE board_id = ? AND user_id = ?")
+      .get(boardId, session.userId) as { role: string } | undefined;
+    if (!row) return null;
+    return row.role === "owner" || row.role === "viewer" ? row.role : "editor";
   } catch {
-    // Tables not yet created or a read error — deny (demo already returned true).
-    return false;
+    // Tables not yet created or a read error — deny (demo already returned a role).
+    return null;
   }
 }

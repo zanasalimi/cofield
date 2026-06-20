@@ -14,7 +14,8 @@
  * second `yjs` would trip Yjs's single-instance constructor checks.
  */
 import { WebSocketServer } from "ws";
-import { authorizeBoard } from "./auth";
+import { boardRole } from "./auth";
+import { asReadOnly } from "./readonly";
 
 const PORT = Number(process.env.PORT ?? 4321);
 
@@ -31,14 +32,16 @@ function start(): void {
   const wss = new WebSocketServer({ port: PORT });
 
   wss.on("connection", (socket, request) => {
-    // The room name is the URL path; gate the join on session + membership.
+    // The room name is the URL path; gate the join on session + membership, then
+    // gate writes on role — a viewer joins read-only.
     const path = (request.url ?? "/").split("?")[0] ?? "/";
     const boardId = decodeURIComponent(path.replace(/^\/+/, ""));
-    if (!authorizeBoard(request.headers.cookie, boardId)) {
+    const role = boardRole(request.headers.cookie, boardId);
+    if (!role) {
       socket.close(1008, "unauthorized");
       return;
     }
-    setupWSConnection(socket, request);
+    setupWSConnection(role === "viewer" ? asReadOnly(socket) : socket, request);
   });
 
   const shutdown = () => {
