@@ -25,32 +25,35 @@ const DEMO_BOARD = "demo";
 export default async function BoardPage({ params }: BoardPageProps) {
   const { boardId } = await params;
 
+  const user = await getCurrentUser();
   if (boardId !== DEMO_BOARD) {
-    const user = await getCurrentUser();
     if (!user) redirect("/signin");
     if (!isMember(boardId, user.id)) redirect("/boards");
   }
+  // Pass only safe identity fields to the client (no password hash).
+  const me = user ? { id: user.id, name: user.name, color: user.color } : null;
 
   return (
     <div className="flex h-dvh w-dvw flex-col overflow-hidden bg-[#EDEDF0]">
       <TopBar boardId={boardId} canShare={boardId !== DEMO_BOARD} />
 
       <div className="relative flex-1 overflow-hidden">
-        <Canvas boardId={boardId} />
+        <Canvas boardId={boardId} user={me} />
 
         {/* Floating chrome over the canvas. */}
-        <div className="pointer-events-none absolute bottom-5 left-1/2 flex -translate-x-1/2 flex-col items-center gap-2">
+        <div className="pointer-events-none absolute bottom-3 left-1/2 flex -translate-x-1/2 flex-col items-center gap-2 sm:bottom-5">
           <PenToolbar />
           <Toolbar />
         </div>
-        <div className="pointer-events-none absolute bottom-5 left-5">
+        <div className="pointer-events-none absolute bottom-3 left-3 hidden sm:bottom-5 sm:left-5 sm:block">
           <HelpButton />
         </div>
-        <div className="pointer-events-none absolute bottom-5 right-5 flex flex-col items-end gap-2.5">
+        {/* Minimap + zoom are desktop conveniences — mobile uses touch pinch/scroll. */}
+        <div className="pointer-events-none absolute bottom-5 right-5 hidden flex-col items-end gap-2.5 sm:flex">
           <Minimap />
           <ZoomControl />
         </div>
-        <div className="pointer-events-none absolute right-5 top-5">
+        <div className="pointer-events-none absolute right-3 top-3 sm:right-5 sm:top-5">
           <Inspector />
         </div>
       </div>

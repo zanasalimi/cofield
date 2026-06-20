@@ -32,7 +32,31 @@ export interface LocalIdentity {
   color: string;
 }
 
-export function useBoard(boardId: string) {
+/** A stable per-browser identity for anonymous/demo visitors, so the name and
+ *  colour survive a refresh instead of being re-rolled each session. */
+function guestIdentity(): LocalIdentity {
+  const KEY = "cofield:guest-identity";
+  try {
+    const saved = JSON.parse(localStorage.getItem(KEY) ?? "null");
+    if (saved && saved.userId && saved.name) return saved as LocalIdentity;
+  } catch {
+    /* ignore corrupt storage */
+  }
+  const seed = Math.floor(Math.random() * 1e9);
+  const identity: LocalIdentity = {
+    userId: `guest-${seed.toString(36)}`,
+    name: `${NAMES[seed % NAMES.length]!} ${(seed % 90) + 10}`,
+    color: CURSOR_COLORS[seed % CURSOR_COLORS.length]!,
+  };
+  try {
+    localStorage.setItem(KEY, JSON.stringify(identity));
+  } catch {
+    /* ignore */
+  }
+  return identity;
+}
+
+export function useBoard(boardId: string, user?: { id: string; name: string; color: string } | null) {
   const [presences, setPresences] = useState<Presence[]>([]);
   const [connection, setConnection] = useState<ConnectionState>("connecting");
   const [me, setMe] = useState<LocalIdentity | null>(null);
@@ -62,13 +86,13 @@ export function useBoard(boardId: string) {
     board.comments.observeDeep(refreshComments);
     refreshComments();
 
-    // Stable per-session identity for presence (the auth user replaces this in M3).
+    // Presence identity: the signed-in user (stable name across refresh) when
+    // available; otherwise a generated handle persisted per-browser so a guest
+    // keeps the same name/colour across refreshes too.
     const cid = provider.awareness.clientID;
-    const identity: LocalIdentity = {
-      userId: String(cid),
-      name: NAMES[cid % NAMES.length]!,
-      color: CURSOR_COLORS[cid % CURSOR_COLORS.length]!,
-    };
+    const identity: LocalIdentity = user
+      ? { userId: user.id, name: user.name, color: user.color || CURSOR_COLORS[cid % CURSOR_COLORS.length]! }
+      : guestIdentity();
     setLocalIdentity(provider.awareness, identity);
     setMe(identity);
 
@@ -90,7 +114,8 @@ export function useBoard(boardId: string) {
       doc.destroy();
       providerRef.current = null;
     };
-  }, [boardId]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [boardId, user?.id, user?.name]);
 
   const publishCursor = useCallback((cursor: Point | null) => {
     const p = providerRef.current;

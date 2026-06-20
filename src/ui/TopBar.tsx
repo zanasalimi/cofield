@@ -36,20 +36,20 @@ export function TopBar({ boardId, canShare }: { boardId: string; canShare: boole
   const [menu, setMenu] = useState(false);
 
   return (
-    <header className="relative z-30 flex h-16 shrink-0 items-center justify-between border-b border-hairline bg-chrome px-5">
+    <header className="relative z-30 flex h-16 shrink-0 items-center justify-between gap-2 border-b border-hairline bg-chrome px-3 sm:px-5">
       {/* Wordmark + breadcrumb */}
-      <div className="flex min-w-0 items-center gap-3">
-        <Link href="/boards" className="select-none text-lg font-bold tracking-tight text-ink">
+      <div className="flex min-w-0 items-center gap-2 sm:gap-2.5">
+        <Link href="/boards" className="shrink-0 select-none text-lg font-bold leading-9 tracking-tight text-ink">
           Cofield
         </Link>
-        <span className="text-xl font-light text-ink-soft/50">/</span>
+        <span className="shrink-0 select-none text-lg font-light leading-9 text-ink-soft/40">/</span>
         <input
           value={name}
           onChange={(e) => useBoardStore.getState().setMeta({ name: e.target.value })}
           placeholder="Untitled board"
           aria-label="Board name"
-          className="min-w-0 max-w-[42ch] flex-1 truncate rounded-lg bg-transparent px-2 py-1 text-base font-medium text-ink outline-none transition-colors placeholder:text-ink-soft hover:bg-ink/5 focus:bg-ink/5"
-          size={Math.max(12, name.length + 2)}
+          className="h-9 min-w-0 max-w-[42ch] flex-1 truncate rounded-lg bg-transparent px-2 py-0 text-base font-medium leading-9 text-ink outline-none transition-colors placeholder:text-ink-soft hover:bg-ink/5 focus:bg-ink/5"
+          size={Math.max(10, name.length + 2)}
         />
       </div>
 

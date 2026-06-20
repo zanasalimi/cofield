@@ -45,7 +45,7 @@ function ToolButton({
           type="button"
           aria-label={label}
           onClick={onClick}
-          className={`grid size-12 place-items-center rounded-xl transition-transform duration-100 active:scale-90 ${
+          className={`grid size-10 place-items-center rounded-xl transition-transform duration-100 active:scale-90 sm:size-12 ${
             active ? "bg-primary/10 text-primary" : "text-ink-soft hover:bg-ink/5 hover:text-ink"
           }`}
         >
@@ -75,10 +75,10 @@ export function Toolbar() {
     setShapesOpen(false);
   };
 
-  const Sep = () => <div className="mx-1 h-7 w-px bg-hairline" />;
+  const Sep = () => <div className="mx-0.5 h-6 w-px bg-hairline sm:mx-1 sm:h-7" />;
 
   return (
-    <div className="pointer-events-auto flex items-center gap-1 rounded-2xl border border-hairline bg-chrome p-2 shadow-toolbar">
+    <div className="pointer-events-auto flex max-w-[calc(100vw-1rem)] items-center gap-0.5 rounded-2xl border border-hairline bg-chrome p-1.5 shadow-toolbar sm:gap-1 sm:p-2">
       <ToolButton active={activeTool === "select" && !commentMode} label="Select" shortcut="V" onClick={() => pick("select")}>
         <MousePointer2 className="size-[22px]" />
       </ToolButton>

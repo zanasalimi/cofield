@@ -25,7 +25,7 @@ export function PenToolbar() {
   const ui = useUiStore.getState();
 
   return (
-    <div className="animate-pop-up pointer-events-auto flex items-center gap-1 rounded-2xl border border-hairline bg-chrome p-2 shadow-toolbar">
+    <div className="animate-pop-up pointer-events-auto flex max-w-[calc(100vw-1rem)] flex-wrap items-center justify-center gap-1 rounded-2xl border border-hairline bg-chrome p-2 shadow-toolbar">
       {MODES.map(({ mode, Icon, label }) => (
         <button
           key={mode}

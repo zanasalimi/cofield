@@ -117,7 +117,7 @@ export function ShareButton({ boardId, canShare }: { boardId: string; canShare: 
           Share
         </Button>
       </DialogTrigger>
-      <DialogContent className="gap-0 p-0 sm:max-w-lg">
+      <DialogContent className="flex w-full flex-col gap-0 overflow-hidden p-0 sm:max-w-lg">
         <div className="flex items-center justify-between border-b border-hairline px-5 py-4">
           <DialogTitle className="text-base font-semibold">Share board</DialogTitle>
         </div>
@@ -131,7 +131,7 @@ export function ShareButton({ boardId, canShare }: { boardId: string; canShare: 
               invite();
             }}
           >
-            <Input value={invitee} onChange={(e) => setInvitee(e.target.value)} placeholder="Email, name" className="h-10 flex-1" aria-label="Invite by email or name" />
+            <Input value={invitee} onChange={(e) => setInvitee(e.target.value)} placeholder="Email, name" className="h-10 min-w-0 flex-1" aria-label="Invite by email or name" />
             <Button type="submit" variant="secondary" size="lg" className="rounded-lg px-5">
               Invite
             </Button>
@@ -156,7 +156,7 @@ export function ShareButton({ boardId, canShare }: { boardId: string; canShare: 
             />
           </div>
           <div className="flex items-center gap-2">
-            <div className="flex h-11 flex-1 items-center truncate rounded-lg bg-muted/50 px-3 text-sm text-ink-soft">{url}</div>
+            <div className="h-11 min-w-0 flex-1 truncate rounded-lg bg-muted/50 px-3 text-sm leading-[2.75rem] text-ink-soft">{url}</div>
             <button
               type="button"
               onClick={() => copy(url, "link")}

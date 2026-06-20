@@ -124,9 +124,11 @@ function distToSegment(p: Point, ax: number, ay: number, bx: number, by: number)
 
 export interface CanvasProps {
   boardId: string;
+  /** the signed-in user, or null for an anonymous/demo visitor */
+  user: { id: string; name: string; color: string } | null;
 }
 
-export function Canvas({ boardId }: CanvasProps) {
+export function Canvas({ boardId, user }: CanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const rendererRef = useRef<Renderer | null>(null);
   const rafRef = useRef<number | null>(null);
@@ -145,7 +147,7 @@ export function Canvas({ boardId }: CanvasProps) {
   const followingId = useUiStore((s) => s.followingId);
 
   // Realtime: doc binding + presence + throttled publishers.
-  const { presences, me, publishCursor, publishSelection, publishViewport } = useBoard(boardId);
+  const { presences, me, publishCursor, publishSelection, publishViewport } = useBoard(boardId, user);
   const pubCursor = useRef(publishCursor);
   pubCursor.current = publishCursor;
 
