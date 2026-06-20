@@ -13,6 +13,9 @@ RUN pnpm install --frozen-lockfile
 # --- build --------------------------------------------------------------
 FROM node:24-alpine AS build
 WORKDIR /app
+# package.json is needed here so corepack picks the pinned pnpm and `pnpm run`
+# can resolve the sync:build script.
+COPY package.json pnpm-lock.yaml* ./
 RUN corepack enable
 COPY --from=deps /app/node_modules ./node_modules
 COPY tsconfig.server.json ./
