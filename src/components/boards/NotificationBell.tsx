@@ -65,66 +65,72 @@ export function NotificationBell() {
         <button
           type="button"
           aria-label={count > 0 ? `Notifications, ${count} new` : "Notifications"}
-          className="relative grid size-10 place-items-center rounded-full border border-hairline bg-chrome text-ink-soft transition-colors hover:bg-ink/[0.03] hover:text-ink"
+          className="relative grid size-10 place-items-center rounded-full border border-hairline bg-white text-ink-soft transition-colors hover:bg-ink/[0.04] hover:text-ink"
         >
           <Bell className="size-[18px]" />
           {count > 0 ? (
-            <span className="absolute -right-0.5 -top-0.5 grid h-[18px] min-w-[18px] place-items-center rounded-full bg-cursor-coral px-1 text-[10px] font-bold leading-none text-white ring-2 ring-paper">
+            <span className="absolute -right-1 -top-1 grid h-[18px] min-w-[18px] place-items-center rounded-full bg-cursor-coral px-1 text-[10px] font-bold leading-none text-white ring-2 ring-white">
               {count > 9 ? "9+" : count}
             </span>
           ) : null}
         </button>
       </PopoverTrigger>
-      <PopoverContent align="end" className="w-[360px] overflow-hidden p-0">
-        <div className="flex items-center justify-between border-b border-hairline px-4 py-3">
-          <p className="text-sm font-semibold text-ink">Notifications</p>
+      <PopoverContent
+        align="end"
+        sideOffset={10}
+        onOpenAutoFocus={(e) => e.preventDefault()}
+        className="w-[380px] overflow-hidden rounded-2xl p-0 shadow-toolbar"
+      >
+        <div className="flex items-center justify-between px-4 py-3.5">
+          <p className="text-[0.95rem] font-semibold tracking-tight text-ink">Notifications</p>
           {count > 0 ? (
-            <span className="rounded-full bg-ink/5 px-2 py-0.5 text-xs font-medium text-ink-soft">
-              {count} invite{count === 1 ? "" : "s"}
-            </span>
+            <span className="rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-semibold text-primary">{count} new</span>
           ) : null}
         </div>
 
         {count === 0 ? (
-          <div className="flex flex-col items-center px-6 py-10 text-center">
-            <div className="grid size-11 place-items-center rounded-full bg-ink/5 text-ink-soft">
+          <div className="flex flex-col items-center px-6 pb-12 pt-6 text-center">
+            <div className="grid size-12 place-items-center rounded-2xl bg-ink/[0.04] text-ink-soft">
               <Inbox className="size-5" />
             </div>
-            <p className="mt-3 text-sm font-medium text-ink">You’re all caught up</p>
-            <p className="mt-0.5 text-xs text-ink-soft">Board invitations will show up here.</p>
+            <p className="mt-3.5 text-sm font-semibold text-ink">You’re all caught up</p>
+            <p className="mt-1 text-xs text-ink-soft">Board invitations will show up here.</p>
           </div>
         ) : (
-          <ul className="max-h-[22rem] divide-y divide-hairline overflow-y-auto">
+          <ul className="max-h-[24rem] overflow-y-auto border-t border-hairline p-1.5">
             {invites.map((inv) => (
-              <li key={inv.id} className="flex items-start gap-3 px-4 py-3 transition-colors hover:bg-paper">
-                <span
-                  className="grid size-9 shrink-0 place-items-center rounded-full text-sm font-bold text-white"
-                  style={{ backgroundColor: hueFor(inv.id) }}
-                >
-                  {inv.inviterName.trim().slice(0, 1).toUpperCase() || "?"}
-                </span>
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm leading-snug text-ink">
-                    <span className="font-semibold">{inv.inviterName}</span> invited you to <span className="font-semibold">{inv.boardName}</span>
-                  </p>
-                  <div className="mt-2 flex gap-2">
-                    <Button
-                      size="sm"
-                      className="h-7 rounded-md px-3 text-xs font-semibold"
-                      disabled={acting === inv.id}
-                      onClick={() => act(inv, "accept")}
-                    >
-                      Accept
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      className="h-7 rounded-md px-3 text-xs"
-                      disabled={acting === inv.id}
-                      onClick={() => act(inv, "reject")}
-                    >
-                      Decline
-                    </Button>
+              <li key={inv.id}>
+                <div className="flex gap-3 rounded-xl px-2.5 py-3 transition-colors hover:bg-ink/[0.025]">
+                  <span
+                    className="grid size-9 shrink-0 place-items-center rounded-full text-sm font-bold text-white ring-2 ring-white shadow-sm"
+                    style={{ backgroundColor: hueFor(inv.id) }}
+                  >
+                    {inv.inviterName.trim().slice(0, 1).toUpperCase() || "?"}
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm leading-snug text-ink">
+                      <span className="font-semibold">{inv.inviterName}</span> invited you to <span className="font-semibold">{inv.boardName}</span>
+                    </p>
+                    <p className="mt-0.5 text-xs text-ink-soft">Board invitation</p>
+                    <div className="mt-2.5 flex gap-2">
+                      <Button
+                        size="sm"
+                        className="h-8 rounded-lg px-3.5 text-xs font-semibold"
+                        disabled={acting === inv.id}
+                        onClick={() => act(inv, "accept")}
+                      >
+                        Accept
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-8 rounded-lg px-3.5 text-xs font-medium"
+                        disabled={acting === inv.id}
+                        onClick={() => act(inv, "reject")}
+                      >
+                        Decline
+                      </Button>
+                    </div>
                   </div>
                 </div>
               </li>

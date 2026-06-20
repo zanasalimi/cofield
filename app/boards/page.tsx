@@ -15,8 +15,8 @@ export default async function BoardsPage() {
   const firstName = user.name.trim().split(/\s+/)[0] ?? user.name;
 
   return (
-    <div className="min-h-dvh bg-paper">
-      <header className="sticky top-0 z-20 border-b border-hairline bg-paper/80 backdrop-blur">
+    <div className="min-h-dvh bg-white">
+      <header className="sticky top-0 z-20 border-b border-hairline bg-white/80 backdrop-blur">
         <div className="mx-auto flex h-16 max-w-5xl items-center justify-between px-6">
           <Link href="/boards" className="text-lg font-bold tracking-tight text-ink">
             Cofield
