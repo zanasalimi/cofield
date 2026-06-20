@@ -3,7 +3,8 @@
  * tokens in SQLite, and an httpOnly session cookie. Import only from route
  * handlers / server components — it touches the database and next/headers.
  */
-import { randomBytes, randomUUID, scryptSync, timingSafeEqual } from "node:crypto";
+import { randomBytes, randomUUID, scrypt as scryptCb, timingSafeEqual } from "node:crypto";
+import { promisify } from "node:util";
 import { cookies } from "next/headers";
 import { eq } from "drizzle-orm";
 import { getDb } from "@/db/client";
@@ -13,16 +14,20 @@ import { CURSOR_COLORS } from "@/collab/types";
 const SESSION_COOKIE = "cofield_session";
 const SESSION_TTL_MS = 1000 * 60 * 60 * 24 * 30; // 30 days
 
-export function hashPassword(password: string): string {
+// Async scrypt: the sync variant blocks the single Node event loop for the full
+// KDF cost, so a burst of sign-ins would pin the CPU and stall every request.
+const scrypt = promisify(scryptCb) as (password: string, salt: string, keylen: number) => Promise<Buffer>;
+
+export async function hashPassword(password: string): Promise<string> {
   const salt = randomBytes(16).toString("hex");
-  const hash = scryptSync(password, salt, 64).toString("hex");
+  const hash = (await scrypt(password, salt, 64)).toString("hex");
   return `${salt}:${hash}`;
 }
 
-export function verifyPassword(password: string, stored: string): boolean {
+export async function verifyPassword(password: string, stored: string): Promise<boolean> {
   const [salt, hash] = stored.split(":");
   if (!salt || !hash) return false;
-  const test = scryptSync(password, salt, 64);
+  const test = await scrypt(password, salt, 64);
   const original = Buffer.from(hash, "hex");
   return test.length === original.length && timingSafeEqual(test, original);
 }
@@ -31,11 +36,11 @@ export function findUserByEmail(email: string): User | undefined {
   return getDb().select().from(users).where(eq(users.email, email.toLowerCase())).get();
 }
 
-export function createUser(email: string, password: string, name: string): User {
+export async function createUser(email: string, password: string, name: string): Promise<User> {
   const user: User = {
     id: randomUUID(),
     email: email.toLowerCase(),
-    passwordHash: hashPassword(password),
+    passwordHash: await hashPassword(password),
     name,
     color: CURSOR_COLORS[Math.floor(Math.random() * CURSOR_COLORS.length)]!,
     createdAt: Date.now(),
