@@ -27,17 +27,17 @@ export function CursorsLayer({ presences, viewport }: CursorsLayerProps) {
             className="absolute left-0 top-0 will-change-transform"
             style={{ transform: `translate(${s.x}px, ${s.y}px)`, transition: "transform 80ms linear" }}
           >
-            <svg width="20" height="20" viewBox="0 0 24 24" style={{ color: p.color }} aria-hidden>
+            <svg width="28" height="28" viewBox="0 0 24 24" className="drop-shadow-sm" style={{ color: p.color }} aria-hidden>
               <path
                 d="M5.5 3.2 L5.5 18.5 L9.4 14.6 L12.2 20.8 L14.6 19.8 L11.8 13.8 L17.4 13.8 Z"
                 fill="currentColor"
                 stroke="white"
-                strokeWidth="1.4"
+                strokeWidth="1.6"
                 strokeLinejoin="round"
               />
             </svg>
             <span
-              className="ml-3 -mt-1 inline-block whitespace-nowrap rounded-md px-1.5 py-0.5 text-[11px] font-medium text-white shadow-sm"
+              className="ml-4 -mt-2 inline-block whitespace-nowrap rounded-lg px-2 py-1 text-sm font-semibold text-white shadow-md"
               style={{ backgroundColor: p.color }}
             >
               {p.name}

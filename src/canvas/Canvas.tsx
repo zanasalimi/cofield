@@ -527,12 +527,19 @@ export function Canvas({ boardId, user }: CanvasProps) {
       ui().setContextMenu({ x: sx, y: sy });
     };
     const onPointerLeave = () => {
-      pubCursor.current(null);
+      // Don't drop the broadcast cursor here — moving onto an overlay (toolbar /
+      // textarea) fires this even though the pointer is still over the board.
+      // The wrapper's pointerleave (below) handles a true exit.
       if (ui().hoveredId && !ui().connecting) {
         ui().setHoveredId(null);
         scheduleRender();
       }
     };
+    // Track the broadcast cursor on the WRAPPER (canvas + overlays), so a user's
+    // cursor stays visible to others while they type or use the toolbars.
+    const wrapper = el.parentElement;
+    const onWrapperMove = (e: PointerEvent) => pubCursor.current(worldAt(e));
+    const onWrapperLeave = () => pubCursor.current(null);
     const onDblClick = (e: MouseEvent) => {
       const rect = el.getBoundingClientRect();
       const world = screenToWorld(ui().viewport, { x: e.clientX - rect.left, y: e.clientY - rect.top });
@@ -665,6 +672,8 @@ export function Canvas({ boardId, user }: CanvasProps) {
     el.addEventListener("pointermove", onPointerMove);
     el.addEventListener("pointerup", onPointerUp);
     el.addEventListener("pointerleave", onPointerLeave);
+    wrapper?.addEventListener("pointermove", onWrapperMove);
+    wrapper?.addEventListener("pointerleave", onWrapperLeave);
     el.addEventListener("dblclick", onDblClick);
     el.addEventListener("contextmenu", onContextMenu);
     const onExportEvt = () => exportRef.current?.();
@@ -690,6 +699,8 @@ export function Canvas({ boardId, user }: CanvasProps) {
       el.removeEventListener("pointermove", onPointerMove);
       el.removeEventListener("pointerup", onPointerUp);
       el.removeEventListener("pointerleave", onPointerLeave);
+      wrapper?.removeEventListener("pointermove", onWrapperMove);
+      wrapper?.removeEventListener("pointerleave", onWrapperLeave);
       el.removeEventListener("dblclick", onDblClick);
       el.removeEventListener("contextmenu", onContextMenu);
       el.removeEventListener("dragover", onDragOver);
