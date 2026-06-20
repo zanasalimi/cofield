@@ -2,7 +2,7 @@
 # sync server with a durable leveldb store. `docker compose up` runs the
 # whole stack from a fresh clone — open two browser tabs and edit live.
 services:
-  web: # Next.js client (standalone output)
+  web: # Next.js client (standalone output) — writes accounts/boards to the shared db
     build:
       context: .
       dockerfile: Dockerfile.web
@@ -12,11 +12,14 @@ services:
       - "3000:3000"
     environment:
       - NEXT_PUBLIC_WS_URL=ws://localhost:4321
+      - DATABASE_FILE=/db/cofield.db
+    volumes:
+      - account-data:/db # the SQLite auth db, shared with sync so room auth sees memberships
     depends_on:
       - sync
     restart: unless-stopped
 
-  sync: # Node ws + Yjs relay, y-leveldb persistence
+  sync: # Node ws + Yjs relay, y-leveldb persistence — reads the same auth db
     build:
       context: .
       dockerfile: Dockerfile.sync
@@ -24,9 +27,12 @@ services:
       - "4321:4321"
     environment:
       - YPERSISTENCE=/data
+      - DATABASE_FILE=/db/cofield.db
     volumes:
       - canvas-data:/data # y-leveldb — boards survive restart
+      - account-data:/db # same SQLite db the web app writes
     restart: unless-stopped
 
 volumes:
   canvas-data: {}
+  account-data: {} # accounts, sessions, memberships — one db both services share

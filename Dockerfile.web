@@ -31,6 +31,10 @@ COPY --from=build /app/public ./public
 COPY --from=build --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=build --chown=nextjs:nodejs /app/.next/static ./.next/static
 
+# The SQLite auth db lives here, on a volume shared with the sync service.
+RUN mkdir -p /db && chown nextjs:nodejs /db
+VOLUME ["/db"]
+
 USER nextjs
 EXPOSE 3000
 CMD ["node", "server.js"]

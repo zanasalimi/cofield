@@ -34,9 +34,10 @@ COPY package.json pnpm-lock.yaml* ./
 RUN pnpm install --frozen-lockfile --prod
 COPY --from=build /app/dist/server ./server
 
-# Durable store lives here; compose mounts the canvas-data volume on it.
-RUN mkdir -p /data && chown -R sync:nodejs /data
-VOLUME ["/data"]
+# Durable stores: /data = y-leveldb (canvas-data volume), /db = the shared
+# SQLite auth db the web app writes (account-data volume).
+RUN mkdir -p /data /db && chown -R sync:nodejs /data /db
+VOLUME ["/data", "/db"]
 
 USER sync
 EXPOSE 4321
