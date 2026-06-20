@@ -10,15 +10,26 @@ import { invites, boards, users, type Invite } from "@/db/schema";
 import { addMembership } from "@/boards/server";
 
 export function createInvite(boardId: string, inviterId: string, inviteeEmail: string): Invite {
+  const email = inviteeEmail.toLowerCase();
+  const db = getDb();
+  // Re-inviting the same address to the same board is a no-op — return the
+  // existing pending invite instead of stacking duplicates.
+  const existing = db
+    .select()
+    .from(invites)
+    .where(and(eq(invites.boardId, boardId), eq(invites.inviteeEmail, email), eq(invites.status, "pending")))
+    .get();
+  if (existing) return existing;
+
   const invite: Invite = {
     id: randomUUID(),
     boardId,
     inviterId,
-    inviteeEmail: inviteeEmail.toLowerCase(),
+    inviteeEmail: email,
     status: "pending",
     createdAt: Date.now(),
   };
-  getDb().insert(invites).values(invite).run();
+  db.insert(invites).values(invite).run();
   return invite;
 }
 

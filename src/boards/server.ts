@@ -27,8 +27,11 @@ export function createBoard(ownerId: string, name: string): Board {
     ownerId,
     createdAt: Date.now(),
   };
-  db.insert(boards).values(board).run();
-  db.insert(memberships).values({ boardId: board.id, userId: ownerId, role: "owner", createdAt: Date.now() }).run();
+  // One transaction so a failure can't orphan a board without its owner row.
+  db.transaction((tx) => {
+    tx.insert(boards).values(board).run();
+    tx.insert(memberships).values({ boardId: board.id, userId: ownerId, role: "owner", createdAt: Date.now() }).run();
+  });
   return board;
 }
 
