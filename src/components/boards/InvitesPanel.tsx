@@ -2,8 +2,9 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Card, CardContent } from "@/components/ui/card";
+import { toast } from "@embertoast/react";
 import { Button } from "@/components/ui/button";
+import { Inbox } from "@/components/icons";
 
 interface IncomingInvite {
   id: string;
@@ -14,6 +15,7 @@ interface IncomingInvite {
 export function InvitesPanel() {
   const router = useRouter();
   const [invites, setInvites] = useState<IncomingInvite[]>([]);
+  const [acting, setActing] = useState<string | null>(null);
 
   useEffect(() => {
     fetch("/api/invites")
@@ -22,35 +24,53 @@ export function InvitesPanel() {
       .catch(() => {});
   }, []);
 
-  async function act(id: string, action: "accept" | "reject") {
-    const res = await fetch(`/api/invites/${id}/${action}`, { method: "POST" });
-    setInvites((prev) => prev.filter((i) => i.id !== id));
-    if (action === "accept" && res.ok) router.refresh();
+  async function act(invite: IncomingInvite, action: "accept" | "reject") {
+    setActing(invite.id);
+    try {
+      const res = await fetch(`/api/invites/${invite.id}/${action}`, { method: "POST" });
+      if (!res.ok) {
+        toast.error(action === "accept" ? "Couldn't accept the invite." : "Couldn't decline the invite.");
+        setActing(null);
+        return;
+      }
+      setInvites((prev) => prev.filter((i) => i.id !== invite.id));
+      if (action === "accept") {
+        toast.success(`You joined “${invite.boardName}”.`);
+        router.refresh();
+      } else {
+        toast(`Declined the invite to “${invite.boardName}”.`);
+      }
+    } catch {
+      toast.error("Couldn't reach the server. Check your connection.");
+      setActing(null);
+    }
   }
 
   if (invites.length === 0) return null;
 
   return (
-    <section className="mt-8">
-      <h2 className="text-xs font-medium uppercase tracking-widest text-muted-foreground">Invitations</h2>
-      <div className="mt-3 space-y-2">
+    <section className="mb-10 rounded-2xl border border-hairline bg-chrome p-5">
+      <div className="flex items-center gap-2">
+        <Inbox className="size-4 text-ink-soft" />
+        <h2 className="text-sm font-semibold text-ink">
+          Invitations <span className="font-normal text-ink-soft">· {invites.length}</span>
+        </h2>
+      </div>
+      <div className="mt-4 space-y-2.5">
         {invites.map((inv) => (
-          <Card key={inv.id}>
-            <CardContent className="flex flex-wrap items-center justify-between gap-3 py-3">
-              <p className="text-sm">
-                <span className="font-medium">{inv.inviterName}</span> invited you to{" "}
-                <span className="font-medium">{inv.boardName}</span>
-              </p>
-              <div className="flex gap-2">
-                <Button size="sm" onClick={() => act(inv.id, "accept")}>
-                  Accept
-                </Button>
-                <Button size="sm" variant="ghost" onClick={() => act(inv.id, "reject")}>
-                  Decline
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
+          <div key={inv.id} className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-hairline bg-paper px-4 py-3">
+            <p className="text-sm text-ink">
+              <span className="font-semibold">{inv.inviterName}</span> invited you to <span className="font-semibold">{inv.boardName}</span>
+            </p>
+            <div className="flex gap-2">
+              <Button size="sm" className="h-8 rounded-lg font-semibold" disabled={acting === inv.id} onClick={() => act(inv, "accept")}>
+                Accept
+              </Button>
+              <Button size="sm" variant="ghost" className="h-8 rounded-lg" disabled={acting === inv.id} onClick={() => act(inv, "reject")}>
+                Decline
+              </Button>
+            </div>
+          </div>
         ))}
       </div>
     </section>

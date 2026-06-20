@@ -1,9 +1,13 @@
+import { redirect } from "next/navigation";
+import { getCurrentUser } from "@/auth/server";
+import { AuthShell } from "@/components/auth/AuthShell";
 import { AuthForm } from "@/components/auth/AuthForm";
 
-export default function SignUpPage() {
+export default async function SignUpPage() {
+  if (await getCurrentUser()) redirect("/boards");
   return (
-    <main className="flex min-h-dvh items-center justify-center bg-paper p-6">
+    <AuthShell>
       <AuthForm mode="signup" />
-    </main>
+    </AuthShell>
   );
 }
