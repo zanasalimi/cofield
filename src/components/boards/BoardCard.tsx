@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { hueFor } from "@/lib/hues";
+import { Avatar } from "@/components/ui/avatar";
 import { ArrowRight } from "@/components/icons";
 
 export interface BoardCardData {
@@ -11,7 +12,6 @@ export interface BoardCardData {
 /** A tactile board tile carrying its stable brand hue as the accent. */
 export function BoardCard({ board }: { board: BoardCardData }) {
   const hue = hueFor(board.id);
-  const initial = board.name.trim().slice(0, 1).toUpperCase() || "B";
 
   return (
     <Link
@@ -21,9 +21,7 @@ export function BoardCard({ board }: { board: BoardCardData }) {
       <span className="h-1.5 w-full" style={{ backgroundColor: hue }} aria-hidden />
       <div className="flex flex-1 flex-col gap-5 p-5">
         <div className="flex items-start justify-between">
-          <span className="grid size-11 place-items-center rounded-xl text-base font-bold text-white shadow-sm" style={{ backgroundColor: hue }}>
-            {initial}
-          </span>
+          <Avatar name={board.name} color={hue} fallback="B" className="size-11 rounded-xl text-base font-bold shadow-sm" />
           <span className="rounded-full border border-hairline px-2.5 py-0.5 text-xs font-medium capitalize text-ink-soft">{board.role}</span>
         </div>
         <div className="min-w-0">

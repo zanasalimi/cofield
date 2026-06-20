@@ -13,6 +13,7 @@ import type { Comment } from "@/collab/types";
 import { useUiStore } from "@/store/ui-store";
 import { useBoardStore } from "@/store/board-store";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
+import { initialOf } from "@/lib/initials";
 import { worldToScreen, screenToWorld } from "./viewport/viewport";
 
 const THEME_COLORS = ["#6B6B66", "#3FA34D", "#E03E3E", "#2D9CDB", "#1A1A1A"];
@@ -23,8 +24,6 @@ const EMOJIS = [
   "🤔", "😬", "😮", "😴", "😢", "😡", "🥳", "🤯",
   "❤️", "💜", "💙", "💚", "✅", "❌", "⚠️", "❓",
 ];
-
-const initial = (name: string) => name.trim().slice(0, 1).toUpperCase() || "?";
 
 function relTime(ts: number): string {
   const s = Math.floor((Date.now() - ts) / 1000);
@@ -191,7 +190,7 @@ function Thread({ comment }: { comment: Comment }) {
           {comment.messages.map((m) => (
             <div key={m.id} className="flex gap-2">
               <span className="mt-0.5 grid size-6 shrink-0 place-items-center rounded-full text-[10px] font-semibold text-white" style={{ background: m.color }}>
-                {initial(m.author)}
+                {initialOf(m.author)}
               </span>
               <div className="min-w-0">
                 <div className="flex items-baseline gap-1.5">
@@ -256,7 +255,7 @@ function Pin({ comment, viewport, layerRef }: { comment: Comment; viewport: { x:
         className={`pointer-events-auto grid size-10 -translate-x-1/2 -translate-y-full cursor-grab touch-none place-items-center rounded-full rounded-bl-none border-2 border-white text-sm font-semibold text-white shadow-md transition-transform duration-100 hover:scale-110 active:scale-95 active:cursor-grabbing ${comment.resolved && !open ? "opacity-45" : ""}`}
         style={{ background: color }}
       >
-        {first ? initial(first.author) : <MessageSquare className="size-5" />}
+        {first ? initialOf(first.author) : <MessageSquare className="size-5" />}
         {comment.resolved ? (
           <span className="absolute -right-1 -top-1 grid size-4 place-items-center rounded-full border border-white bg-cursor-fern text-white">
             <Check className="size-2.5" />

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "@embertoast/react";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
+import { Avatar } from "@/components/ui/avatar";
 import { Bell, Inbox } from "@/components/icons";
 import { hueFor } from "@/lib/hues";
 
@@ -101,12 +102,7 @@ export function NotificationBell() {
             {invites.map((inv) => (
               <li key={inv.id}>
                 <div className="flex gap-3 rounded-xl px-2.5 py-3 transition-colors hover:bg-ink/[0.025]">
-                  <span
-                    className="grid size-9 shrink-0 place-items-center rounded-full text-sm font-bold text-white ring-2 ring-white shadow-sm"
-                    style={{ backgroundColor: hueFor(inv.id) }}
-                  >
-                    {inv.inviterName.trim().slice(0, 1).toUpperCase() || "?"}
-                  </span>
+                  <Avatar name={inv.inviterName} color={hueFor(inv.id)} className="shrink-0 font-bold shadow-sm ring-2 ring-white" />
                   <div className="min-w-0 flex-1">
                     <p className="text-sm leading-snug text-ink">
                       <span className="font-semibold">{inv.inviterName}</span> invited you to <span className="font-semibold">{inv.boardName}</span>

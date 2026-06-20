@@ -7,10 +7,7 @@
 "use client";
 
 import { useUiStore } from "@/store/ui-store";
-
-function initial(name: string): string {
-  return name.slice(0, 1).toUpperCase();
-}
+import { initialOf } from "@/lib/initials";
 
 export function AvatarStack() {
   const me = useUiStore((s) => s.me);
@@ -39,7 +36,7 @@ export function AvatarStack() {
                 }`}
                 style={{ backgroundColor: p.color }}
               >
-                {initial(p.name)}
+                {initialOf(p.name)}
               </button>
             );
           })}
@@ -58,7 +55,7 @@ export function AvatarStack() {
           className="grid size-9 place-items-center rounded-full text-sm font-semibold text-white ring-2 ring-primary ring-offset-2 ring-offset-chrome"
           style={{ backgroundColor: me.color }}
         >
-          {initial(me.name)}
+          {initialOf(me.name)}
         </div>
       ) : null}
     </div>

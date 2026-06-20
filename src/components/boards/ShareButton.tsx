@@ -13,7 +13,9 @@ import { Dialog, DialogContent, DialogTitle, DialogTrigger } from "@/components/
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
+import { Avatar } from "@/components/ui/avatar";
 import { ChevronDown, Check, Link2, Code2 } from "@/components/icons";
+import { initialOf } from "@/lib/initials";
 import { useBoardStore } from "@/store/board-store";
 import { useUiStore } from "@/store/ui-store";
 
@@ -32,7 +34,6 @@ interface PendingInvite {
   status: string;
 }
 
-const initial = (s: string) => s.trim().slice(0, 1).toUpperCase() || "?";
 const ROLE_LABEL: Record<Member["role"], string> = { owner: "owner", editor: "can edit", viewer: "can view" };
 
 /** A small role / access dropdown. */
@@ -244,9 +245,7 @@ export function ShareButton({ boardId, canShare }: { boardId: string; canShare: 
                 const isMe = m.id === me?.userId;
                 return (
                   <div key={m.id} className="flex items-center gap-3">
-                    <span className="grid size-9 shrink-0 place-items-center rounded-full text-sm font-semibold text-white" style={{ background: m.color }}>
-                      {initial(m.name)}
-                    </span>
+                    <Avatar name={m.name} color={m.color} className="shrink-0" />
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-sm font-semibold text-ink">
                         {m.name}
@@ -275,7 +274,7 @@ export function ShareButton({ boardId, canShare }: { boardId: string; canShare: 
               {invites.map((inv) => (
                 <div key={inv.email} className="flex items-center gap-3">
                   <span className="grid size-9 shrink-0 place-items-center rounded-full bg-ink/10 text-sm font-semibold text-ink-soft">
-                    {initial(inv.email)}
+                    {initialOf(inv.email)}
                   </span>
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-medium text-ink">{inv.email}</p>

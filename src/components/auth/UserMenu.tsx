@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "@embertoast/react";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
+import { Avatar } from "@/components/ui/avatar";
 import { LogOut } from "@/components/icons";
 import { hueFor } from "@/lib/hues";
 
@@ -32,9 +33,7 @@ export function UserMenu({ id, name, email }: { id: string; name: string; email:
           type="button"
           className="flex items-center gap-2.5 rounded-full border border-hairline bg-chrome py-1 pl-1 pr-3 transition-colors hover:bg-ink/[0.03]"
         >
-          <span className="grid size-8 place-items-center rounded-full text-sm font-bold text-white" style={{ backgroundColor: hue }}>
-            {name.trim().slice(0, 1).toUpperCase() || "?"}
-          </span>
+          <Avatar name={name} color={hue} className="size-8 font-bold" />
           <span className="hidden max-w-[12ch] truncate text-sm font-medium text-ink sm:block">{name}</span>
         </button>
       </PopoverTrigger>
