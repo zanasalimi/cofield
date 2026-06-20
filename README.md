@@ -68,7 +68,7 @@ Full system design, the edit-propagation sequence, and the multi-team data model
 **Shapes & tools** — rectangle, ellipse, line/arrow, freehand, sticky note, text; a tool state machine for select/draw/pan.
 **Selection & transform** — single + marquee multi-select, move, resize handles, delete, z-order — all in world space, correct at any zoom.
 **Realtime sync** — every change propagates to all clients, conflict-free, via Yjs binary diffs.
-**Presence** — live multiplayer cursors with names and stable colors, selection tints ("Sara is editing this shape"), an active-user avatar stack.
+**Presence** — live multiplayer cursors with names and stable colors, and an active-user avatar stack you can click to follow someone's viewport.
 **Offline & persistence** — edit while disconnected; reconnect and merge cleanly. Server-side leveldb means boards survive a restart.
 **Rooms & multi-team** — a board is a room joined by URL; Org → Team → Board with scoped presence and per-board roles (v1).
 
