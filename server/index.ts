@@ -17,7 +17,7 @@ import { WebSocketServer } from "ws";
 import { setupWSConnection } from "y-websocket/bin/utils";
 import { authorizeBoard } from "./auth";
 
-const PORT = Number(process.env.PORT ?? 1234);
+const PORT = Number(process.env.PORT ?? 4321);
 
 function start(): void {
   const wss = new WebSocketServer({ port: PORT });

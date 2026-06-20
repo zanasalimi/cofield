@@ -23,7 +23,7 @@ import {
 import { useBoardStore } from "@/store/board-store";
 import { CURSOR_COLORS, type ConnectionState, type Point, type Presence } from "./types";
 
-const WS_URL = process.env.NEXT_PUBLIC_WS_URL ?? "ws://localhost:1234";
+const WS_URL = process.env.NEXT_PUBLIC_WS_URL ?? "ws://localhost:4321";
 const NAMES = ["Otter", "Heron", "Fox", "Marten", "Wren", "Lynx", "Finch", "Vole"];
 
 export interface LocalIdentity {

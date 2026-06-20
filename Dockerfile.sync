@@ -24,7 +24,7 @@ RUN pnpm sync:build
 FROM node:24-alpine AS runtime
 WORKDIR /app
 ENV NODE_ENV=production
-ENV PORT=1234
+ENV PORT=4321
 ENV YPERSISTENCE=/data
 RUN corepack enable && \
     addgroup -g 1001 -S nodejs && adduser -S sync -u 1001
@@ -39,5 +39,5 @@ RUN mkdir -p /data && chown -R sync:nodejs /data
 VOLUME ["/data"]
 
 USER sync
-EXPOSE 1234
+EXPOSE 4321
 CMD ["node", "server/index.js"]

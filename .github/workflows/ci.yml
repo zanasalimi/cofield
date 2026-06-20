@@ -43,7 +43,7 @@ jobs:
       - name: Build
         run: pnpm build
         env:
-          NEXT_PUBLIC_WS_URL: ws://localhost:1234
+          NEXT_PUBLIC_WS_URL: ws://localhost:4321
 
   docker:
     name: Docker build (web + sync)
