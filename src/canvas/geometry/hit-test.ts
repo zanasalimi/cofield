@@ -31,10 +31,17 @@ export function hitTestTopmost(shapes: Shape[], point: Point): string | null {
   return null;
 }
 
-/** The axis-aligned world bounds of a shape (post-rotation). */
+/** The axis-aligned world bounds of a shape (post-rotation). Normalizes signed
+ *  extents — an arrow drawn up/left keeps negative w/h for its direction, but its
+ *  bounds (used by culling, marquee, hit-test) must always be positive. */
 export function shapeBounds(shape: Shape): Rect {
   if (!shape.rotation) {
-    return { x: shape.x, y: shape.y, w: shape.w, h: shape.h };
+    return {
+      x: Math.min(shape.x, shape.x + shape.w),
+      y: Math.min(shape.y, shape.y + shape.h),
+      w: Math.abs(shape.w),
+      h: Math.abs(shape.h),
+    };
   }
   // Rotate the four corners about the shape's center, then take their AABB.
   const cx = shape.x + shape.w / 2;

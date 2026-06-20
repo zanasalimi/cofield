@@ -199,8 +199,9 @@ export function Canvas({ boardId, user }: CanvasProps) {
           const rc = resolveConnector(sh, byId);
           const p = rc?.points;
           if (!p) continue;
-          // Sample the bezier (or use the 2-point line) and test each segment.
-          const poly = sampleConnector(p, 18);
+          // Flatten to the actual drawn polyline (curved → sampled bezier;
+          // straight/elbow → as-is), then test each segment.
+          const poly = sampleConnector(p, 18, sh.style?.routing);
           for (let j = 0; j < poly.length - 2; j += 2) {
             if (distToSegment(world, poly[j]!, poly[j + 1]!, poly[j + 2]!, poly[j + 3]!) <= tol) return sh.id;
           }
@@ -650,6 +651,7 @@ export function Canvas({ boardId, user }: CanvasProps) {
       if (e.key === "Delete" || e.key === "Backspace") {
         for (const id of ui().selection) ctx.removeShape(id);
         ui().setSelection([]);
+        useBoardStore.getState().commitHistory(); // close this as its own undo step
         return;
       }
       // Comment tool toggle.

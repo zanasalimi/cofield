@@ -15,6 +15,7 @@ import {
 } from "@/canvas/viewport/viewport";
 import { cullToViewport } from "@/canvas/viewport/culling";
 import { rectsIntersect, shapeContainsPoint, hitTestTopmost } from "@/canvas/geometry/hit-test";
+import { sampleConnector } from "@/canvas/geometry/connectors";
 import type { Shape, Rect } from "@/collab/types";
 
 function shape(id: string, x: number, y: number, w = 10, h = 10): Shape {
@@ -92,6 +93,26 @@ describe("hit-testing", () => {
     expect(hitTestTopmost(shapes, { x: 5, y: 5 })).toBe("under");
     // Empty space → null.
     expect(hitTestTopmost(shapes, { x: 200, y: 200 })).toBeNull();
+  });
+});
+
+describe("connector flattening (hit-test must match the drawn line)", () => {
+  // [A, cp1, cp2, B] — 8 numbers. Only a *curved* connector is a bezier.
+  const eight = [0, 0, 10, 20, 30, 20, 40, 0];
+
+  it("samples a curved connector into many on-curve points", () => {
+    const out = sampleConnector(eight, 18, "curved");
+    expect(out.length).toBe((18 + 1) * 2); // n+1 sampled points
+    expect(out.slice(0, 2)).toEqual([0, 0]); // starts at A
+    expect(out.slice(-2)).toEqual([40, 0]); // ends at B
+  });
+
+  it("passes an elbow connector through unchanged (it is already a polyline)", () => {
+    expect(sampleConnector(eight, 18, "elbow")).toEqual(eight);
+  });
+
+  it("passes a straight 2-point line through unchanged", () => {
+    expect(sampleConnector([0, 0, 40, 0], 18, "straight")).toEqual([0, 0, 40, 0]);
   });
 });
 

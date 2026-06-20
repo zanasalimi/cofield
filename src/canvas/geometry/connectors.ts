@@ -64,10 +64,13 @@ export function connectorCurve(from: Shape, fromSide: Side | undefined, to: Shap
   return connectorPath(from, fromSide, to, toSide, "curved");
 }
 
-/** Flatten a connector to on-curve points: sample the bezier ([A,cp1,cp2,B]) or
- *  pass through a straight [A,B]. Used for hit-testing along the actual curve. */
-export function sampleConnector(p: number[], n: number): number[] {
-  if (p.length < 8) return p;
+/** Flatten a connector to on-curve points for hit-testing. Only a *curved*
+ *  connector is a cubic bezier ([A,cp1,cp2,B]) that needs sampling; straight and
+ *  elbow paths are already polylines and pass through unchanged. This mirrors the
+ *  renderer's draw branch exactly, so the clickable line matches the drawn line. */
+export function sampleConnector(p: number[], n: number, routing?: Routing): number[] {
+  const curved = (routing ?? "curved") === "curved" && p.length >= 8;
+  if (!curved) return p;
   const out: number[] = [];
   for (let i = 0; i <= n; i++) {
     const t = i / n;
