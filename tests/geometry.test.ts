@@ -14,7 +14,7 @@ import {
   MAX_ZOOM,
 } from "@/canvas/viewport/viewport";
 import { cullToViewport } from "@/canvas/viewport/culling";
-import { rectsIntersect } from "@/canvas/geometry/hit-test";
+import { rectsIntersect, shapeContainsPoint, hitTestTopmost } from "@/canvas/geometry/hit-test";
 import type { Shape, Rect } from "@/collab/types";
 
 function shape(id: string, x: number, y: number, w = 10, h = 10): Shape {
@@ -73,18 +73,26 @@ describe("viewport transform", () => {
 });
 
 describe("hit-testing", () => {
-  it.todo("shapeContainsPoint accounts for rotation");
-  it.todo("topmost shape wins when shapes overlap");
-});
+  it("shapeContainsPoint accounts for rotation", () => {
+    // A 100×40 box centred at (50,20), rotated 90°. A point past its un-rotated
+    // right edge but inside the rotated body must hit; a point off the long axis
+    // must miss.
+    const box: Shape = shape("r", 0, 0, 100, 40);
+    box.rotation = Math.PI / 2;
+    expect(shapeContainsPoint(box, { x: 50, y: 20 })).toBe(true); // centre always hits
+    expect(shapeContainsPoint(box, { x: 50, y: 60 })).toBe(true); // inside the rotated (tall) body
+    expect(shapeContainsPoint(box, { x: 95, y: 20 })).toBe(false); // outside once rotated
+  });
 
-describe("marquee", () => {
-  it.todo("intersect mode selects exactly the touching shapes");
-  it.todo("contain mode selects only fully-enclosed shapes");
-});
-
-describe("transforms", () => {
-  it.todo("applyResize clamps to MIN_SHAPE_SIZE and never inverts");
-  it.todo("resize is correct under zoom (world-space)");
+  it("topmost shape wins when shapes overlap", () => {
+    const shapes = [shape("under", 0, 0, 50, 50), shape("over", 20, 20, 50, 50)];
+    // Point inside both → the later (topmost in z-order) one wins.
+    expect(hitTestTopmost(shapes, { x: 30, y: 30 })).toBe("over");
+    // Point in only the bottom shape → that one.
+    expect(hitTestTopmost(shapes, { x: 5, y: 5 })).toBe("under");
+    // Empty space → null.
+    expect(hitTestTopmost(shapes, { x: 200, y: 200 })).toBeNull();
+  });
 });
 
 describe("culling", () => {
