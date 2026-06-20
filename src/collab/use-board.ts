@@ -21,7 +21,8 @@ import {
   CURSOR_THROTTLE_MS,
 } from "./awareness";
 import { useBoardStore } from "@/store/board-store";
-import { CURSOR_COLORS, type ConnectionState, type Point, type Presence } from "./types";
+import { useUiStore } from "@/store/ui-store";
+import { CURSOR_COLORS, type ConnectionState, type Point } from "./types";
 
 const WS_URL = process.env.NEXT_PUBLIC_WS_URL ?? "ws://localhost:4321";
 const NAMES = ["Otter", "Heron", "Fox", "Marten", "Wren", "Lynx", "Finch", "Vole"];
@@ -57,9 +58,11 @@ function guestIdentity(): LocalIdentity {
 }
 
 export function useBoard(boardId: string, user?: { id: string; name: string; color: string } | null) {
-  const [presences, setPresences] = useState<Presence[]>([]);
+  // Presence (identity + remote cursors) is an *external* store — Yjs Awareness.
+  // It's written straight into the UI store rather than React state, so a cursor
+  // moving re-renders only the leaves that select it (CursorsLayer, the avatar
+  // stack), never the whole canvas tree.
   const [connection, setConnection] = useState<ConnectionState>("connecting");
-  const [me, setMe] = useState<LocalIdentity | null>(null);
   const providerRef = useRef<SyncProvider | null>(null);
   const lastCursorAt = useRef(0);
 
@@ -94,11 +97,12 @@ export function useBoard(boardId: string, user?: { id: string; name: string; col
       ? { userId: user.id, name: user.name, color: user.color || CURSOR_COLORS[cid % CURSOR_COLORS.length]! }
       : guestIdentity();
     setLocalIdentity(provider.awareness, identity);
-    setMe(identity);
+    const ui = useUiStore.getState();
+    ui.setMe(identity);
 
-    const offPresence = onPresenceChange(provider.awareness, setPresences);
+    const offPresence = onPresenceChange(provider.awareness, ui.setPresences);
     const offState = provider.onStateChange(setConnection);
-    setPresences(readPresenceStates(provider.awareness));
+    ui.setPresences(readPresenceStates(provider.awareness));
     setConnection(provider.state);
 
     return () => {
@@ -108,6 +112,9 @@ export function useBoard(boardId: string, user?: { id: string; name: string; col
       board.comments.unobserveDeep(refreshComments);
       offPresence();
       offState();
+      const ui2 = useUiStore.getState();
+      ui2.setPresences([]);
+      ui2.setMe(null);
       useBoardStore.getState().unbindDoc();
       provider.destroy();
       offline.destroy();
@@ -136,5 +143,5 @@ export function useBoard(boardId: string, user?: { id: string; name: string; col
     if (p) setLocalViewport(p.awareness, vp);
   }, []);
 
-  return { presences, connection, me, publishCursor, publishSelection, publishViewport };
+  return { connection, publishCursor, publishSelection, publishViewport };
 }

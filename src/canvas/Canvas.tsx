@@ -22,6 +22,7 @@ import { useUiStore } from "@/store/ui-store";
 import { useBoardStore } from "@/store/board-store";
 import { useBoard } from "@/collab/use-board";
 import { CursorsLayer } from "@/presence/CursorsLayer";
+import { FollowSync } from "@/presence/FollowSync";
 import { TextOverlay } from "./TextOverlay";
 import { SelectionToolbar } from "./SelectionToolbar";
 import { AlignBar } from "./AlignBar";
@@ -144,10 +145,11 @@ export function Canvas({ boardId, user }: CanvasProps) {
   const selection = useUiStore((s) => s.selection);
   const activeTool = useUiStore((s) => s.activeTool);
   const commentMode = useUiStore((s) => s.commentMode);
-  const followingId = useUiStore((s) => s.followingId);
 
-  // Realtime: doc binding + presence + throttled publishers.
-  const { presences, me, publishCursor, publishSelection, publishViewport } = useBoard(boardId, user);
+  // Realtime: doc binding + throttled publishers. Presence (identity + remote
+  // cursors) is written by useBoard straight into the UI store — see the note
+  // there — so it never re-renders this component.
+  const { publishCursor, publishSelection, publishViewport } = useBoard(boardId, user);
   const pubCursor = useRef(publishCursor);
   pubCursor.current = publishCursor;
 
@@ -156,29 +158,10 @@ export function Canvas({ boardId, user }: CanvasProps) {
     publishSelection(selection);
   }, [selection, publishSelection]);
 
-  // Mirror identity + presence into the UI store so the header (outside the
-  // canvas) can render the avatar stack and comments can attribute their author.
-  useEffect(() => {
-    useUiStore.getState().setMe(me);
-  }, [me]);
-  useEffect(() => {
-    useUiStore.getState().setPresences(presences);
-  }, [presences]);
-
   // Broadcast our viewport so others can follow it.
   useEffect(() => {
     publishViewport(viewport);
   }, [viewport, publishViewport]);
-
-  // Follow a user: mirror their viewport whenever their presence updates.
-  useEffect(() => {
-    if (!followingId) return;
-    const target = presences.find((p) => p.userId === followingId);
-    if (!target?.viewport) return;
-    const t = target.viewport;
-    const vp = useUiStore.getState().viewport;
-    if (vp.x !== t.x || vp.y !== t.y || vp.zoom !== t.zoom) useUiStore.getState().setViewport({ ...t });
-  }, [followingId, presences]);
 
   const ctxRef = useRef<ToolContext>(null as unknown as ToolContext);
   if (!ctxRef.current) {
@@ -733,7 +716,8 @@ export function Canvas({ boardId, user }: CanvasProps) {
       }}
     >
       <canvas ref={canvasRef} className="block h-full w-full touch-none" aria-label="Collaborative canvas" />
-      <CursorsLayer presences={presences} viewport={viewport} />
+      <CursorsLayer />
+      <FollowSync />
       <LinkLayer />
       <CommentsLayer />
       <ComponentInteriorLayer />

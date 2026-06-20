@@ -6,16 +6,14 @@
  */
 "use client";
 
-import type { Presence } from "@/collab/types";
-import type { Viewport } from "@/canvas/viewport/viewport";
+import { useUiStore } from "@/store/ui-store";
 import { worldToScreen } from "@/canvas/viewport/viewport";
 
-export interface CursorsLayerProps {
-  presences: Presence[];
-  viewport: Viewport;
-}
-
-export function CursorsLayer({ presences, viewport }: CursorsLayerProps) {
+/** Subscribes to presence + viewport directly, so remote cursor frames re-render
+ *  only this layer — not the whole canvas tree. */
+export function CursorsLayer() {
+  const presences = useUiStore((s) => s.presences);
+  const viewport = useUiStore((s) => s.viewport);
   return (
     <div className="pointer-events-none absolute inset-0 overflow-hidden">
       {presences.map((p) => {
