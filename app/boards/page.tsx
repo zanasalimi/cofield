@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/auth/server";
 import { listBoardsForUser } from "@/boards/server";
 import { NewBoardForm } from "@/components/boards/NewBoardForm";
-import { InvitesPanel } from "@/components/boards/InvitesPanel";
+import { NotificationBell } from "@/components/boards/NotificationBell";
 import { BoardCard } from "@/components/boards/BoardCard";
 import { UserMenu } from "@/components/auth/UserMenu";
 import { Button } from "@/components/ui/button";
@@ -21,13 +21,14 @@ export default async function BoardsPage() {
           <Link href="/boards" className="text-lg font-bold tracking-tight text-ink">
             Cofield
           </Link>
-          <UserMenu id={user.id} name={user.name} email={user.email} />
+          <div className="flex items-center gap-2.5">
+            <NotificationBell />
+            <UserMenu id={user.id} name={user.name} email={user.email} />
+          </div>
         </div>
       </header>
 
       <main className="mx-auto max-w-5xl px-6 py-10">
-        <InvitesPanel />
-
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
             <h1 className="text-2xl font-semibold tracking-tight text-ink">Welcome back, {firstName}</h1>

@@ -58,6 +58,7 @@ export {
   LogOut,
   Loader2,
   Inbox,
+  Bell,
   Search,
   Settings,
   Download,
