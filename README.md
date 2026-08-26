@@ -5,9 +5,9 @@ Cofield is an infinite collaborative canvas where several people draw on the sam
 [![CI](https://github.com/zanasalimi/cofield/actions/workflows/ci.yml/badge.svg)](https://github.com/zanasalimi/cofield/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-black)](LICENSE)
 
-<!-- GIF: two browser tabs editing simultaneously with live cursors -->
+![Two people building the same service diagram on one Cofield board: boxes and connectors appear from both sides while the other person's cursor moves across the canvas.](docs/media/hero.gif)
 
-![A microservices architecture drawn on the Cofield canvas: labelled service nodes wired with elbow connectors, the floating toolbar, the minimap, and a live-presence avatar.](docs/media/hero.png)
+Two signed-in accounts, two browsers, one board. Half of what appears on that canvas arrives over the websocket from the other session, moving cursor included.
 
 There is no hosted demo. Cofield is a web app plus a sync server, and both are needed for the thing worth demoing, so it runs locally: [two commands](#running-locally), two browser tabs.
 
