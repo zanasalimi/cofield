@@ -6,7 +6,6 @@
 
 export type ShapeId = string;
 export type UserId = string;
-export type BoardId = string;
 
 export type ShapeType =
   | "rect"
@@ -79,7 +78,7 @@ export interface Shape {
   points?: number[];
   /** image source (data URL or remote URL) for image shapes */
   src?: string;
-  /** connector endpoints — the ids of the shapes it links (re-routes as they move) */
+  /** connector endpoints: the ids of the shapes it links (re-routes as they move) */
   from?: ShapeId;
   to?: ShapeId;
   /** the edge each connector endpoint is anchored to (which dot was grabbed/dropped) */
@@ -93,8 +92,6 @@ export interface Shape {
   kind?: ComponentKind;
   /** component data, persisted as a nested Y.Map so concurrent field edits merge */
   props?: Record<string, unknown>;
-  /** reserved: ids of child shapes for container components (not yet persisted) */
-  children?: ShapeId[];
   createdBy: UserId;
 }
 
@@ -137,6 +134,10 @@ export interface Rect {
  * Never written to the document or to leveldb.
  */
 export interface Presence {
+  /** Awareness client id: one per open connection. A person with the board in
+   *  two tabs is two presences sharing one `userId`, so this is the only field
+   *  safe to key a list by. */
+  clientId: number;
   userId: UserId;
   name: string;
   /** one of the eight stable brand hues; drives cursor + selection tint */
@@ -149,7 +150,7 @@ export interface Presence {
   viewport?: { x: number; y: number; zoom: number };
 }
 
-/** The eight curated multiplayer hues — order is the stable assignment order. */
+/** The eight curated multiplayer hues. Order is the stable assignment order. */
 export const CURSOR_COLORS = [
   "#FF5C5C", // coral
   "#FF9F1C", // amber
@@ -160,8 +161,6 @@ export const CURSOR_COLORS = [
   "#5B5BD6", // indigo
   "#C44CD9", // orchid
 ] as const;
-
-export type CursorColor = (typeof CURSOR_COLORS)[number];
 
 /** Connection lifecycle as surfaced to the UI. */
 export type ConnectionState =

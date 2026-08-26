@@ -1,14 +1,15 @@
 /**
  * Presence read/write over the Yjs Awareness protocol.
  *
- * Presence is ephemeral — it rides the socket but is NEVER written to the
- * document or to leveldb (ADR-003). Outgoing cursor updates are throttled;
- * receivers interpolate for smoothness.
+ * Presence is ephemeral: it rides the socket but is never written to the
+ * document or to leveldb. Persisting it would grow the document without bound
+ * and replay stale cursors on the next load. Outgoing cursor updates are
+ * throttled; receivers interpolate for smoothness.
  */
 import type { Awareness } from "y-protocols/awareness";
 import type { Point, Presence, ShapeId } from "./types";
 
-/** Cursor update throttle window in milliseconds (~30–60ms). */
+/** Cursor update throttle window in milliseconds (roughly 30 to 60ms). */
 export const CURSOR_THROTTLE_MS = 40;
 
 function merge(awareness: Awareness, patch: Partial<Presence>): void {
@@ -47,6 +48,7 @@ export function readPresenceStates(awareness: Awareness): Presence[] {
     const p = state as Partial<Presence>;
     if (p && p.userId && p.name && p.color) {
       out.push({
+        clientId,
         userId: p.userId,
         name: p.name,
         color: p.color,

@@ -10,7 +10,7 @@ import { useUiStore } from "@/store/ui-store";
 import { worldToScreen } from "@/canvas/viewport/viewport";
 
 /** Subscribes to presence + viewport directly, so remote cursor frames re-render
- *  only this layer — not the whole canvas tree. */
+ *  only this layer, not the whole canvas tree. */
 export function CursorsLayer() {
   const presences = useUiStore((s) => s.presences);
   const viewport = useUiStore((s) => s.viewport);
@@ -21,7 +21,7 @@ export function CursorsLayer() {
         const s = worldToScreen(viewport, p.cursor);
         return (
           <div
-            key={p.userId}
+            key={p.clientId}
             className="absolute left-0 top-0 will-change-transform"
             style={{ transform: `translate(${s.x}px, ${s.y}px)`, transition: "transform 80ms linear" }}
           >

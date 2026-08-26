@@ -1,7 +1,7 @@
 /**
  * Follow-mode sync. When you follow a remote user, their broadcast viewport is
  * mirrored onto yours each time their presence updates. This lives in its own
- * leaf — which renders nothing — so subscribing to presence here doesn't
+ * leaf, which renders nothing, so subscribing to presence here doesn't
  * re-render the canvas; only this component reacts to the cursor-frequency
  * presence updates, and it does no work unless you're actually following someone.
  */
@@ -15,8 +15,8 @@ export function FollowSync() {
   const presences = useUiStore((s) => s.presences);
 
   useEffect(() => {
-    if (!followingId) return;
-    const target = presences.find((p) => p.userId === followingId);
+    if (followingId === null) return;
+    const target = presences.find((p) => p.clientId === followingId);
     const t = target?.viewport;
     if (!t) return;
     const vp = useUiStore.getState().viewport;

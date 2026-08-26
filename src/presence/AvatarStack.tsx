@@ -24,13 +24,13 @@ export function AvatarStack() {
       {others.length > 0 || overflow > 0 ? (
         <div className="flex items-center -space-x-2">
           {others.map((p) => {
-            const isFollowed = following === p.userId;
+            const isFollowed = following === p.clientId;
             return (
               <button
-                key={p.userId}
+                key={p.clientId}
                 type="button"
-                title={isFollowed ? `Following ${p.name} — click to stop` : `Follow ${p.name}`}
-                onClick={() => setFollowing(isFollowed ? null : p.userId)}
+                title={isFollowed ? `Following ${p.name}, click to stop` : `Follow ${p.name}`}
+                onClick={() => setFollowing(isFollowed ? null : p.clientId)}
                 className={`grid size-9 place-items-center rounded-full text-sm font-semibold text-white ring-2 ring-white transition-transform hover:z-10 hover:scale-110 active:scale-95 ${
                   isFollowed ? "ring-ink" : ""
                 }`}

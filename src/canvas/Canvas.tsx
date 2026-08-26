@@ -43,7 +43,7 @@ const CURSOR_FOR_TOOL: Record<string, string> = {
   sticky: "copy",
 };
 
-const MAX_IMAGE_BYTES = 2 * 1024 * 1024; // 2 MB — images are stored inline in the doc
+const MAX_IMAGE_BYTES = 2 * 1024 * 1024; // 2 MB; images are stored inline in the doc
 
 function center(s: Shape): Point {
   return { x: s.x + s.w / 2, y: s.y + s.h / 2 };
@@ -83,8 +83,8 @@ function cursorForSelected(shape: Shape, world: Point, zoom: number): string | n
 }
 
 
-/** Topmost non-connector shape whose body — expanded to include its connection
- *  dots — contains the world point. Drives the hover-to-connect affordance. */
+/** Topmost non-connector shape whose body, expanded to include its connection
+ *  dots, contains the world point. Drives the hover-to-connect affordance. */
 function hoverTest(shapes: Shape[], world: Point, margin: number): string | null {
   for (let i = shapes.length - 1; i >= 0; i--) {
     const s = shapes[i]!;
@@ -101,7 +101,7 @@ function hoverTest(shapes: Shape[], world: Point, margin: number): string | null
   return null;
 }
 
-/** Shortest distance from point p to the segment a–b. */
+/** Shortest distance from point p to the segment a-b. */
 function distToSegment(p: Point, ax: number, ay: number, bx: number, by: number): number {
   const dx = bx - ax;
   const dy = by - ay;
@@ -113,8 +113,8 @@ function distToSegment(p: Point, ax: number, ay: number, bx: number, by: number)
 
 export interface CanvasProps {
   boardId: string;
-  /** the signed-in user, or null for an anonymous/demo visitor */
-  user: { id: string; name: string; color: string } | null;
+  /** the signed-in user; every board requires a session */
+  user: { id: string; name: string; color: string };
 }
 
 export function Canvas({ boardId, user }: CanvasProps) {
@@ -135,13 +135,12 @@ export function Canvas({ boardId, user }: CanvasProps) {
   const commentMode = useUiStore((s) => s.commentMode);
 
   // Realtime: doc binding + throttled publishers. Presence (identity + remote
-  // cursors) is written by useBoard straight into the UI store — see the note
-  // there — so it never re-renders this component.
+  // cursors) is written by useBoard straight into the UI store, see the note
+  // there, so it never re-renders this component.
   const { publishCursor, publishSelection, publishViewport } = useBoard(boardId, user);
   const pubCursor = useRef(publishCursor);
   pubCursor.current = publishCursor;
 
-  // Broadcast selection changes to other clients.
   useEffect(() => {
     publishSelection(selection);
   }, [selection, publishSelection]);
@@ -151,6 +150,9 @@ export function Canvas({ boardId, user }: CanvasProps) {
     publishViewport(viewport);
   }, [viewport, publishViewport]);
 
+  // Built once, on the first render, before any effect or handler can read it,
+  // hence the cast rather than a `| null` type that every use site would have to
+  // re-check for a case that cannot happen.
   const ctxRef = useRef<ToolContext>(null as unknown as ToolContext);
   if (!ctxRef.current) {
     ctxRef.current = {
@@ -227,11 +229,11 @@ export function Canvas({ boardId, user }: CanvasProps) {
           const rc = resolveConnector(sh, byId);
           if (rc) resolved.push(rc);
         } else if (sh.id === editingId) {
-          // The textarea shows the text while editing — blank the canvas copy so
+          // The textarea shows the text while editing, so blank the canvas copy and
           // they don't render as two overlapping ghosts.
           resolved.push({ ...sh, content: "" });
         } else if (sh.type === "component" && sh.id === interiorId) {
-          // The DOM interior shows the editable text — blank the canvas copy so
+          // The DOM interior shows the editable text, so blank the canvas copy and
           // drawChrome renders bg/border/grid but no text (prevents ghosting at
           // non-1 zoom where scale() misaligns the canvas snapshot).
           resolved.push({
@@ -280,7 +282,9 @@ export function Canvas({ boardId, user }: CanvasProps) {
     });
   }
 
-  exportRef.current = () => exportBoardPng(boardId);
+  exportRef.current = () => {
+    exportBoardPng(boardId).catch((err: Error) => toast.error(err.message));
+  };
 
   const pendingInsert = useUiStore((s) => s.pendingInsert);
   useEffect(() => {
@@ -294,7 +298,7 @@ export function Canvas({ boardId, user }: CanvasProps) {
     const el = canvasRef.current;
     if (!el) return;
 
-    rafRef.current = null; // start clean — a stale id would block all repaints
+    rafRef.current = null; // start clean; a stale id would block all repaints
     const renderer = new Canvas2DRenderer();
     renderer.mount(el);
     rendererRef.current = renderer;
@@ -302,10 +306,10 @@ export function Canvas({ boardId, user }: CanvasProps) {
 
     // Place an image file on the board at a world point (drop or paste).
     const placeImage = (file: File, world: Point) => {
-      // The data URL is replicated to every client and persisted, so cap it —
+      // The data URL is replicated to every client and persisted, so cap it.
       // a huge paste would otherwise bloat the doc for everyone.
       if (file.size > MAX_IMAGE_BYTES) {
-        toast.error("That image is too large — keep it under 2 MB.");
+        toast.error("That image is too large. Keep it under 2 MB.");
         return;
       }
       const reader = new FileReader();
@@ -349,7 +353,7 @@ export function Canvas({ boardId, user }: CanvasProps) {
 
     const onWheel = (e: WheelEvent) => {
       e.preventDefault();
-      if (ui().followingId) ui().setFollowing(null); // manual nav breaks follow
+      if (ui().followingId !== null) ui().setFollowing(null); // manual nav breaks follow
       const vp = ui().viewport;
       if (e.ctrlKey || e.metaKey) {
         const rect = el.getBoundingClientRect();
@@ -382,7 +386,7 @@ export function Canvas({ boardId, user }: CanvasProps) {
       el.setPointerCapture(e.pointerId);
       const panRequested = spaceDown.current || e.button === 1 || ui().activeTool === "pan";
       if (panRequested) {
-        if (ui().followingId) ui().setFollowing(null);
+        if (ui().followingId !== null) ui().setFollowing(null);
         ui().setDragging(true);
         dragMode.current = "pan";
         el.style.cursor = "grabbing";
@@ -463,7 +467,7 @@ export function Canvas({ boardId, user }: CanvasProps) {
       ui().setContextMenu({ x: sx, y: sy });
     };
     const onPointerLeave = () => {
-      // Don't drop the broadcast cursor here — moving onto an overlay (toolbar /
+      // Don't drop the broadcast cursor here. Moving onto an overlay (toolbar /
       // textarea) fires this even though the pointer is still over the board.
       // The wrapper's pointerleave (below) handles a true exit.
       if (ui().hoveredId && !ui().connecting) {
@@ -492,7 +496,6 @@ export function Canvas({ boardId, user }: CanvasProps) {
 
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
-      // Undo / redo.
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "z") {
         e.preventDefault();
         if (e.shiftKey) useBoardStore.getState().redo();
@@ -504,13 +507,11 @@ export function Canvas({ boardId, user }: CanvasProps) {
         useBoardStore.getState().redo();
         return;
       }
-      // Export the board as a PNG.
       if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key.toLowerCase() === "e") {
         e.preventDefault();
         exportRef.current?.();
         return;
       }
-      // Copy / paste / duplicate.
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "c") {
         const sel = useUiStore.getState().selection;
         if (sel.length) {
@@ -589,7 +590,6 @@ export function Canvas({ boardId, user }: CanvasProps) {
         useBoardStore.getState().commitHistory(); // close this as its own undo step
         return;
       }
-      // Comment tool toggle.
       if (e.key.toLowerCase() === "c" && !e.metaKey && !e.ctrlKey && !e.altKey) {
         ui().setCommentMode(!ui().commentMode);
         return;
