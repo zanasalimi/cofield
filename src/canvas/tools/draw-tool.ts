@@ -46,7 +46,11 @@ export function createDrawTool(): Tool {
 
   function push(world: Point, ctx: ToolContext): void {
     if (!id) return;
-    if (points.length < MAX_STROKE_POINTS * 2) points.push(world.x, world.y);
+    // Past the cap the stroke stops growing, and re-writing the identical list
+    // would still produce a document update per pointermove: a full point array
+    // encoded and replicated to every peer for no change at all.
+    if (points.length >= MAX_STROKE_POINTS * 2) return;
+    points.push(world.x, world.y);
     ctx.updateShape(id, { points: [...points], ...bounds(points) });
   }
 
