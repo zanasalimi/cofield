@@ -54,4 +54,4 @@ State which of these you ran, and the result, in the PR description. If a change
 - **Presence (cursors, selection) is ephemeral** and lives on the Awareness channel. Never write it to the document.
 - All **geometry is computed in world coordinates**; the viewport transform is applied only at render time. Keep it that way so selection and transforms stay correct under zoom.
 
-If you're adding a non-obvious architectural decision, record it as an ADR in [docs/DECISIONS.md](docs/DECISIONS.md).
+If you're making a non-obvious architectural decision, say so in the pull request: what you chose, what you rejected, and what it costs. That belongs in the review, not in a file nobody reads twice.

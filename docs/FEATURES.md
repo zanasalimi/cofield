@@ -2,56 +2,59 @@
 
 Full feature specification. Each feature lists its sub-features, interactions, states, keyboard shortcuts, edge cases, failure modes, and acceptance criteria. Grouped by area, tiered **MVP / v1 / v2**.
 
-**State vocabulary** used throughout: `idle` · `empty` · `loading` · `connected` · `disconnected` · `reconnecting` · `error`. Any surface that can hold more than one of these specifies each.
+**State vocabulary** used throughout: `idle`, `empty`, `loading`, `connected`, `disconnected`, `reconnecting`, `error`. Any surface that can hold more than one of these specifies each.
 
 **Conventions.** "World coords" = the board's own coordinate system, independent of zoom/pan. "Screen coords" = pixels in the viewport. All geometry is computed in world coords; the viewport transform is applied only at render.
 
 ---
 
-## 0. Status snapshot: Cofield vs Miro
+## 0. What is built
 
-Where Cofield stands against Miro today. The goal is to match the **core
-collaborative canvas** (realtime CRDT, a 60fps canvas, multiplayer presence,
-self-hosted infra), not to reproduce Miro's full surface area of enterprise
-widgets and integrations. Per-area specs are in §1 to §11 below.
+Cofield aims at the core of a collaborative canvas: realtime CRDT sync, a canvas
+that stays responsive, multiplayer presence, and infrastructure you can host
+yourself. It does not chase the enterprise widget and integration surface. The
+per-area specs in sections 1 to 11 describe intended behaviour; this section is
+the honest state of the code.
 
-Legend: ✅ done · 🟡 partial · ❌ missing · ⛔ out of scope (won't build)
+**Canvas and navigation.** Infinite surface, pan, zoom to cursor with a readout
+and reset, dotted background, zoom to fit, and a live minimap with a draggable
+viewport indicator. No inertial zoom, and frames exist as a shape rather than a
+presentation mode.
 
-**Canvas & nav:** ✅ infinite canvas · ✅ pan · ✅ zoom-to-cursor + readout + reset · ✅ dotted bg · ❌ zoom-to-fit · ❌ minimap · ❌ inertial zoom · ❌ frames + presentation
+**Objects.** Sticky notes, rectangle, ellipse, triangle, diamond, star, text,
+freehand pen, and images. Connectors are created from hover dots, route straight,
+elbow or curved, carry endpoint arrowheads, follow the shapes they link, and
+cascade on delete. Frame, table and code components render through a registry,
+and nine diagram templates drop onto the board. Connector labels are missing, as
+are embeds and cards.
 
-**Objects:** ✅ sticky · ✅ rectangle · ✅ ellipse · ✅ text · ✅ freehand pen · ✅ connectors (hover-dot create, straight/elbow auto-route, follows shapes, selectable, delete-cascades) · ❌ more shapes (triangle/diamond/star/…) · ❌ connector labels/curved/endpoint styles · ❌ images/upload · ❌ links/embeds/cards · ❌ tables/Kanban/mind-map · ⛔ docs/video/app widgets
+**Editing.** Single select, shift multi-select, marquee, move, resize on eight
+handles, rotate, align, distribute, z-order, lock, copy, paste, duplicate, a
+right-click menu, and alignment snapping with guides and gap measurements. The
+contextual toolbar covers typography, fill, stroke, opacity and links. Undo and
+redo are wired to a per-user Yjs UndoManager, so Ctrl+Z never reverts a
+collaborator's work. Grouping is not built.
 
-**Editing:** ✅ select · ✅ shift multi-select · ✅ move · ✅ resize (8 handles) · ✅ rotate · 🟡 context toolbar (color + delete only; no font/line-style) · ❌ marquee select · ❌ **undo/redo** (biggest gap: Yjs UndoManager unwired) · ❌ copy/paste/duplicate · ❌ group/lock · ❌ z-order UI (`order` array exists) · ❌ align/distribute · ❌ snapping + smart guides · ❌ right-click menu
+**Realtime and collaboration.** Live cursors with stable names and colours, an
+avatar stack, click-to-follow another person's viewport, pinned comment threads,
+an offline IndexedDB cache with instant reopen, and CRDT simultaneous editing.
+Remote selection highlights are published on the awareness channel but nothing
+renders them yet. No reactions, voting or timers.
 
-**Realtime & collab:** ✅ live cursors (named, stable color) · ✅ CRDT simultaneous edit · ✅ offline cache + instant reopen · 🟡 presence (cursors yes, avatar stack no) · ❌ follow mode · ❌ comments/@mentions · ❌ reactions/voting/timer · ⛔ AI assist
+**Sharing and accounts.** Email signup and signin with scrypt hashing and rate
+limiting, a boards dashboard, invite by email with accept and reject, and
+membership gating that the websocket enforces as well as the page. Every board
+requires a session, the shared demo included, which any signed-in account joins
+on first visit. Roles are owner, editor and viewer, and a viewer is held
+read-only at the relay rather than trusted to behave. There is no public link, no
+folders and no search. Teams and orgs are not built; each board is its own room.
 
-**Sharing & accounts:** ✅ email signup/signin · ✅ boards dashboard · ✅ invite by email + accept/reject + membership-gated (incl. the websocket) · 🟡 public link (demo board only) · ❌ roles (view/comment/edit) · ❌ folders/search/templates · ⛔ teams/orgs (cut by design: per-board sharing)
+**Output and durability.** Boards persist to leveldb on the server and survive a
+restart. PNG export works. There is no version history and no SVG or PDF export.
 
-**Output & history:** ✅ durable server persistence (survives restart) · ❌ version history · ❌ export (PNG/PDF/SVG) · ⛔ integrations (Jira/Slack/…)
-
-### Recommended build order
-
-**Tier 1: canvas parity (core editing)**
-1. Undo / redo (wire Yjs UndoManager): table stakes
-2. Marquee select
-3. Copy / paste / duplicate
-4. Snapping + smart guides
-5. Right-click context menu + z-order controls
-6. Font controls in the context toolbar
-7. More shapes + connector color/width
-
-**Tier 2: collaboration depth**
-8. Avatar stack + follow mode
-9. Comments + reactions
-10. Sharing roles (view / edit)
-
-**Tier 3: showcase polish**
-11. Frames + presentation mode
-12. Templates, board search
-13. Export to PNG/PDF, minimap
-
-Everything ⛔ is intentionally skipped: enterprise surface area that costs weeks
-and falls outside the core canvas this project is built to show.
+**Known gaps in the architecture itself.** The renderer is Canvas2D behind a
+`Renderer` interface with no WebGL implementation yet, and tombstone snapshotting
+and GC are designed for but not written.
 
 ---
 
@@ -104,7 +107,7 @@ The board has no edges. Content lives in an unbounded world coordinate space; th
 ### 2.1 Tool state machine (MVP)
 A single active tool at a time; tools are small reducers over pointer/keyboard events. Switching tools cancels any in-progress operation.
 
-- **Tools & shortcuts.** `V` select · `H` pan/hand · `R` rectangle · `O` ellipse · `L` line/arrow · `P` pencil (freehand) · `S` sticky · `T` text.
+- **Tools & shortcuts.** `V` select, `H` pan/hand, `R` rectangle, `O` ellipse, `L` line/arrow, `P` pencil (freehand), `S` sticky, `T` text.
 - **Edge cases.** Pressing a tool shortcut mid-draw commits or cancels the current op and never leaves a half-shape; `Esc` cancels the current tool action and returns to select.
 - **Acceptance.** No sequence of tool switches can leave a partial/orphan shape in the document.
 
@@ -206,7 +209,7 @@ A single active tool at a time; tools are small reducers over pointer/keyboard e
 
 ### 4.4 Connection lifecycle & indicator (MVP)
 - A visible connection state at all times (HUD dot + toast on transition). Reconnect uses backoff; the user is told when offline and when resynced.
-- **States.** `connected` · `reconnecting` (pulsing, "Reconnecting…") · `disconnected` ("Offline, your edits are saved locally") · `error` (fatal, with a retry action).
+- **States.** `connected`, `reconnecting` (pulsing, "Reconnecting…"), `disconnected` ("Offline, your edits are saved locally"), `error` (fatal, with a retry action).
 - **Failure modes.** Server unreachable on load → board still opens from IndexedDB cache in `disconnected` state. Socket drops mid-session → `reconnecting`, edits continue locally. Auth/room rejection → `error` with a clear message.
 
 ### 4.5 Reconnect merge (MVP)

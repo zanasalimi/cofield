@@ -55,12 +55,12 @@ The client boxes are nearly symmetric with the server: each holds the same docum
 | `src/canvas/geometry/` | Hit-testing, marquee intersection, resize/rotate transforms, snapping. Pure functions in world space. | **yes** |
 | `src/canvas/viewport/` | Pan/zoom, world↔screen transforms, viewport culling. | **yes** |
 | `src/collab/doc.ts` | Yjs doc setup and typed shape helpers (the nested-`Y.Map`-per-shape model). | **yes** |
-| `src/collab/provider.ts` | WebSocket provider behind a `SyncProvider` interface (swappable transport). | partial |
-| `src/collab/awareness.ts` | Read/write presence on the Awareness channel; throttle outgoing cursor updates. | partial |
+| `src/collab/provider.ts` | WebSocket provider behind a `SyncProvider` interface (swappable transport); owns the connection-state machine. | **yes** |
+| `src/collab/awareness.ts` | Read/write presence on the Awareness channel; throttle outgoing cursor updates. | **yes** |
 | `src/collab/offline.ts` | `y-indexeddb` wiring for the offline cache + instant load. | no |
 | `src/presence/` | Cursor layer and avatar stack; renders ephemeral presence state. | no |
 | `src/store/` | Zustand: active tool and UI-only state. Never the document. | yes (logic) |
-| `src/ui/` | Re-themed shadcn primitives (toolbar, popover, dialog, avatar, command). | no |
+| `src/ui/` | Floating canvas chrome: toolbar, minimap, zoom, connection status. | no |
 | `server/index.ts` | `ws` server: auth-gates each room join, then relays sync + awareness. Durable doc storage is leveldb via `YPERSISTENCE`. | no |
 | `server/auth.ts` | Validates the session cookie + board membership before a socket joins a room. | no |
 
@@ -149,7 +149,7 @@ The hot path is the paint loop, and the main optimization is **viewport culling*
 
 ### Document growth and tombstones
 
-CRDTs accumulate tombstones for deleted items so that concurrent operations referencing them still resolve. Left unbounded, the document grows. The mitigation is periodic **snapshotting** (compact the current state) and optional document **GC**, with the tradeoff that GC can complicate very-late-arriving offline edits. This tradeoff is recorded in [DECISIONS.md](DECISIONS.md).
+CRDTs accumulate tombstones for deleted items so that concurrent operations referencing them still resolve. Left unbounded, the document grows. The mitigation is periodic **snapshotting** (compact the current state) and optional document **GC**, with the tradeoff that GC can complicate very-late-arriving offline edits. Neither is implemented yet.
 
 ## Failure and recovery
 
