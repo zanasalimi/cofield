@@ -1,4 +1,8 @@
-// src/canvas/ComponentInteriorLayer.tsx
+/**
+ * Mounts a component's editable DOM interior over its canvas shape while it is
+ * selected. The canvas keeps painting the shape's chrome; the overlay supplies
+ * the live text inputs the 2D context can't.
+ */
 "use client";
 
 import { useEffect } from "react";
@@ -39,10 +43,9 @@ export function ComponentInteriorLayer() {
   const Interior = def.Interior!;
   const tl = worldToScreen(viewport, { x: shape.x, y: shape.y });
 
-  // FIX: the outer div's width/height must be the UNSCALED shape dimensions.
-  // transform: scale(zoom) then brings the rendered size up to shape.w*zoom
-  // visually. Previously both were set, making the pointer-capture region
-  // shape.w * zoom² — at zoom 2 a 360px shape would eat a 720px hit area.
+  // Size the box in unscaled world units and let scale(zoom) do the magnifying.
+  // Pre-multiplying by zoom as well would square it, so at zoom 2 a 360px shape
+  // would claim a 720px pointer-capture region.
   return (
     <div
       className="pointer-events-auto absolute origin-top-left"

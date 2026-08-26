@@ -1,7 +1,7 @@
 /**
  * In-place text editor. While a sticky/text shape is being edited, a textarea
  * is positioned over it (world→screen) and each keystroke writes to the shape's
- * content — so edits sync to other clients live, character by character, through
+ * content, so edits sync to other clients live, character by character, through
  * the CRDT. Blur or Escape ends editing.
  */
 "use client";

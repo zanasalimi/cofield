@@ -2,7 +2,7 @@
  * Curated, professional starter templates. Each lays its nodes out in a local
  * coordinate space; the importer centres the bounding box on the drop point, so
  * only relative positions matter. Colours use the brand cursor hues with soft
- * tinted fills — readable, not the default flat-grey diagram look.
+ * tinted fills: readable, not the default flat-grey diagram look.
  */
 import type { Template, TemplateNode, TemplateEdge } from "./types";
 import type { Side, ShapeStyle } from "@/collab/types";
@@ -53,7 +53,7 @@ function box(
   };
 }
 
-/** A left/top-aligned block — used for UML class / ER bodies. */
+/** A left/top-aligned block, used for UML class / ER bodies. */
 function panel(ref: string, x: number, y: number, w: number, h: number, content: string, hue: Hue): TemplateNode {
   return box(ref, x, y, w, h, content, hue, "rect", { align: "left", valign: "top", fontSize: 13 });
 }
@@ -62,8 +62,7 @@ function edge(from: string, to: string, fromSide?: Side, toSide?: Side, style: P
   return { from, to, fromSide, toSide, style: { routing: "elbow", ...style } };
 }
 
-// ─── UI / UX ──────────────────────────────────────────────────────────────
-
+// UI / UX
 const onboardingFlow: Template = {
   id: "user-onboarding",
   name: "User Onboarding Flow",
@@ -126,8 +125,7 @@ const kanban: Template = {
   ],
 };
 
-// ─── Flowchart ──────────────────────────────────────────────────────────────
-
+// Flowchart
 const basicFlow: Template = {
   id: "basic-flowchart",
   name: "Process Flowchart",
@@ -177,8 +175,7 @@ const swimlane: Template = {
   ],
 };
 
-// ─── UML & ER ─────────────────────────────────────────────────────────────
-
+// UML and ER
 const umlClass: Template = {
   id: "uml-class",
   name: "UML Class Diagram",
@@ -186,11 +183,11 @@ const umlClass: Template = {
   category: "uml",
   nodes: [
     box("userH", 0, 0, 200, 36, "User", "blue", "rect", { bold: true }),
-    panel("userB", 0, 36, 200, 120, "- id: UUID\n- email: string\n- name: string\n———————\n+ login()\n+ logout()", "blue"),
+    panel("userB", 0, 36, 200, 120, "- id: UUID\n- email: string\n- name: string\n-------\n+ login()\n+ logout()", "blue"),
     box("orderH", 320, 0, 200, 36, "Order", "purple", "rect", { bold: true }),
-    panel("orderB", 320, 36, 200, 120, "- id: UUID\n- total: money\n- status: enum\n———————\n+ submit()\n+ cancel()", "purple"),
+    panel("orderB", 320, 36, 200, 120, "- id: UUID\n- total: money\n- status: enum\n-------\n+ submit()\n+ cancel()", "purple"),
     box("prodH", 320, 230, 200, 36, "Product", "green", "rect", { bold: true }),
-    panel("prodB", 320, 266, 200, 104, "- id: UUID\n- title: string\n- price: money\n———————\n+ inStock()", "green"),
+    panel("prodB", 320, 266, 200, 104, "- id: UUID\n- title: string\n- price: money\n-------\n+ inStock()", "green"),
   ],
   edges: [
     edge("userB", "orderB", "right", "left", { startArrow: "diamond", endArrow: "none", routing: "straight" }),
@@ -214,8 +211,7 @@ const erDiagram: Template = {
   ],
 };
 
-// ─── Cloud & System ─────────────────────────────────────────────────────────
-
+// Cloud and system
 const awsArch: Template = {
   id: "aws-web",
   name: "Cloud Web Architecture",

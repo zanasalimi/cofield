@@ -1,5 +1,5 @@
 /**
- * Template gallery — a bottom launcher that opens a categorised picker. Each
+ * Template gallery: a bottom launcher that opens a categorised picker. Each
  * card shows a live SVG preview rendered from the template's own nodes/edges
  * (not a screenshot), so the thumbnails always match what gets imported.
  * Picking a template drops it onto the board, centred on the current view.
@@ -106,7 +106,7 @@ export function TemplateGallery() {
       <DialogContent className="flex max-h-[85vh] w-full flex-col gap-0 overflow-hidden p-0 sm:max-w-3xl">
         <div className="border-b border-hairline px-5 py-4">
           <DialogTitle className="text-base font-semibold">Templates</DialogTitle>
-          <p className="text-xs text-ink-soft">Start from a professional diagram — it drops onto your board where you are.</p>
+          <p className="text-xs text-ink-soft">Start from a professional diagram. It drops onto your board where you are.</p>
         </div>
 
         <div className="flex flex-wrap gap-1 border-b border-hairline px-3 py-2">

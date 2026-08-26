@@ -4,7 +4,7 @@
  * Miro-style selection: a thin accent box with eight resize handles and a
  * rotation handle, drawn in screen space so they stay a constant size at any
  * zoom. The dotted background is a CSS layer on the canvas wrapper, not painted
- * here — cheaper and buttery during pan/zoom.
+ * here, which is cheaper and stays smooth during pan/zoom.
  */
 import type { Renderer, RenderScene } from "./Renderer";
 import type { Shape, ShapeStyle } from "@/collab/types";
@@ -66,7 +66,7 @@ export class Canvas2DRenderer implements Renderer {
     const dpr = this.dpr;
 
     ctx.setTransform(1, 0, 0, 1, 0, 0);
-    ctx.clearRect(0, 0, canvas.width, canvas.height); // transparent — the CSS grid shows through
+    ctx.clearRect(0, 0, canvas.width, canvas.height); // transparent, so the CSS grid shows through
 
     // World → device.
     const s = vp.zoom * dpr;
@@ -84,7 +84,7 @@ export class Canvas2DRenderer implements Renderer {
       }
     }
 
-    // Ghost connector being dragged — a solid preview of the relation it will create.
+    // Ghost connector being dragged: a solid preview of the relation it will create.
     if (scene.connecting) {
       ctx.strokeStyle = SELECT;
       ctx.lineWidth = 2;
@@ -98,7 +98,7 @@ export class Canvas2DRenderer implements Renderer {
 
     // Connection points are an animated DOM layer (HoverConnectLayer), not here.
 
-    // Alignment guides (screen space, magenta — Miro convention).
+    // Alignment guides (screen space, magenta, the Miro convention).
     if (scene.guides && scene.guides.length) {
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       ctx.strokeStyle = "#F24E9C";
@@ -187,7 +187,7 @@ function drawSelection(
   // Work in CSS px (device = css * dpr).
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
-  // While editing text, show only a calm box — no handles or rotation cluttering
+  // While editing text, show only a calm box, with no handles or rotation cluttering
   // the shape you're typing in.
   if (editing && shape.type !== "connector") {
     ctx.strokeStyle = SELECT;
@@ -196,7 +196,7 @@ function drawSelection(
     return;
   }
 
-  // A connector selects as a highlighted line with endpoint handles — no box,
+  // A connector selects as a highlighted line with endpoint handles: no box,
   // resize or rotation handles (its geometry is its two anchored shapes).
   if (shape.type === "connector") {
     const pts = shape.points;
@@ -232,7 +232,7 @@ function drawSelection(
     return;
   }
 
-  // A locked shape shows a muted dashed outline and no handles — it can't be
+  // A locked shape shows a muted dashed outline and no handles, since it can't be
   // transformed until unlocked.
   if (shape.locked) {
     ctx.strokeStyle = "#9A9A93";
@@ -416,7 +416,6 @@ function drawShape(ctx: CanvasRenderingContext2D, shape: Shape): void {
         }
         break;
       }
-        break;
       case "component": {
         try {
           getComponentDef(shape.kind!).drawChrome(ctx, shape, { x: 0, y: 0, zoom: 1 });
@@ -436,7 +435,7 @@ function drawShape(ctx: CanvasRenderingContext2D, shape: Shape): void {
       }
     }
 
-    // Centred text label for diagram nodes (diagrams.net style) — every box,
+    // Centred text label for diagram nodes (diagrams.net style). Every box,
     // ellipse, triangle, diamond and star can hold a label in its middle. Reset
     // the dash so underline/strike text never inherits the border pattern.
     ctx.setLineDash([]);

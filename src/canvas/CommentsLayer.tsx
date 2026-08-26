@@ -130,7 +130,7 @@ function Thread({ comment }: { comment: Comment }) {
       className="animate-pop-left pointer-events-auto absolute left-5 top-0 w-80 rounded-2xl border border-hairline bg-chrome p-3 shadow-toolbar"
       onPointerDown={(e) => e.stopPropagation()}
     >
-      {/* Header — only once the thread actually has comments. */}
+      {/* Header, only once the thread actually has comments. */}
       {!fresh ? (
         <header className="mb-2.5 flex items-center gap-1">
           <button

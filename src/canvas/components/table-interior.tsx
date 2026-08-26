@@ -1,4 +1,9 @@
-// src/canvas/components/table-interior.tsx
+/**
+ * Editable interior for the `table` component. Mirrors the canvas snapshot as a
+ * CSS grid of inputs while the shape is selected. Each keystroke rewrites the
+ * whole `cells` matrix. A table is small, and one value per edit keeps the
+ * merge semantics obvious.
+ */
 "use client";
 import type { Shape } from "@/collab/types";
 import { useBoardStore } from "@/store/board-store";

@@ -1,3 +1,9 @@
+/**
+ * The component-kind registry. A "component" is a shape whose look and editable
+ * fields are supplied by a plugin rather than hard-coded into the renderer, so
+ * adding a new kind means registering a definition here instead of editing the
+ * paint loop, the inspector, and the store.
+ */
 import type * as React from "react";
 import type { Shape, ComponentKind } from "@/collab/types";
 import type { Viewport } from "@/canvas/viewport/viewport";

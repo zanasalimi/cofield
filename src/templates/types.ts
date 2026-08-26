@@ -1,5 +1,5 @@
 /**
- * Template model — a reusable diagram (nodes + connectors) that can be dropped
+ * Template model: a reusable diagram (nodes + connectors) that can be dropped
  * onto a board. Nodes carry template-local refs; connectors reference those
  * refs and are re-linked to fresh shape ids at import time (see
  * board-store.importTemplate).

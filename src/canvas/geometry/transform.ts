@@ -1,25 +1,18 @@
 /**
  * Selection transforms (resize, rotate, move) in world coordinates. Pure.
  * All transforms compose correctly at any zoom because they never touch screen
- * space — the viewport applies zoom only at render.
+ * space; the viewport applies zoom only at render.
  */
 import type { Point, Rect, Shape } from "@/collab/types";
 
 export type ResizeHandle = "nw" | "n" | "ne" | "e" | "se" | "s" | "sw" | "w";
-
-export interface TransformModifiers {
-  /** preserve aspect ratio (Shift) */
-  aspect?: boolean;
-  /** transform from center (Alt) */
-  fromCenter?: boolean;
-}
 
 /** Minimum world-space size a shape may be resized to. */
 export const MIN_SHAPE_SIZE = 8;
 
 /** Apply a resize-handle drag (world delta) to a rect; clamps to MIN_SHAPE_SIZE
  *  and never inverts (the opposite edge stays put). */
-export function applyResize(rect: Rect, handle: ResizeHandle, delta: Point, _mods: TransformModifiers = {}): Rect {
+export function applyResize(rect: Rect, handle: ResizeHandle, delta: Point): Rect {
   let { x, y, w, h } = rect;
   const right = x + w;
   const bottom = y + h;
@@ -52,11 +45,6 @@ export function applyRotation(shape: Shape, pointer: Point, snapStepDeg?: number
     angle = Math.round(angle / step) * step;
   }
   return angle;
-}
-
-/** Translate shapes by a world-space delta (immutable). */
-export function translateShapes(shapes: Shape[], delta: Point): Shape[] {
-  return shapes.map((s) => ({ ...s, x: s.x + delta.x, y: s.y + delta.y }));
 }
 
 /** The eight resize-handle anchor points (world coords) for an axis-aligned rect. */

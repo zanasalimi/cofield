@@ -1,6 +1,6 @@
 /**
  * The Renderer interface. Canvas2DRenderer implements it now; a WebGLRenderer
- * implements the same interface later for 10k+ shapes (ADR-004). Tools and
+ * implements the same interface later for 10k+ shapes. Tools and
  * geometry never depend on a concrete renderer.
  */
 import type { Point, Rect, Shape } from "@/collab/types";
@@ -14,13 +14,13 @@ export interface RenderScene {
   viewport: Viewport;
   /** Selected shape ids (local). */
   selection: string[];
-  /** true while text is being edited — selection shows as a plain box, no handles. */
+  /** true while text is being edited; selection shows as a plain box, no handles. */
   editing?: boolean;
-  /** Shape the pointer hovers — shows connection dots so a relation can start without selecting. */
+  /** Shape the pointer hovers, which shows connection dots so a relation can start without selecting. */
   hovered?: string | null;
   /** A connector being dragged from a connection dot to the pointer (world coords). */
   connecting?: { from: Point; to: Point } | null;
-  /** Shape under the pointer while dragging a connector — highlighted as the drop target. */
+  /** Shape under the pointer while dragging a connector, highlighted as the drop target. */
   dropTarget?: string | null;
   /** In-progress marquee selection rectangle (world coords), or null. */
   marquee?: Rect | null;

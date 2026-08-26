@@ -1,5 +1,5 @@
 /**
- * The rotation handle — a small rotate icon above the selected shape (Miro/
+ * The rotation handle: a small rotate icon above the selected shape (Miro/
  * diagrams.net convention), not a bare circle. Dragging it spins the shape
  * about its centre; Shift snaps to 15°. It follows the shape as it rotates.
  */
@@ -42,7 +42,9 @@ export function RotateHandle() {
     try {
       (e.currentTarget as Element).setPointerCapture(e.pointerId);
     } catch {
-      /* best-effort */
+      // setPointerCapture throws when the pointer was already released (a fast
+      // click, or a synthetic event). The drag still works off the element's own
+      // move/up handlers, so there is nothing to recover.
     }
     rotating.current = true;
     useUiStore.getState().setDragging(true);

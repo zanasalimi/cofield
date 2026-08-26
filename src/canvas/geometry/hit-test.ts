@@ -1,5 +1,5 @@
 /**
- * Hit-testing in world coordinates. Pure functions — unit-tested without a DOM.
+ * Hit-testing in world coordinates. Pure functions, unit-tested without a DOM.
  * Topmost-wins semantics are the caller's responsibility (iterate z-order back
  * to front and take the first hit).
  */
@@ -32,7 +32,7 @@ export function hitTestTopmost(shapes: Shape[], point: Point): string | null {
 }
 
 /** The axis-aligned world bounds of a shape (post-rotation). Normalizes signed
- *  extents — an arrow drawn up/left keeps negative w/h for its direction, but its
+ *  extents, since an arrow drawn up/left keeps negative w/h for its direction, but its
  *  bounds (used by culling, marquee, hit-test) must always be positive. */
 export function shapeBounds(shape: Shape): Rect {
   if (!shape.rotation) {
@@ -91,14 +91,4 @@ export function unionBounds(shapes: Shape[]): Rect | null {
 /** True if two world rects intersect (boundary-inclusive). */
 export function rectsIntersect(a: Rect, b: Rect): boolean {
   return a.x <= b.x + b.w && b.x <= a.x + a.w && a.y <= b.y + b.h && b.y <= a.y + a.h;
-}
-
-/** True if rect `outer` fully contains rect `inner`. */
-export function rectContainsRect(outer: Rect, inner: Rect): boolean {
-  return (
-    inner.x >= outer.x &&
-    inner.y >= outer.y &&
-    inner.x + inner.w <= outer.x + outer.w &&
-    inner.y + inner.h <= outer.y + outer.h
-  );
 }

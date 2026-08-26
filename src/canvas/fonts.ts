@@ -22,7 +22,7 @@ export const FONT_STACKS: Record<string, () => string> = {
   Rounded: () => "'Comic Sans MS', 'Segoe Print', ui-rounded, sans-serif",
   Slab: () => "Rockwell, 'Roboto Slab', 'Courier New', serif",
   Condensed: () => "'Arial Narrow', 'Roboto Condensed', sans-serif",
-  Handwriting: () => fromVar("--font-hand", "'Comic Sans MS', cursive"),
+  Handwriting: () => fromVar("--font-caveat", "ui-rounded, cursive"),
 };
 
 export const FONT_NAMES = Object.keys(FONT_STACKS);

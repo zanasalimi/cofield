@@ -1,5 +1,5 @@
 /**
- * Viewport culling — the perf headline. Per frame, only shapes whose world
+ * Viewport culling, the perf headline. Per frame, only shapes whose world
  * bounds intersect the visible rect are returned for drawing. Pure and tested:
  * the cull set must equal exactly the shapes intersecting the viewport rect.
  */

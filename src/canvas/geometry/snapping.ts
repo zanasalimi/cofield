@@ -1,5 +1,5 @@
 /**
- * Alignment snapping for drag-move. Pure functions in world coordinates — no
+ * Alignment snapping for drag-move. Pure functions in world coordinates: no
  * DOM, unit-tested. A moving rectangle snaps its left / centre / right edges to
  * any other rectangle's left / centre / right (and likewise on Y), within a
  * pixel threshold, and reports guide lines to draw where it aligned.

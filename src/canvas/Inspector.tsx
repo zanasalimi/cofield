@@ -1,5 +1,5 @@
 /**
- * The component inspector — a right-side panel that renders one shadcn control
+ * The component inspector: a right-side panel that renders one shadcn control
  * per `CustomField` in the selected component's `customSchema`, writing every
  * change through `updateComponentProps`. Controls (Popover colour picker,
  * Popover select, Switch, Slider, Input) match the app's design language.

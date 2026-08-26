@@ -20,7 +20,7 @@ function dist(a: Point, b: Point): number {
   return Math.hypot(a.x - b.x, a.y - b.y);
 }
 
-/** Side of a shape whose edge midpoint is nearest a world point — the side a user
+/** Side of a shape whose edge midpoint is nearest a world point: the side a user
  *  "selects" by dropping a connector onto it. */
 function nearestSide(s: Shape, p: Point): Side {
   const cx = s.x + s.w / 2;
@@ -97,7 +97,7 @@ export function createSelectTool(): Tool {
           }
         }
 
-        // 2) Start a connector from a hovered shape's connection dot — works
+        // 2) Start a connector from a hovered shape's connection dot. Works
         //    whether or not the shape is selected, like Miro.
         const hoveredId = ctx.getHovered();
         if (hoveredId) {
@@ -163,7 +163,7 @@ export function createSelectTool(): Tool {
         origins = new Map();
         for (const id of next) {
           const s = ctx.getShape(id);
-          // Freehand strokes carry absolute world points — capture them so the
+          // Freehand strokes carry absolute world points, so capture them and the
           // move offsets the whole path, not just the bounding box.
           if (s && !s.locked) origins.set(id, { x: s.x, y: s.y, points: s.type === "draw" ? s.points?.slice() : undefined });
         }

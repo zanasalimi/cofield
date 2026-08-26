@@ -1,7 +1,7 @@
 /**
  * Text + sticky tools. Click to place a default-sized shape, select it, and drop
  * straight into editing so you can type immediately (an empty one is removed on
- * blur — see TextOverlay).
+ * blur; see TextOverlay).
  */
 import type { Tool, ToolContext, ToolEvent, ToolId } from "./types";
 

@@ -110,7 +110,7 @@ function Ghost({ shape, side, viewport }: { shape: Shape; side: Side; viewport: 
   );
 }
 
-/** A low-opacity dashed outline of a shape type — the clone you'd create. */
+/** A low-opacity dashed outline of a shape type: the clone you'd create. */
 function ShapeOutline({ type, w, h }: { type: ShapeType; w: number; h: number }) {
   const props = {
     fill: "rgba(66,98,255,0.08)",
@@ -163,7 +163,9 @@ function ConnectPoint({
     try {
       (e.currentTarget as Element).setPointerCapture(e.pointerId);
     } catch {
-      /* capture is best-effort */
+      // setPointerCapture throws when the pointer was already released (a fast
+      // click, or a synthetic event). The drag still works off the element's own
+      // move/up handlers, so there is nothing to recover.
     }
     start.current = { x: e.clientX, y: e.clientY };
     dragging.current = false;

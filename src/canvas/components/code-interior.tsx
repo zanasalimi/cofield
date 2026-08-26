@@ -1,4 +1,9 @@
-// src/canvas/components/code-interior.tsx
+/**
+ * Editable interior for the `code` component. The canvas draws a static snapshot
+ * of the code; this textarea is mounted over it only while the shape is selected,
+ * so typing writes straight to the component's nested props map (per-field, so
+ * two people editing different components never clobber each other).
+ */
 "use client";
 import type { Shape } from "@/collab/types";
 import { useBoardStore } from "@/store/board-store";
