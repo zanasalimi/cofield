@@ -10,8 +10,9 @@ export default defineConfig({
     },
   },
   test: {
-    // Geometry + CRDT-merge suites are pure and run without a DOM; the
-    // component suites opt into jsdom per-file with the environment comment.
+    // Every suite is pure: geometry, CRDT merge, the transport state machine,
+    // component draw calls against a stub 2D context. Nothing needs a DOM, so
+    // none is installed.
     environment: "node",
     include: ["tests/**/*.test.ts", "src/**/*.test.ts"],
     globals: true,
