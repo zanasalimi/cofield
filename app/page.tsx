@@ -1,5 +1,5 @@
 /**
- * Root entry. There is no marketing landing — Cofield is a tool, so the root
+ * Root entry. There is no marketing landing: Cofield is a tool, so the root
  * sends you where you're going: your boards if signed in, otherwise sign-in.
  */
 import { redirect } from "next/navigation";
