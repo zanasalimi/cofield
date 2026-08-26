@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getCurrentUser } from "@/auth/server";
+import { rateLimit } from "@/auth/rate-limit";
 import { getMemberRole } from "@/boards/server";
 import { createInvite } from "@/invites/server";
 
@@ -10,6 +11,12 @@ export async function POST(req: Request, { params }: { params: Promise<{ boardId
   const { boardId } = await params;
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+
+  // Keyed by account, not IP: these need a session anyway, and one busy person
+  // behind an office NAT should not throttle their colleagues.
+  if (!rateLimit(`invites:send:${user.id}`, 30, 60_000)) {
+    return NextResponse.json({ error: "Slow down a moment and try again." }, { status: 429 });
+  }
   // Owner-only: otherwise a viewer/editor could invite an address they control
   // and accept it as `editor`, escalating their own access.
   if (getMemberRole(boardId, user.id) !== "owner") {

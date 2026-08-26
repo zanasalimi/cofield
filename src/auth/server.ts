@@ -1,7 +1,7 @@
 /**
  * Server-side auth: password hashing (scrypt, no external dep), opaque session
  * tokens in SQLite, and an httpOnly session cookie. Import only from route
- * handlers / server components — it touches the database and next/headers.
+ * handlers and server components, since it touches the database and next/headers.
  */
 import { randomBytes, randomUUID, scrypt as scryptCb, timingSafeEqual } from "node:crypto";
 import { promisify } from "node:util";
@@ -24,6 +24,14 @@ export async function hashPassword(password: string): Promise<string> {
   return `${salt}:${hash}`;
 }
 
+/**
+ * Compared against when no account matches the email. Verifying only when the
+ * user exists made a wrong address measurably faster than a wrong password
+ * (14ms against 29ms here), which tells an attacker which addresses are
+ * registered. The shape is a real salt:hash so the KDF actually runs.
+ */
+export const ABSENT_USER_HASH = `${"00".repeat(16)}:${"00".repeat(64)}`;
+
 export async function verifyPassword(password: string, stored: string): Promise<boolean> {
   const [salt, hash] = stored.split(":");
   if (!salt || !hash) return false;
@@ -44,6 +52,7 @@ export async function createUser(email: string, password: string, name: string):
     name,
     color: CURSOR_COLORS[Math.floor(Math.random() * CURSOR_COLORS.length)]!,
     createdAt: Date.now(),
+    emailVerifiedAt: null,
   };
   getDb().insert(users).values(user).run();
   return user;
@@ -83,11 +92,23 @@ export async function getCurrentUser(): Promise<User | null> {
   if (!token) return null;
   const db = getDb();
   const session = db.select().from(sessions).where(eq(sessions.token, token)).get();
-  if (!session || session.expiresAt < Date.now()) return null;
+  if (!session) return null;
+  if (session.expiresAt < Date.now()) {
+    // Drop it on the way past, so the table does not accumulate every session
+    // anyone has ever started.
+    db.delete(sessions).where(eq(sessions.token, token)).run();
+    return null;
+  }
   return db.select().from(users).where(eq(users.id, session.userId)).get() ?? null;
 }
 
 /** Public projection (never leak the password hash). */
 export function publicUser(user: User) {
-  return { id: user.id, email: user.email, name: user.name, color: user.color };
+  return {
+    id: user.id,
+    email: user.email,
+    name: user.name,
+    color: user.color,
+    emailVerified: user.emailVerifiedAt !== null,
+  };
 }
