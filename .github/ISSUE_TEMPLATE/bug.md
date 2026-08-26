@@ -16,7 +16,7 @@ What you expected instead.
 
 ## Reproduction
 
-Steps to reproduce. Realtime bugs often need two clients — describe both:
+Steps to reproduce. Realtime bugs often need two clients, so describe both:
 
 1. Tab A: ...
 2. Tab B: ...

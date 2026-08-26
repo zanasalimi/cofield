@@ -1,8 +1,8 @@
 /**
- * Deterministic CRDT convergence tests — the property the whole architecture
+ * Deterministic CRDT convergence tests, the property the whole architecture
  * rests on. Script two (or more) Y.Docs, apply divergent concurrent ops, then
  * assert the docs converge to identical state. No DOM, no randomness in the
- * assertions, no real timers — convergence is a property of the data structure,
+ * assertions, no real timers. Convergence is a property of the data structure,
  * so it must be provable without a browser or a network.
  */
 import { describe, it, expect } from "vitest";
@@ -28,7 +28,7 @@ function rect(id: string, over: Partial<Shape> = {}): Shape {
   };
 }
 
-/** Full bidirectional state exchange — the merge under test. */
+/** Full bidirectional state exchange, the merge under test. */
 function exchange(a: BoardDoc, b: BoardDoc): void {
   Y.applyUpdate(b.doc, Y.encodeStateAsUpdate(a.doc));
   Y.applyUpdate(a.doc, Y.encodeStateAsUpdate(b.doc));
@@ -54,7 +54,7 @@ describe("CRDT convergence", () => {
     assertConverged(a, b);
     const s = readShape(a, "s1")!;
     expect(s.x).toBe(240); // A's move survived
-    expect(s.style.fill).toBe("#FF9F1C"); // B's colour survived — neither clobbered the other
+    expect(s.style.fill).toBe("#FF9F1C"); // B's colour survived; neither clobbered the other
   });
 
   it("concurrent z-order reorders converge to identical `order`", () => {
@@ -69,7 +69,7 @@ describe("CRDT convergence", () => {
     reorderShape(b, "s3", 0); // B sends s3 to the back, concurrently
     exchange(a, b);
 
-    assertConverged(a, b); // identical order on both — Yjs resolves the race deterministically
+    assertConverged(a, b); // identical order on both; Yjs resolves the race deterministically
     expect([...a.order.toArray()].sort()).toEqual(["s1", "s2", "s3"]); // no id lost or duplicated
   });
 
@@ -83,7 +83,7 @@ describe("CRDT convergence", () => {
     updateShape(b, "s1", { x: 99 }); // B edits the same shape concurrently
     exchange(a, b);
 
-    assertConverged(a, b); // both land in the same place — the delete tombstones the entry
+    assertConverged(a, b); // both land in the same place; the delete tombstones the entry
     expect(readShape(a, "s1")).toBeNull();
     expect(a.order.toArray()).toEqual([]);
   });
@@ -108,7 +108,7 @@ describe("CRDT convergence", () => {
     expect(ids).toContain("from-b"); // B's offline shape reached A
     const shared = readShape(a, "shared")!;
     expect(shared.x).toBe(50); // A's field
-    expect(shared.y).toBe(70); // B's field — both offline edits merged, nothing lost
+    expect(shared.y).toBe(70); // B's field; both offline edits merged, nothing lost
   });
 
   it("apply order does not affect the converged state", () => {

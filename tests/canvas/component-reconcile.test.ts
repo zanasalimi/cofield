@@ -4,7 +4,7 @@ import "@/canvas/components"; // registers all component kinds
 
 // Use the typed tableDef directly so reconcile preserves full TableProps types.
 // The typed def is narrower than ComponentDef<Record<string,unknown>>, but the
-// implementation is identical — this just avoids type-erased casts.
+// implementation is identical; this only avoids type-erased casts.
 const defaults = tableDef.defaults().props;
 
 describe("table reconcile", () => {

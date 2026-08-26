@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1
-# Yjs sync server — Node `ws` relay + y-leveldb durable store.
+# Yjs sync server: Node `ws` relay plus a y-leveldb durable store.
 # The leveldb directory is mounted as a named volume (see docker-compose.yml),
 # so boards survive `docker compose restart`.
 

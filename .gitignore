@@ -13,14 +13,14 @@ next-env.d.ts.bak
 build/
 dist/
 
-# Sync server durable store (leveldb) — never commit board data
+# Sync server durable store (leveldb). Never commit board data
 /data/
 *.ldb
 
 # Testing
 coverage/
 
-# Environment — never commit real values
+# Environment. Never commit real values
 .env
 .env.local
 .env.*.local
@@ -43,7 +43,7 @@ Thumbs.db
 # Vercel
 .vercel
 
-# Agent tooling / scratch — never ship in the repo
+# Agent tooling / scratch. Never ship in the repo
 .claude/
 CLAUDE.md
 .superpowers/

@@ -1,8 +1,8 @@
 # Models Cofield's real topology: a Next.js client and a standalone Yjs
 # sync server with a durable leveldb store. `docker compose up` runs the
-# whole stack from a fresh clone — open two browser tabs and edit live.
+# whole stack from a fresh clone. Open two browser tabs and edit live.
 services:
-  web: # Next.js client (standalone output) — writes accounts/boards to the shared db
+  web: # Next.js client (standalone output); writes accounts/boards to the shared db
     build:
       context: .
       dockerfile: Dockerfile.web
@@ -19,7 +19,7 @@ services:
       - sync
     restart: unless-stopped
 
-  sync: # Node ws + Yjs relay, y-leveldb persistence — reads the same auth db
+  sync: # Node ws + Yjs relay, y-leveldb persistence; reads the same auth db
     build:
       context: .
       dockerfile: Dockerfile.sync
@@ -29,10 +29,10 @@ services:
       - YPERSISTENCE=/data
       - DATABASE_FILE=/db/cofield.db
     volumes:
-      - canvas-data:/data # y-leveldb — boards survive restart
+      - canvas-data:/data # y-leveldb; boards survive restart
       - account-data:/db # same SQLite db the web app writes
     restart: unless-stopped
 
 volumes:
   canvas-data: {}
-  account-data: {} # accounts, sessions, memberships — one db both services share
+  account-data: {} # accounts, sessions, memberships; one db both services share

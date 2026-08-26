@@ -19,9 +19,9 @@ say how it stays convergent and whether it's document state or ephemeral presenc
 
 Where this sits relative to current scope:
 
-- [ ] MVP — core to the realtime canvas
-- [ ] v1 — multi-team, permissions, comments, snapping
-- [ ] v2 — WebGL, export, auth, embeds
+- [ ] MVP: core to the realtime canvas
+- [ ] v1: multi-team, permissions, comments, snapping
+- [ ] v2: WebGL, export, auth, embeds
 
 ## States to design
 

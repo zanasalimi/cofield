@@ -43,10 +43,10 @@ describe("asReadOnly", () => {
     conn.on("message", (d) => received.push([...(d as Uint8Array)]));
     const emit = (frame: Uint8Array) => listeners["message"]!.forEach((l) => l(frame));
 
-    emit(syncStep2); // write — dropped
-    emit(syncUpdate); // write — dropped
-    emit(syncStep1); // read — forwarded
-    emit(awareness); // presence — forwarded
+    emit(syncStep2); // write, dropped
+    emit(syncUpdate); // write, dropped
+    emit(syncStep1); // read, forwarded
+    emit(awareness); // presence, forwarded
 
     expect(received).toEqual([[0, 0], [1, 3, 9]]);
   });

@@ -6,7 +6,7 @@ build
 dist
 coverage
 
-# Durable store — board data must not leak into an image layer
+# Durable store: board data must not leak into an image layer
 data
 
 # Git / CI
@@ -30,6 +30,6 @@ docs/media
 *.md
 !README.md
 
-# Engineering setup — not needed at runtime
+# Engineering setup, not needed at runtime
 .claude
 CLAUDE.md
