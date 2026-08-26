@@ -1,15 +1,15 @@
 /**
  * Websocket room authorization. A board room may only be joined by a member.
  * The session cookie rides the upgrade request (same host), so the sync server
- * reads it from the handshake, validates the session, and checks membership —
- * directly against the same SQLite file the app writes. The "demo" room is a
- * public playground and is always allowed.
+ * reads it from the handshake, validates the session, and checks membership
+ * directly against the same SQLite file the app writes. Every room requires a
+ * session, the shared demo board included: the app joins a signed-in visitor to
+ * it before the socket opens, so it authorises here like any other board.
  *
  * Read-only: this never writes the database.
  */
 import Database from "better-sqlite3";
 
-const DEMO_BOARD = "demo";
 const SESSION_COOKIE = "cofield_session";
 
 let db: Database.Database | null = null;
@@ -34,12 +34,10 @@ function parseCookie(header: string | undefined, name: string): string | null {
 export type BoardAccess = "owner" | "editor" | "viewer";
 
 /**
- * The caller's role on a board, or null if they can't join at all. The demo room
- * is a public, writable playground (treated as editor). For a real board this is
- * the membership role, which the relay uses to gate writes for viewers.
+ * The caller's role on a board, or null if they can't join at all. Always the
+ * membership role, which the relay uses to gate writes for viewers.
  */
 export function boardRole(cookieHeader: string | undefined, boardId: string): BoardAccess | null {
-  if (boardId === DEMO_BOARD) return "editor";
   const token = parseCookie(cookieHeader, SESSION_COOKIE);
   if (!token) return null;
   try {
@@ -53,7 +51,7 @@ export function boardRole(cookieHeader: string | undefined, boardId: string): Bo
     if (!row) return null;
     return row.role === "owner" || row.role === "viewer" ? row.role : "editor";
   } catch {
-    // Tables not yet created or a read error — deny (demo already returned a role).
+    // Tables not yet created, or a read error. Deny.
     return null;
   }
 }

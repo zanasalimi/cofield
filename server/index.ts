@@ -1,17 +1,17 @@
 /**
- * Yjs sync server — a Node `ws` relay.
+ * Yjs sync server: a Node `ws` relay.
  *
  * The server is a relay, NOT an authority: it runs the standard y-websocket sync
  * protocol (sync step 1/2 + update relay) and broadcasts awareness; it never
  * transforms operations. Each room is one board. The join is auth-gated against
  * the session + board membership, and each room's document is persisted to
- * leveldb (via `YPERSISTENCE`) so boards survive a restart — only the document,
- * never the ephemeral awareness channel.
+ * leveldb (via `YPERSISTENCE`) so boards survive a restart. Only the document
+ * is stored, never the ephemeral awareness channel.
  *
  * Run with `pnpm sync` (dev) or as the `sync` service in docker-compose.
  *
- * NOTE: only y-websocket's bundled Yjs is loaded here on purpose — importing a
- * second `yjs` would trip Yjs's single-instance constructor checks.
+ * Only y-websocket's bundled Yjs is loaded here, on purpose: importing a second
+ * `yjs` would trip Yjs's single-instance constructor checks.
  */
 import { WebSocketServer } from "ws";
 import { boardRole } from "./auth";
@@ -34,7 +34,7 @@ function start(): void {
 
   wss.on("connection", (socket, request) => {
     // The room name is the URL path; gate the join on session + membership, then
-    // gate writes on role — a viewer joins read-only.
+    // gate writes on role, so a viewer joins read-only.
     const path = (request.url ?? "/").split("?")[0] ?? "/";
     let boardId: string;
     try {
@@ -52,7 +52,7 @@ function start(): void {
     setupWSConnection(role === "viewer" ? asReadOnly(socket) : socket, request);
 
     // Authorization is checked once at connect, so re-poll: if the member is
-    // removed or downgraded, drop the socket — the client reconnects (or stops)
+    // removed or downgraded, drop the socket. The client reconnects (or stops)
     // and is re-gated under its new role.
     const recheck = setInterval(() => {
       const current = boardRole(cookie, boardId);

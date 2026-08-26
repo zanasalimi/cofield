@@ -11,6 +11,9 @@ import { Button } from "@/components/ui/button";
 export default async function BoardsPage() {
   const user = await getCurrentUser();
   if (!user) redirect("/signin");
+  // Signing in on a half-finished account should carry on where it stopped
+  // rather than drop someone on a dashboard that cannot accept an invite.
+  if (user.emailVerifiedAt === null) redirect("/verify");
   const boards = listBoardsForUser(user.id);
   const firstName = user.name.trim().split(/\s+/)[0] ?? user.name;
 
@@ -33,7 +36,7 @@ export default async function BoardsPage() {
           <div>
             <h1 className="text-2xl font-semibold tracking-tight text-ink">Welcome back, {firstName}</h1>
             <p className="mt-1 text-sm text-ink-soft">
-              {boards.length === 0 ? "Let’s start your first board." : `You have ${boards.length} board${boards.length === 1 ? "" : "s"}.`}
+              {boards.length === 0 ? "Let's start your first board." : `You have ${boards.length} board${boards.length === 1 ? "" : "s"}.`}
             </p>
           </div>
           <NewBoardForm />
@@ -44,7 +47,7 @@ export default async function BoardsPage() {
             <div className="grid size-12 place-items-center rounded-2xl bg-ink/5 text-2xl">✶</div>
             <p className="mt-4 text-base font-semibold text-ink">No boards yet</p>
             <p className="mt-1 max-w-xs text-sm text-ink-soft">
-              Create your first board, then invite your team — or take the demo for a spin.
+              Create your first board and invite your team, or take the demo for a spin.
             </p>
             <div className="mt-5 flex gap-2">
               <NewBoardForm />
@@ -56,7 +59,7 @@ export default async function BoardsPage() {
         ) : (
           <div className="mt-7 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {boards.map((b) => (
-              <BoardCard key={b.id} board={{ id: b.id, name: b.name, role: b.role }} />
+              <BoardCard key={b.id} board={{ id: b.id, name: b.name, role: b.role, thumbnail: b.thumbnail }} />
             ))}
           </div>
         )}
