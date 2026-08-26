@@ -7,7 +7,8 @@
  */
 "use client";
 
-import { Bold, Italic, Underline, Strikethrough, AlignLeft, AlignCenter, AlignRight, AlignStartHorizontal, AlignCenterHorizontal, AlignEndHorizontal, Link2, Lock, Unlock, Trash2, Minus, Plus, Droplets, Scaling, ChevronDown, Square, Circle, Triangle, Diamond, Star, StickyNote, Type, Pipette, MessageSquarePlus, Spline, CornerDownRight, ArrowRight, ChevronRight, ArrowRightLeft } from "@/components/icons";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { MoreHorizontal, Bold, Italic, Underline, Strikethrough, AlignLeft, AlignCenter, AlignRight, AlignStartHorizontal, AlignCenterHorizontal, AlignEndHorizontal, Link2, Lock, Unlock, Trash2, Minus, Plus, Droplets, Scaling, ChevronDown, Square, Circle, Triangle, Diamond, Star, StickyNote, Type, Pipette, MessageSquarePlus, Spline, CornerDownRight, ArrowRight, ChevronRight, ArrowRightLeft } from "@/components/icons";
 import type { Shape, ShapeStyle, ShapeType, ArrowHead } from "@/collab/types";
 import { FONT_NAMES, fontStack } from "./fonts";
 import { Button } from "@/components/ui/button";
@@ -60,7 +61,7 @@ function ColorGrid({ colors, onPick, withNone }: { colors: string[]; onPick: (c:
           aria-label={`Colour ${c}`}
         />
       ))}
-      {/* Custom colour — a clean rainbow chip (no default input chrome). */}
+      {/* Custom colour: a clean rainbow chip (no default input chrome). */}
       <label
         title="Custom colour"
         className="grid size-8 cursor-pointer place-items-center rounded-md text-white transition-transform hover:scale-110 active:scale-95"
@@ -151,17 +152,97 @@ function WidthControl({ value, onPick, withNone }: { value?: number; onPick: (w:
   );
 }
 
+function MenuRow({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="flex min-h-9 items-center justify-between gap-3">
+      <span className="shrink-0 text-sm text-ink-soft">{label}</span>
+      <div className="flex items-center gap-0.5">{children}</div>
+    </div>
+  );
+}
+
+function MenuSection({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <section className="flex flex-col gap-1">
+      <h3 className="mb-0.5 text-[0.7rem] font-semibold uppercase tracking-wider text-ink-soft/70">{title}</h3>
+      {children}
+    </section>
+  );
+}
+
 export function SelectionToolbar() {
   const selection = useUiStore((s) => s.selection);
   const editingId = useUiStore((s) => s.editingId);
   const viewport = useUiStore((s) => s.viewport);
   const shapes = useBoardStore((s) => s.shapes);
 
-  if (selection.length !== 1) return null;
-  const shape = shapes.find((s) => s.id === selection[0]);
+  const selectedId = selection.length === 1 ? selection[0] : undefined;
+  const shape = selectedId ? shapes.find((s) => s.id === selectedId) : undefined;
   // Show for the selected shape unless THAT shape is being text-edited. (A stale
   // editingId pointing at a different/old shape must not suppress the toolbar.)
-  if (!shape || editingId === shape.id) return null;
+  const visible = !!shape && editingId !== shape.id;
+
+  // The bar is centred on the shape, so one near an edge would hang half of
+  // itself off-screen. Its width varies with the shape type and rewraps as the
+  // window narrows, so it is measured rather than assumed; the observer catches
+  // the rewrap, and the deps catch the bar appearing on a different shape.
+  // The full row measures about 881px with every control present. Above that it
+  // stays inline; below, the secondary controls move into a labelled panel.
+  // Decided in JS rather than CSS so only one set is ever in the DOM, which
+  // also keeps the duplicates out of the accessibility tree.
+  const [wide, setWide] = useState(true);
+  useEffect(() => {
+    const mq = window.matchMedia("(min-width: 940px)");
+    const sync = () => setWide(mq.matches);
+    sync();
+    mq.addEventListener("change", sync);
+    return () => mq.removeEventListener("change", sync);
+  }, []);
+
+  const boxRef = useRef<HTMLDivElement | null>(null);
+  const [fit, setFit] = useState({ half: 0, height: 0, bound: 0, boundY: 0 });
+  // Which sides still have controls out of view. A row that is simply cut off
+  // at the edge reads as broken rather than scrollable.
+  const [more, setMore] = useState({ start: false, end: false });
+  const readEdges = () => {
+    const el = boxRef.current;
+    if (!el) return;
+    const start = el.scrollLeft > 1;
+    const end = el.scrollLeft + el.clientWidth < el.scrollWidth - 1;
+    setMore((prev) => (prev.start === start && prev.end === end ? prev : { start, end }));
+  };
+  useLayoutEffect(() => {
+    const el = boxRef.current;
+    if (!el) return;
+    const measure = () => {
+      const parent = el.offsetParent as HTMLElement | null;
+      const next = {
+        half: el.offsetWidth / 2,
+        height: el.offsetHeight,
+        bound: parent ? parent.clientWidth : window.innerWidth,
+        boundY: parent ? parent.clientHeight : window.innerHeight,
+      };
+      setFit((prev) =>
+        Math.abs(prev.half - next.half) > 0.5 ||
+        Math.abs(prev.height - next.height) > 0.5 ||
+        prev.bound !== next.bound ||
+        prev.boundY !== next.boundY
+          ? next
+          : prev,
+      );
+    };
+    measure();
+    readEdges();
+    const observer = new ResizeObserver(() => {
+      measure();
+      readEdges();
+    });
+    observer.observe(el);
+    if (el.offsetParent) observer.observe(el.offsetParent as HTMLElement);
+    return () => observer.disconnect();
+  }, [visible, shape?.type]);
+
+  if (!visible || !shape) return null;
 
   const st = shape.style;
   const set = (patch: Partial<ShapeStyle>) => useBoardStore.getState().updateShape(shape.id, { style: { ...st, ...patch } });
@@ -172,7 +253,7 @@ export function SelectionToolbar() {
   const isDraw = shape.type === "draw";
   const isComponent = shape.type === "component";
   const isLine = isConnector || isDraw; // stroke-only objects (no fill, no border box)
-  // Components draw via their own props (the Inspector) — fill/border here are no-ops.
+  // Components draw via their own props (the Inspector), so fill/border here are no-ops.
   const hasFill = !isLine && !isImage && !isComponent && shape.type !== "text";
   const hasBorder = hasFill; // a filled shape has an editable border
   const hasText = LABELLED.has(shape.type);
@@ -180,20 +261,62 @@ export function SelectionToolbar() {
   const fs = st.fontSize ?? (shape.type === "text" ? 16 : 14);
 
   let world = { x: shape.x + shape.w / 2, y: shape.y };
+  let worldBottom = shape.y + shape.h;
   if (isConnector) {
     const a = shapes.find((s) => s.id === shape.from);
     const b = shapes.find((s) => s.id === shape.to);
-    if (a && b) world = { x: (a.x + a.w / 2 + b.x + b.w / 2) / 2, y: Math.min(a.y, b.y) };
+    if (a && b) {
+      world = { x: (a.x + a.w / 2 + b.x + b.w / 2) / 2, y: Math.min(a.y, b.y) };
+      worldBottom = Math.max(a.y + a.h, b.y + b.h);
+    }
   }
   const anchor = worldToScreen(viewport, world);
+  const shapeBottom = worldToScreen(viewport, { x: world.x, y: worldBottom }).y;
+  const GUTTER = 8;
+  const lo = fit.half + GUTTER;
+  const hi = fit.bound - fit.half - GUTTER;
+  // `fit.half` is 0 on the very first paint, before the measure lands.
+  const left = fit.half > 0 ? Math.min(Math.max(anchor.x, lo), Math.max(lo, hi)) : anchor.x;
+
+  // The bar wraps to several rows on a narrow screen, so a fixed offset above
+  // the shape ends up laid straight over it. Sit fully above when there is room,
+  // otherwise below, and only overlap when the shape fills the viewport.
+  const GAP = 12;
+  const above = anchor.y - fit.height - GAP;
+  const below = shapeBottom + GAP;
+  const fadeStart = "transparent 0, #000 20px";
+  const fadeEnd = "#000 calc(100% - 20px), transparent 100%";
+  const mask =
+    more.start && more.end
+      ? `linear-gradient(90deg, ${fadeStart}, ${fadeEnd})`
+      : more.end
+        ? `linear-gradient(90deg, #000 0, ${fadeEnd})`
+        : more.start
+          ? `linear-gradient(90deg, ${fadeStart}, #000 100%)`
+          : undefined;
+
+  const top =
+    fit.height === 0
+      ? Math.max(GUTTER, anchor.y - 76)
+      : above >= GUTTER
+        ? above
+        : below + fit.height <= fit.boundY - GUTTER
+          ? below
+          : Math.max(GUTTER, Math.min(above, fit.boundY - fit.height - GUTTER));
   const Sep = () => <div className="mx-0.5 h-7 w-px bg-hairline" />;
   const iconBtn = "[&_svg]:size-5";
   const CurType = TYPE_OPTIONS.find((t) => t.type === shape.type)?.Icon ?? Square;
 
   return (
     <div
-      className="animate-pop pointer-events-auto absolute z-10 flex max-w-[calc(100vw-1rem)] -translate-x-1/2 flex-wrap items-center justify-center gap-1 rounded-[20px] border border-hairline bg-chrome p-2 shadow-toolbar"
-      style={{ left: anchor.x, top: Math.max(8, anchor.y - 76) }}
+      ref={boxRef}
+      // One row that scrolls, not a block that wraps. Wrapping turned fourteen
+      // controls into a 300px slab that buried the shape it was editing; a
+      // single row stays about 56px tall whatever the width. Safe to clip here
+      // because every popover inside renders through a portal.
+      className="animate-pop pointer-events-auto absolute z-10 flex max-w-[calc(100vw-1rem)] -translate-x-1/2 flex-nowrap items-center gap-1 overflow-x-auto overscroll-x-contain rounded-[20px] border border-hairline bg-chrome p-2 shadow-toolbar [scrollbar-width:none] [&>*]:shrink-0 [&::-webkit-scrollbar]:hidden"
+      onScroll={readEdges}
+      style={{ left, top, maskImage: mask, WebkitMaskImage: mask }}
     >
       {canSwitch ? (
         <>
@@ -325,6 +448,9 @@ export function SelectionToolbar() {
         </Popover>
       ) : null}
 
+      {/* The full set, for viewports that can actually hold it. */}
+      {wide ? (
+        <>
       {hasText ? (
         <>
           {hasFill ? <Sep /> : null}
@@ -353,13 +479,17 @@ export function SelectionToolbar() {
           </Popover>
 
           <Sep />
-          <Button variant="ghost" size="icon-lg" title="Smaller" className={iconBtn} onClick={() => set({ fontSize: Math.max(8, fs - 2) })}>
-            <Minus />
-          </Button>
-          <span className="w-9 text-center text-base tabular-nums text-ink">{fs}</span>
-          <Button variant="ghost" size="icon-lg" title="Larger" className={iconBtn} onClick={() => set({ fontSize: Math.min(96, fs + 2) })}>
-            <Plus />
-          </Button>
+          {/* The bar wraps on narrow screens, and a stepper split across two
+              rows reads as three unrelated controls. Keep it one unit. */}
+          <div className="flex shrink-0 items-center">
+            <Button variant="ghost" size="icon-lg" title="Smaller" className={iconBtn} onClick={() => set({ fontSize: Math.max(8, fs - 2) })}>
+              <Minus />
+            </Button>
+            <span className="w-9 text-center text-base tabular-nums text-ink">{fs}</span>
+            <Button variant="ghost" size="icon-lg" title="Larger" className={iconBtn} onClick={() => set({ fontSize: Math.min(96, fs + 2) })}>
+              <Plus />
+            </Button>
+          </div>
 
           <Sep />
           {/* Font style: bold / italic / underline / strikethrough */}
@@ -493,6 +623,166 @@ export function SelectionToolbar() {
       <Button variant="ghost" size="icon-lg" title={shape.locked ? "Unlock" : "Lock"} className={`${iconBtn} ${shape.locked ? "bg-muted" : ""}`} onClick={() => useBoardStore.getState().setLocked([shape.id], !shape.locked)}>
         {shape.locked ? <Unlock /> : <Lock />}
       </Button>
+        </>
+      ) : null}
+
+      {/* Narrow viewports keep the shape's identity in the bar and nothing else.
+          A strip of unlabelled icons was the problem, so the panel names every
+          control and groups them under headings instead. */}
+      {!wide ? (
+      <Popover>
+        <PopoverTrigger asChild>
+          <Button variant="ghost" size="icon-lg" title="More options" className={iconBtn}>
+            <MoreHorizontal />
+          </Button>
+        </PopoverTrigger>
+        {/* A fixed max-height still overflows when the shape sits low and Radix
+            has to open downward, so cap to the room Radix actually measured and
+            let the panel scroll inside that. */}
+        <PopoverContent
+          align="end"
+          collisionPadding={12}
+          className="flex max-h-[var(--radix-popover-content-available-height)] w-[min(19rem,calc(100vw-1.5rem))] flex-col gap-4 overflow-y-auto"
+        >
+          {hasText ? (
+            <MenuSection title="Text">
+              <MenuRow label="Font">
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="ghost" size="sm" className="gap-1.5 px-2.5">
+                      <span style={{ fontFamily: fontStack(st.fontFamily) }}>{st.fontFamily ?? "Geist"}</span>
+                      <ChevronDown className="size-3.5 opacity-60" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent align="end" className="w-40 p-1">
+                    <div className="flex flex-col">
+                      {FONT_NAMES.map((name) => (
+                        <button
+                          key={name}
+                          type="button"
+                          onClick={() => set({ fontFamily: name })}
+                          className={`rounded-md px-2.5 py-2 text-left text-base transition-colors hover:bg-muted ${(st.fontFamily ?? "Geist") === name ? "bg-muted" : ""}`}
+                          style={{ fontFamily: fontStack(name) }}
+                        >
+                          {name}
+                        </button>
+                      ))}
+                    </div>
+                  </PopoverContent>
+                </Popover>
+              </MenuRow>
+
+              <MenuRow label="Size">
+                <Button variant="ghost" size="icon" title="Smaller" onClick={() => set({ fontSize: Math.max(8, fs - 2) })}>
+                  <Minus className="size-4" />
+                </Button>
+                <span className="w-8 text-center text-sm tabular-nums text-ink">{fs}</span>
+                <Button variant="ghost" size="icon" title="Larger" onClick={() => set({ fontSize: Math.min(96, fs + 2) })}>
+                  <Plus className="size-4" />
+                </Button>
+              </MenuRow>
+
+              <MenuRow label="Style">
+                <Button variant="ghost" size="icon" title="Bold" className={st.bold ? "bg-muted" : ""} onClick={() => set({ bold: !st.bold })}><Bold className="size-4" /></Button>
+                <Button variant="ghost" size="icon" title="Italic" className={st.italic ? "bg-muted" : ""} onClick={() => set({ italic: !st.italic })}><Italic className="size-4" /></Button>
+                <Button variant="ghost" size="icon" title="Underline" className={st.underline ? "bg-muted" : ""} onClick={() => set({ underline: !st.underline })}><Underline className="size-4" /></Button>
+                <Button variant="ghost" size="icon" title="Strikethrough" className={st.strike ? "bg-muted" : ""} onClick={() => set({ strike: !st.strike })}><Strikethrough className="size-4" /></Button>
+              </MenuRow>
+
+              <MenuRow label="Align">
+                <Button variant="ghost" size="icon" title="Left" className={(st.align ?? "left") === "left" ? "bg-muted" : ""} onClick={() => set({ align: "left" })}><AlignLeft className="size-4" /></Button>
+                <Button variant="ghost" size="icon" title="Centre" className={st.align === "center" ? "bg-muted" : ""} onClick={() => set({ align: "center" })}><AlignCenter className="size-4" /></Button>
+                <Button variant="ghost" size="icon" title="Right" className={st.align === "right" ? "bg-muted" : ""} onClick={() => set({ align: "right" })}><AlignRight className="size-4" /></Button>
+                <div className="mx-1 h-5 w-px bg-hairline" />
+                <Button variant="ghost" size="icon" title="Top" className={st.valign === "top" ? "bg-muted" : ""} onClick={() => set({ valign: "top" })}><AlignStartHorizontal className="size-4" /></Button>
+                <Button variant="ghost" size="icon" title="Middle" className={(st.valign ?? "middle") === "middle" ? "bg-muted" : ""} onClick={() => set({ valign: "middle" })}><AlignCenterHorizontal className="size-4" /></Button>
+                <Button variant="ghost" size="icon" title="Bottom" className={st.valign === "bottom" ? "bg-muted" : ""} onClick={() => set({ valign: "bottom" })}><AlignEndHorizontal className="size-4" /></Button>
+              </MenuRow>
+
+              <MenuRow label="Colour">
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="ghost" size="icon" title="Text colour">
+                      <span className="text-lg font-semibold leading-none" style={{ color: st.textColor ?? "#1A1A1A" }}>A</span>
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent align="end">
+                    <ColorGrid colors={TEXT_COLORS} onPick={(c) => set({ textColor: c })} />
+                  </PopoverContent>
+                </Popover>
+              </MenuRow>
+            </MenuSection>
+          ) : null}
+
+          <MenuSection title="Shape">
+            <MenuRow label="Opacity">
+              <div className="flex w-40 items-center gap-2">
+                <Slider min={10} max={100} value={[Math.round((st.opacity ?? 1) * 100)]} onValueChange={([v]) => set({ opacity: (v ?? 100) / 100 })} />
+                <span className="w-9 text-right text-sm tabular-nums text-ink-soft">{Math.round((st.opacity ?? 1) * 100)}%</span>
+              </div>
+            </MenuRow>
+
+            {!isConnector ? (
+              <MenuRow label="Size">
+                <Input
+                  aria-label="Width"
+                  type="number"
+                  value={Math.round(shape.w)}
+                  onChange={(e) => setShape({ w: Math.max(8, Number(e.target.value) || 8) })}
+                  className="h-8 w-[4.5rem]"
+                />
+                <span className="px-1 text-sm text-ink-soft">x</span>
+                <Input
+                  aria-label="Height"
+                  type="number"
+                  value={Math.round(shape.h)}
+                  onChange={(e) => setShape({ h: Math.max(8, Number(e.target.value) || 8) })}
+                  className="h-8 w-[4.5rem]"
+                />
+              </MenuRow>
+            ) : null}
+
+            <MenuRow label="Link">
+              <form
+                className="flex items-center gap-1.5"
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  const url = (new FormData(e.currentTarget).get("url") as string).trim();
+                  setShape({ link: url || undefined });
+                }}
+              >
+                <Input name="url" defaultValue={shape.link ?? ""} placeholder="https://..." className="h-8 w-36" />
+                <Button type="submit" size="sm">Save</Button>
+              </form>
+            </MenuRow>
+          </MenuSection>
+
+          <div className="flex gap-2 border-t border-hairline pt-3">
+            <Button
+              variant="outline"
+              size="sm"
+              className="flex-1 gap-1.5"
+              onClick={() => {
+                const id = useBoardStore.getState().addComment(shape.x + shape.w, shape.y);
+                useUiStore.getState().setOpenCommentId(id);
+              }}
+            >
+              <MessageSquarePlus className="size-4" />
+              Comment
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className={`flex-1 gap-1.5 ${shape.locked ? "bg-muted" : ""}`}
+              onClick={() => useBoardStore.getState().setLocked([shape.id], !shape.locked)}
+            >
+              {shape.locked ? <Unlock className="size-4" /> : <Lock className="size-4" />}
+              {shape.locked ? "Unlock" : "Lock"}
+            </Button>
+          </div>
+        </PopoverContent>
+      </Popover>
+      ) : null}
 
       <Sep />
       <Button

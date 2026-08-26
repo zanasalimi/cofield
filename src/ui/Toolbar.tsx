@@ -1,7 +1,12 @@
 /**
- * The main tool bar — a horizontal pill centred along the bottom (BrainScape /
+ * The main tool bar: a horizontal pill centred along the bottom (BrainScape /
  * FigJam convention). Shape tools collapse into a flyout that scales up from the
  * bar and shows the active shape. The comment tool arms click-to-pin.
+ *
+ * Buttons are 40px on phones rather than the 44px a touch target wants: eight
+ * tools at 44 need 352px and a 360px screen leaves 344 after the margins. A
+ * scrolling rail would buy the extra 4px but `overflow-x` would clip the shape
+ * and insert flyouts, which open upward out of the bar.
  */
 "use client";
 
@@ -45,7 +50,7 @@ function ToolButton({
           type="button"
           aria-label={label}
           onClick={onClick}
-          className={`grid size-10 place-items-center rounded-xl transition-transform duration-100 active:scale-90 sm:size-12 ${
+          className={`grid size-10 shrink-0 place-items-center rounded-xl transition-transform duration-100 active:scale-90 sm:size-12 ${
             active ? "bg-primary/10 text-primary" : "text-ink-soft hover:bg-ink/5 hover:text-ink"
           }`}
         >
@@ -95,7 +100,7 @@ export function Toolbar() {
         <StickyNote className="size-[22px]" />
       </ToolButton>
 
-      {/* Shapes flyout — button shows the active shape, opens upward. */}
+      {/* Shapes flyout: the button shows the active shape, opens upward. */}
       <div className="relative">
         <ToolButton
           active={SHAPE_IDS.has(activeTool)}
@@ -156,7 +161,7 @@ export function Toolbar() {
         <MessageSquare className="size-[22px]" />
       </ToolButton>
 
-      {/* Insert flyout — lists component kinds, opens upward, closes on outside click. */}
+      {/* Insert flyout: lists component kinds, opens upward, closes on outside click. */}
       <div className="relative">
         <ToolButton
           active={pendingInsert !== null}

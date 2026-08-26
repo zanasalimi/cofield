@@ -1,5 +1,5 @@
 /**
- * The pen sub-toolbar — appears above the main rail while the pen tool is active.
+ * The pen sub-toolbar. Appears above the main rail while the pen tool is active.
  * Switches brush mode (pen / highlighter / eraser) and, for the drawing modes,
  * sets stroke size and colour.
  */

@@ -115,7 +115,7 @@
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
 
-  /* ── Cofield canvas brand (not chrome) ── */
+  /* Cofield canvas brand (not chrome) */
   --color-paper: #fafaf7;
   --color-chrome: #ffffff;
   --color-hairline: #e7e5e0;
@@ -131,7 +131,7 @@
   --color-cursor-orchid: #c44cd9;
 
   --font-sans: var(--font-geist-sans), system-ui, sans-serif;
-  --font-hand: var(--font-hand), ui-rounded, cursive;
+  --font-hand: var(--font-caveat), ui-rounded, cursive;
 
   --radius-sticky: 2px;
   --shadow-toolbar: 0 1px 1px rgba(26, 26, 26, 0.04), 0 4px 12px rgba(26, 26, 26, 0.08),
@@ -178,7 +178,7 @@
   }
 }
 
-/* embertoast — retheme the dark default to Cofield's light, tactile surface.
+/* embertoast: retheme the dark default to Cofield's light, tactile surface.
    Status colours map to the brand cursor hues; type + radius match the chrome. */
 [data-embertoast-toaster] {
   --et-font: var(--font-sans);
@@ -209,7 +209,25 @@
   --et-btn-fg: #ffffff;
 }
 
-/* Auth/dashboard entrance — a calm staggered rise, strong ease-out. */
+/* The OTP field draws its own caret, since the real input sits off-screen. */
+@keyframes cofield-caret-blink {
+  0%,
+  70%,
+  100% {
+    opacity: 1;
+  }
+  20%,
+  50% {
+    opacity: 0;
+  }
+}
+@layer utilities {
+  .animate-caret-blink {
+    animation: cofield-caret-blink 1.2s ease-out infinite;
+  }
+}
+
+/* Auth/dashboard entrance: a calm staggered rise, strong ease-out. */
 @keyframes cofield-rise {
   from {
     opacity: 0;

@@ -1,6 +1,6 @@
 /**
- * Bottom-right minimap: a true scaled snapshot of the whole board — the same
- * renderer paints every shape, connector and component into a small canvas — with
+ * Bottom-right minimap: a true scaled snapshot of the whole board: the same
+ * renderer paints every shape, connector and component into a small canvas, with
  * a draggable viewport indicator and a Fit-to-View / zoom-preset dropdown. Click
  * or drag inside to recentre the canvas there.
  */
@@ -44,6 +44,7 @@ export function Minimap() {
   const shapes = useBoardStore((s) => s.shapes);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const rendererRef = useRef<Canvas2DRenderer | null>(null);
+  const paintRef = useRef<() => void>(() => {});
   const dragging = useRef(false);
   const [open, setOpen] = useState(false);
   const [area, setArea] = useState({ w: 1280, h: 720 });
@@ -56,8 +57,8 @@ export function Minimap() {
     return () => window.removeEventListener("resize", m);
   }, []);
 
-  // Own the renderer + size the backing to the canvas's REAL pixel box (measured),
-  // so the snapshot's aspect always matches what's on screen — no stretch.
+  // Own the renderer and size the backing to the canvas's measured pixel box,
+  // so the snapshot's aspect always matches what's on screen, with no stretch.
   useEffect(() => {
     const el = canvasRef.current;
     if (!el) return;
@@ -69,6 +70,11 @@ export function Minimap() {
       const h = el.clientHeight || MAP_H;
       r.resize(w, h, window.devicePixelRatio || 1);
       setSize({ w, h });
+      // resize() clears the backing store. Repaint here rather than leaving it
+      // to the effect below: the ResizeObserver's first callback usually reports
+      // the size we already have, so `size` never changes, the effect never
+      // re-runs, and the snapshot stays blank until the next edit.
+      paintRef.current();
     };
     measure();
     const ro = new ResizeObserver(measure);
@@ -82,9 +88,13 @@ export function Minimap() {
 
   const fit = fitContent(shapes, viewport, area, size);
 
+  paintRef.current = () => {
+    rendererRef.current?.render({ shapes: resolveScene(shapes), viewport: fit, selection: [] });
+  };
+
   // Repaint the snapshot whenever the board or framing changes.
   useEffect(() => {
-    rendererRef.current?.render({ shapes: resolveScene(shapes), viewport: fit, selection: [] });
+    paintRef.current();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [shapes, fit.x, fit.y, fit.zoom, size.w, size.h]);
 
@@ -132,8 +142,11 @@ export function Minimap() {
       ) : null}
 
       <div className="overflow-hidden rounded-2xl border border-hairline bg-chrome shadow-toolbar">
+        {/* overflow-hidden: the view indicator is sized from the real viewport, so
+            on a board whose content is smaller than the screen it comes out larger
+            than the map and would be drawn across the Fit-to-View row below. */}
         <div
-          className="relative cursor-pointer bg-[#FBFBFA]"
+          className="relative cursor-pointer overflow-hidden bg-[#FBFBFA]"
           style={{ height: MAP_H }}
           onPointerDown={(e) => {
             dragging.current = true;
