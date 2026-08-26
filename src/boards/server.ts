@@ -26,6 +26,7 @@ export function createBoard(ownerId: string, name: string): Board {
     name: name.trim() || "Untitled board",
     ownerId,
     createdAt: Date.now(),
+    thumbnail: null,
   };
   // One transaction so a failure can't orphan a board without its owner row.
   db.transaction((tx) => {
@@ -33,6 +34,57 @@ export function createBoard(ownerId: string, name: string): Board {
     tx.insert(memberships).values({ boardId: board.id, userId: ownerId, role: "owner", createdAt: Date.now() }).run();
   });
   return board;
+}
+
+/**
+ * The shared playground. Any signed-in account may use it, so membership is
+ * granted on first visit rather than by invitation, and the board row is
+ * created lazily so a fresh database needs no seeding. It is still a real
+ * membership: the websocket relay authorises it the same way as any other.
+ */
+export const DEMO_BOARD_ID = "demo";
+
+/**
+ * Nobody owns the shared board. Recording the first visitor as its owner handed
+ * that person the owner-only powers over a board everybody shares: inviting,
+ * changing other people's roles, removing them. This sentinel matches no user
+ * row, so `getMemberRole` never answers "owner" here and those routes refuse.
+ */
+const NO_OWNER = "system:demo";
+
+export function joinDemoBoard(userId: string): void {
+  const db = getDb();
+  db.transaction((tx) => {
+    tx.insert(boards)
+      .values({ id: DEMO_BOARD_ID, name: "Demo board", ownerId: NO_OWNER, createdAt: Date.now(), thumbnail: null })
+      .onConflictDoNothing()
+      .run();
+    // Repair a board, or a membership, created before the sentinel existed.
+    tx.update(boards).set({ ownerId: NO_OWNER }).where(eq(boards.id, DEMO_BOARD_ID)).run();
+    tx.insert(memberships)
+      .values({ boardId: DEMO_BOARD_ID, userId, role: "editor", createdAt: Date.now() })
+      .onConflictDoNothing()
+      .run();
+    tx.update(memberships)
+      .set({ role: "editor" })
+      .where(and(eq(memberships.boardId, DEMO_BOARD_ID), eq(memberships.role, "owner")))
+      .run();
+  });
+}
+
+export function getBoard(boardId: string): Board | undefined {
+  return getDb().select().from(boards).where(eq(boards.id, boardId)).get();
+}
+
+/** Store the canvas snapshot shown on the dashboard; null when the board is empty. */
+export function setBoardThumbnail(boardId: string, thumbnail: string | null): void {
+  getDb().update(boards).set({ thumbnail }).where(eq(boards.id, boardId)).run();
+}
+
+/** The board name is control-plane data: the dashboard, invites and sharing all
+ *  read it server-side, so a rename in the canvas header lands here too. */
+export function renameBoard(boardId: string, name: string): void {
+  getDb().update(boards).set({ name }).where(eq(boards.id, boardId)).run();
 }
 
 export function isMember(boardId: string, userId: string): boolean {
@@ -63,10 +115,6 @@ export function listBoardsForUser(userId: string): BoardWithRole[] {
   return rows
     .map((b) => ({ ...b, role: roleByBoard.get(b.id) ?? "viewer" }))
     .sort((a, b) => b.createdAt - a.createdAt);
-}
-
-export function getBoard(boardId: string): Board | undefined {
-  return getDb().select().from(boards).where(eq(boards.id, boardId)).get();
 }
 
 /** Real members of a board (joined users + their role), owner first. */
