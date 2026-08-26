@@ -4,6 +4,7 @@
  * client renders them. These round-trip a hostile shape through the doc.
  */
 import { describe, it, expect } from "vitest";
+import * as Y from "yjs";
 import { createBoardDoc, addShape, readShape } from "@/collab/doc";
 import type { Shape } from "@/collab/types";
 
@@ -43,5 +44,36 @@ describe("document sanitization", () => {
     const b = createBoardDoc();
     addShape(b, shape({ id: "huge", type: "draw", points: new Array(50_000).fill(0) }));
     expect(readShape(b, "huge")!.points!.length).toBe(20_000);
+  });
+});
+
+describe("payload limits at the document boundary", () => {
+  it("refuses an image far larger than the UI allows", () => {
+    const board = createBoardDoc(new Y.Doc());
+    const huge = "data:image/png;base64," + "A".repeat(6 * 1024 * 1024);
+    addShape(board, shape({ id: "big", type: "image", src: huge }));
+    // The 2MB cap lives in the sender's browser; a peer that skips it must not
+    // be able to replicate an unbounded blob to everyone.
+    expect(readShape(board, "big")!.src).toBeUndefined();
+  });
+
+  it("keeps an image within the limit", () => {
+    const board = createBoardDoc(new Y.Doc());
+    const ok = "data:image/png;base64," + "A".repeat(1024);
+    addShape(board, shape({ id: "ok", type: "image", src: ok }));
+    expect(readShape(board, "ok")!.src).toBe(ok);
+  });
+
+  it("truncates runaway text rather than dropping the shape's label", () => {
+    const board = createBoardDoc(new Y.Doc());
+    addShape(board, shape({ id: "wordy", type: "sticky", content: "x".repeat(50_000) }));
+    const content = readShape(board, "wordy")!.content!;
+    expect(content.length).toBe(20_000);
+  });
+
+  it("refuses an absurdly long link", () => {
+    const board = createBoardDoc(new Y.Doc());
+    addShape(board, shape({ id: "linky", link: "https://example.com/" + "a".repeat(4000) }));
+    expect(readShape(board, "linky")!.link).toBeUndefined();
   });
 });

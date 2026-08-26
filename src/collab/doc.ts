@@ -110,13 +110,26 @@ function toYMap(shape: Shape): Y.Map<unknown> {
 // The document is replicated from untrusted peers, so sanitize the few fields a
 // malicious editor could weaponize when another client renders them.
 const MAX_POINTS = 20_000; // a freehand stroke is a few hundred; beyond this is abuse
-/** Allow only http(s) URLs — blocks `javascript:`/`data:` hrefs (XSS on a link). */
+/** A sticky holds a sentence or two. Anything past this is not a label. */
+const MAX_CONTENT = 20_000;
+/** The UI refuses images over 2MB, but that check runs in the sender's browser.
+ *  A peer that skips it would otherwise replicate an unbounded data URL to
+ *  everyone and into leveldb, so the size is enforced again on the way out of
+ *  the document. Base64 is 4/3 of the bytes it encodes. */
+const MAX_IMAGE_SRC = Math.ceil((2 * 1024 * 1024 * 4) / 3) + 1024;
+
+/** Allow only http(s) URLs. Blocks `javascript:`/`data:` hrefs (XSS on a link). */
 function safeLink(u: unknown): string | undefined {
-  return typeof u === "string" && /^https?:\/\//i.test(u) ? u : undefined;
+  return typeof u === "string" && u.length <= 2048 && /^https?:\/\//i.test(u) ? u : undefined;
 }
 /** Allow an inline image or an http(s) URL; reject anything else. */
 function safeImageSrc(u: unknown): string | undefined {
-  return typeof u === "string" && (/^data:image\//i.test(u) || /^https?:\/\//i.test(u)) ? u : undefined;
+  if (typeof u !== "string" || u.length > MAX_IMAGE_SRC) return undefined;
+  return /^data:image\//i.test(u) || /^https?:\/\//i.test(u) ? u : undefined;
+}
+/** Trim rather than drop: a truncated label still shows what the shape is. */
+function safeContent(u: unknown): string | undefined {
+  return typeof u === "string" ? u.slice(0, MAX_CONTENT) : undefined;
 }
 
 function fromYMap(ym: Y.Map<unknown>): Shape | null {
@@ -132,7 +145,7 @@ function fromYMap(ym: Y.Map<unknown>): Shape | null {
     h: ym.get("h") as number,
     rotation: (ym.get("rotation") as number) ?? 0,
     style: ym.get("style") as ShapeStyle,
-    content: ym.get("content") as string | undefined,
+    content: safeContent(ym.get("content")),
     points: Array.isArray(rawPoints) ? (rawPoints as number[]).slice(0, MAX_POINTS) : undefined,
     src: safeImageSrc(ym.get("src")),
     from: ym.get("from") as string | undefined,
@@ -176,7 +189,7 @@ export function updateComponentProps(board: BoardDoc, id: ShapeId, patch: Record
   });
 }
 
-/** Remove a shape and its z-order entry (produces a tombstone — expected). */
+/** Remove a shape and its z-order entry (produces a tombstone, which is expected). */
 export function removeShape(board: BoardDoc, id: ShapeId): void {
   board.doc.transact(() => {
     board.shapes.delete(id);
@@ -191,7 +204,7 @@ export function readShape(board: BoardDoc, id: ShapeId): Shape | null {
   return ym ? fromYMap(ym) : null;
 }
 
-/** Snapshot all shapes in z-order — the renderer's cull-pass input. */
+/** Snapshot all shapes in z-order, the renderer's cull-pass input. */
 export function readShapesInOrder(board: BoardDoc): Shape[] {
   const out: Shape[] = [];
   for (const id of board.order.toArray()) {
@@ -222,7 +235,7 @@ export function readMeta(board: BoardDoc): Record<string, unknown> {
 /**
  * An undo manager scoped to the document's shapes and z-order. It tracks only
  * locally-originated transactions (origin `null`); updates applied by the
- * websocket provider carry the provider as origin and are ignored — so undo is
+ * websocket provider carry the provider as origin and are ignored, so undo is
  * per-user and never reverts a collaborator's edit. `captureTimeout` groups a
  * rapid burst (e.g. a drag) into a single undo step.
  */
