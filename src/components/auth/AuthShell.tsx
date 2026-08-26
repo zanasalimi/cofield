@@ -1,12 +1,12 @@
 /**
- * Auth layout — a professional split: a quiet ink brand rail (desktop) beside the
+ * Auth layout: a split with a quiet ink brand rail (desktop) beside the
  * form. No marketing landing; this is the front door, so it stays minimal and
  * gets out of the way. The rail collapses on mobile to just the wordmark.
  */
 import Link from "next/link";
 
 const POINTS = [
-  { hue: "#2D9CDB", text: "Live multiplayer — cursors, presence, and selection in real time." },
+  { hue: "#2D9CDB", text: "Live multiplayer: cursors, presence, and selection in real time." },
   { hue: "#3FA34D", text: "Offline-safe by design. Concurrent edits converge, never clobber." },
   { hue: "#FF9F1C", text: "Diagrams, wireframes and flows, all on one infinite canvas." },
 ];
@@ -14,7 +14,7 @@ const POINTS = [
 export function AuthShell({ children }: { children: React.ReactNode }) {
   return (
     <main className="grid min-h-dvh lg:grid-cols-[minmax(0,1.05fr)_minmax(0,1fr)]">
-      {/* Brand rail — desktop only */}
+      {/* Brand rail, desktop only */}
       <aside className="relative hidden overflow-hidden bg-ink px-12 py-14 text-white lg:flex lg:flex-col lg:justify-between">
         <div
           className="pointer-events-none absolute inset-0 opacity-[0.06]"

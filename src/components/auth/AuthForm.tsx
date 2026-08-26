@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useState, type FormEvent, type KeyboardEvent } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { toast } from "@embertoast/react";
@@ -32,12 +32,31 @@ export function AuthForm({ mode }: { mode: "signin" | "signup" }) {
     return next;
   }
 
+  function advanceOnEnter(e: KeyboardEvent<HTMLFormElement>) {
+    if (e.key !== "Enter" || e.shiftKey) return;
+    const target = e.target as HTMLElement;
+    if (target.tagName !== "INPUT") return;
+
+    const fields = Array.from(e.currentTarget.querySelectorAll<HTMLInputElement>("input"));
+    const next = fields[fields.indexOf(target as HTMLInputElement) + 1];
+    if (!next) return; // last field: let the form submit as normal
+    e.preventDefault();
+    next.focus();
+    next.select();
+  }
+
   async function onSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const fd = new FormData(e.currentTarget);
     const found = validate(fd);
     setErrors(found);
-    if (Object.keys(found).length > 0) return;
+    if (Object.keys(found).length > 0) {
+      // Put the cursor on the first problem rather than making someone hunt for
+      // the red text.
+      const first = (["name", "email", "password"] as const).find((k) => found[k]);
+      if (first) e.currentTarget.querySelector<HTMLInputElement>(`#${first}`)?.focus();
+      return;
+    }
 
     setLoading(true);
     const body = isSignup
@@ -57,8 +76,9 @@ export function AuthForm({ mode }: { mode: "signin" | "signup" }) {
         setLoading(false);
         return;
       }
-      toast.success(isSignup ? "Account created — welcome to Cofield." : "Signed in.");
-      router.push("/boards");
+      const data = (await res.json().catch(() => ({}))) as { needsVerification?: boolean };
+      toast.success(isSignup ? "Account created. Welcome to Cofield." : "Signed in.");
+      router.push(data.needsVerification ? "/verify" : "/boards");
       router.refresh();
     } catch {
       toast.error("Couldn't reach the server. Check your connection.");
@@ -73,7 +93,10 @@ export function AuthForm({ mode }: { mode: "signin" | "signup" }) {
         {isSignup ? "Start a board and bring your team in." : "Sign in to pick up where you left off."}
       </p>
 
-      <form onSubmit={onSubmit} noValidate className="mt-8 space-y-4">
+      {/* Enter moves to the next field and only submits from the last one.
+          Submitting from the first field of a three-field form means a round
+          trip to be told the other two are empty. */}
+      <form onSubmit={onSubmit} noValidate onKeyDown={advanceOnEnter} className="mt-8 space-y-4">
         {isSignup && (
           <Field label="Name" error={errors.name}>
             <Input id="name" name="name" autoComplete="name" placeholder="Ada Lovelace" aria-invalid={!!errors.name} className="h-11" />

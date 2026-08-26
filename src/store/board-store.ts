@@ -1,5 +1,5 @@
 /**
- * Board store — the reactive shape cache the renderer reads from. When a Yjs
+ * Board store: the reactive shape cache the renderer reads from. When a Yjs
  * BoardDoc is bound (multiplayer), mutations are written to the document (the
  * source of truth) and the cache is refreshed by the doc observer; unbound, it
  * falls back to a local list (single-player / SSR). The surface is identical
@@ -173,7 +173,7 @@ export interface BoardState {
   /** Bind/unbind the Yjs document. */
   bindDoc: (board: BoardDoc) => void;
   unbindDoc: () => void;
-  /** Replace the cache — called by the doc observer. */
+  /** Replace the cache. Called by the doc observer. */
   _setShapes: (shapes: Shape[]) => void;
 }
 
@@ -331,7 +331,7 @@ export const useBoardStore = create<BoardState>((set, get) => ({
   updateComponentProps: (id, patch) => {
     const shape = get().shapes.find((sh) => sh.id === id);
     if (!shape || shape.type !== "component" || !shape.kind) {
-      // Fallback: no shape cached yet (e.g. just bound, cache not populated) — write patch only.
+      // Fallback: no shape cached yet (e.g. just bound, cache not populated), so write the patch only.
       if (bound) docUpdateComponentProps(bound, id, patch);
       else set((s) => ({ shapes: s.shapes.map((sh) => (sh.id === id ? { ...sh, props: { ...sh.props, ...patch } } : sh)) }));
       return;
@@ -369,7 +369,7 @@ export const useBoardStore = create<BoardState>((set, get) => ({
     else if (side === "left") x = s.x - s.w - GAP;
     else if (side === "bottom") y = s.y + s.h + GAP;
     else y = s.y - s.h - GAP;
-    // Clone the source shape (same type / kind / props / content / style) — the
+    // Clone the source shape (same type / kind / props / content / style). The
     // hover preview shows exactly this shape, so the click must create that
     // object, not always a rectangle.
     const newId = nextId();

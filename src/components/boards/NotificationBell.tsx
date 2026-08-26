@@ -20,19 +20,29 @@ export function NotificationBell() {
   const [invites, setInvites] = useState<IncomingInvite[]>([]);
   const [acting, setActing] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
+  const [loadError, setLoadError] = useState(false);
 
-  const load = () =>
-    fetch("/api/invites")
-      .then((r) => r.json())
-      .then((d: { invites?: IncomingInvite[] }) => setInvites(d.invites ?? []))
-      .catch(() => {});
+  // A failed poll can't interrupt with a toast, because the bell is background
+  // chrome. But a permanently empty inbox that is really a broken fetch is
+  // worse, so the panel says so when you open it.
+  const load = async () => {
+    try {
+      const res = await fetch("/api/invites");
+      if (!res.ok) throw new Error(String(res.status));
+      const data = (await res.json()) as { invites?: IncomingInvite[] };
+      setInvites(data.invites ?? []);
+      setLoadError(false);
+    } catch {
+      setLoadError(true);
+    }
+  };
 
   useEffect(() => {
-    load();
+    void load();
   }, []);
   // Refresh the moment the panel opens, so it never shows a stale count.
   useEffect(() => {
-    if (open) load();
+    if (open) void load();
   }, [open]);
 
   async function act(inv: IncomingInvite, action: "accept" | "reject") {
@@ -47,10 +57,10 @@ export function NotificationBell() {
       setInvites((prev) => prev.filter((i) => i.id !== inv.id));
       setActing(null);
       if (action === "accept") {
-        toast.success(`You joined “${inv.boardName}”.`);
+        toast.success(`You joined "${inv.boardName}".`);
         router.refresh();
       } else {
-        toast(`Declined the invite to “${inv.boardName}”.`);
+        toast(`Declined the invite to "${inv.boardName}".`);
       }
     } catch {
       toast.error("Couldn't reach the server. Check your connection.");
@@ -94,8 +104,17 @@ export function NotificationBell() {
             <div className="grid size-12 place-items-center rounded-2xl bg-ink/[0.04] text-ink-soft">
               <Inbox className="size-5" />
             </div>
-            <p className="mt-3.5 text-sm font-semibold text-ink">You’re all caught up</p>
-            <p className="mt-1 text-xs text-ink-soft">Board invitations will show up here.</p>
+            {loadError ? (
+              <>
+                <p className="mt-3.5 text-sm font-semibold text-ink">Couldn’t load invitations</p>
+                <p className="mt-1 text-xs text-ink-soft">Check your connection and reopen this panel.</p>
+              </>
+            ) : (
+              <>
+                <p className="mt-3.5 text-sm font-semibold text-ink">You’re all caught up</p>
+                <p className="mt-1 text-xs text-ink-soft">Board invitations will show up here.</p>
+              </>
+            )}
           </div>
         ) : (
           <ul className="max-h-[24rem] overflow-y-auto border-t border-hairline p-1.5">

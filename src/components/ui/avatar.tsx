@@ -2,7 +2,7 @@ import { cn } from "@/lib/utils";
 import { initialOf } from "@/lib/initials";
 
 /**
- * A coloured initial badge — the one avatar primitive used for people and boards.
+ * A coloured initial badge, the one avatar primitive used for people and boards.
  * Defaults to a circle; pass `className` for size, shape (e.g. `rounded-xl`),
  * rings or shadows. `color` is the background (a brand hue or a stored colour).
  */

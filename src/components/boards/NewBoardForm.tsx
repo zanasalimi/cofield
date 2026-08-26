@@ -30,7 +30,7 @@ export function NewBoardForm() {
         return;
       }
       const { board } = (await res.json()) as { board: { id: string; name: string } };
-      toast.success(`“${board.name}” is ready.`);
+      toast.success(`"${board.name}" is ready.`);
       router.push(`/board/${board.id}`);
     } catch {
       toast.error("Couldn't reach the server. Check your connection.");

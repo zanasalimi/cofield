@@ -1,13 +1,13 @@
 /**
- * Share board — invite people by email and manage the REAL member list (owner /
+ * Share board: invite people by email and manage the real member list (owner /
  * can edit / can view). Members and pending invites come from the server (the
  * board's membership + invites tables), so the list reflects who actually has
  * access. Inviting and role changes/removals are owner-gated server calls.
- * Access is membership-based — there is no public-link mode to misrepresent.
+ * Access is membership-based; there is no public-link mode to misrepresent.
  */
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Dialog, DialogContent, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -73,11 +73,14 @@ export function ShareButton({ boardId, canShare }: { boardId: string; canShare: 
   const [open, setOpen] = useState(false);
   const [invitee, setInvitee] = useState("");
   const [inviteError, setInviteError] = useState<string | null>(null);
-  const [copied, setCopied] = useState(false);
+  const [copyState, setCopyState] = useState<"idle" | "copied" | "failed">("idle");
+  const copyResetRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => () => { if (copyResetRef.current) clearTimeout(copyResetRef.current); }, []);
   const [members, setMembers] = useState<Member[]>([]);
   const [invites, setInvites] = useState<PendingInvite[]>([]);
   const [loading, setLoading] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [memberError, setMemberError] = useState<string | null>(null);
   const url = typeof window !== "undefined" ? `${window.location.origin}/board/${boardId}` : `/board/${boardId}`;
   const iAmOwner = canShare && members.some((m) => m.id === me?.userId && m.role === "owner");
 
@@ -98,12 +101,11 @@ export function ShareButton({ boardId, canShare }: { boardId: string; canShare: 
     }
   }, [boardId, canShare]);
 
-  // Load the real member list each time the dialog opens.
   useEffect(() => {
     if (open) void refetch();
   }, [open, refetch]);
 
-  // The demo board has no membership row — show the current user as the owner
+  // The demo board has no membership row, so show the current user as the owner
   // of their own view so the panel isn't empty.
   const shownMembers: Member[] = canShare
     ? members
@@ -138,28 +140,50 @@ export function ShareButton({ boardId, canShare }: { boardId: string; canShare: 
   };
 
   const changeRole = async (userId: string, role: string) => {
-    if (role === "remove") {
-      await fetch(`/api/boards/${boardId}/members/${userId}`, { method: "DELETE" });
-    } else {
-      await fetch(`/api/boards/${boardId}/members/${userId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ role }),
-      });
+    setMemberError(null);
+    const path = `/api/boards/${boardId}/members/${userId}`;
+    try {
+      const res =
+        role === "remove"
+          ? await fetch(path, { method: "DELETE" })
+          : await fetch(path, {
+              method: "PATCH",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ role }),
+            });
+      if (!res.ok) {
+        const data = (await res.json().catch(() => ({}))) as { error?: string };
+        // The refetch below snaps the row back to the server's answer. Without a
+        // message that revert reads as the click having done nothing at all.
+        setMemberError(data.error ?? "Couldn't change that person's access.");
+      }
+    } catch {
+      setMemberError("Couldn't reach the server. Check your connection.");
     }
     await refetch();
   };
 
-  const copyLink = () => {
-    void navigator.clipboard?.writeText(url);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 1500);
+  const copyLink = async () => {
+    const settle = (next: "copied" | "failed", ms: number) => {
+      setCopyState(next);
+      if (copyResetRef.current) clearTimeout(copyResetRef.current);
+      copyResetRef.current = setTimeout(() => setCopyState("idle"), ms);
+    };
+    try {
+      // Undefined outside a secure context and in some embedded webviews, where
+      // an optional-chained call quietly no-ops and still reports success.
+      if (!navigator.clipboard) throw new Error("clipboard unavailable");
+      await navigator.clipboard.writeText(url);
+      settle("copied", 1500);
+    } catch {
+      settle("failed", 2500);
+    }
   };
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button size="lg" variant="default" className="rounded-lg px-5 font-semibold shadow-none">
+        <Button size="lg" variant="default" className="rounded-lg px-3.5 font-semibold shadow-none sm:px-5">
           Share
         </Button>
       </DialogTrigger>
@@ -195,7 +219,7 @@ export function ShareButton({ boardId, canShare }: { boardId: string; canShare: 
           {inviteError ? <p className="mt-2 text-xs text-cursor-coral">{inviteError}</p> : null}
         </div>
 
-        {/* Board link — access is membership-based (invite above), so the link
+        {/* Board link. Access is membership-based (invite above), so the link
             only works for people who've been added; no fake "anyone with link". */}
         <div className="border-t border-hairline px-5 py-4">
           <p className="mb-2 text-sm font-semibold text-ink">Board link</p>
@@ -203,11 +227,11 @@ export function ShareButton({ boardId, canShare }: { boardId: string; canShare: 
             <div className="h-11 min-w-0 flex-1 truncate rounded-lg bg-muted/50 px-3 text-sm leading-[2.75rem] text-ink-soft">{url}</div>
             <button
               type="button"
-              onClick={copyLink}
+              onClick={() => void copyLink()}
               className="flex h-11 shrink-0 items-center gap-2 rounded-lg bg-ink px-4 text-sm font-medium text-white transition-transform active:scale-95"
             >
-              {copied ? <Check className="size-4" /> : <Link2 className="size-4" />}
-              {copied ? "Copied" : "Copy link"}
+              {copyState === "copied" ? <Check className="size-4" /> : <Link2 className="size-4" />}
+              {copyState === "copied" ? "Copied" : copyState === "failed" ? "Couldn't copy" : "Copy link"}
             </button>
           </div>
         </div>
@@ -215,6 +239,7 @@ export function ShareButton({ boardId, canShare }: { boardId: string; canShare: 
         {/* Members (real) */}
         <div className="min-h-0 flex-1 overflow-y-auto border-t border-hairline px-5 py-4">
           <p className="mb-3 text-sm text-ink-soft">People with access</p>
+          {memberError ? <p className="mb-3 text-xs text-cursor-coral">{memberError}</p> : null}
           {loading && shownMembers.length === 0 ? (
             <p className="text-sm text-ink-soft">Loading members…</p>
           ) : loadError ? (
@@ -250,7 +275,7 @@ export function ShareButton({ boardId, canShare }: { boardId: string; canShare: 
                 );
               })}
 
-              {/* Pending invites — invited, not joined yet */}
+              {/* Pending invites: invited, not joined yet */}
               {invites.map((inv) => (
                 <div key={inv.email} className="flex items-center gap-3">
                   <span className="grid size-9 shrink-0 place-items-center rounded-full bg-ink/10 text-sm font-semibold text-ink-soft">

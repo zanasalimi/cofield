@@ -1,6 +1,6 @@
 /**
  * Client boundary around embertoast's <Toaster/>. The library's component uses
- * useSyncExternalStore, so it must render inside a "use client" module — the root
+ * useSyncExternalStore, so it must render inside a "use client" module, and the root
  * layout is a server component and can't host it directly.
  */
 "use client";

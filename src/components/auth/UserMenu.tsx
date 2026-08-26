@@ -16,12 +16,20 @@ export function UserMenu({ id, name, email }: { id: string; name: string; email:
   async function signOut() {
     setBusy(true);
     try {
-      await fetch("/api/auth/signout", { method: "POST" });
+      // Only the server can clear the httpOnly session cookie, so a failed
+      // request means the session is still live. Redirecting anyway would show a
+      // signed-out UI over an account that is still open on this machine.
+      const res = await fetch("/api/auth/signout", { method: "POST" });
+      if (!res.ok) {
+        toast.error("Couldn't sign out. You're still signed in, so try again.");
+        setBusy(false);
+        return;
+      }
       toast.success("Signed out.");
       router.push("/signin");
       router.refresh();
     } catch {
-      toast.error("Couldn't sign out. Try again.");
+      toast.error("Couldn't reach the server. You're still signed in.");
       setBusy(false);
     }
   }
