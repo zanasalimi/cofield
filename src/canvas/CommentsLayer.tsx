@@ -14,7 +14,8 @@ import { useUiStore } from "@/store/ui-store";
 import { useBoardStore } from "@/store/board-store";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { initialOf } from "@/lib/initials";
-import { worldToScreen, screenToWorld } from "./viewport/viewport";
+import { worldToScreen } from "./viewport/viewport";
+import { worldAtPointer } from "./pointer";
 
 const THEME_COLORS = ["#6B6B66", "#3FA34D", "#E03E3E", "#2D9CDB", "#1A1A1A"];
 const EMOJIS = [
@@ -221,10 +222,7 @@ function Pin({ comment, viewport, layerRef }: { comment: Comment; viewport: { x:
   const last = comment.messages[comment.messages.length - 1];
   const color = comment.color || first?.color || "#6B6B66";
 
-  const worldAt = (clientX: number, clientY: number) => {
-    const r = layerRef.current?.getBoundingClientRect();
-    return screenToWorld(viewport, { x: clientX - (r?.left ?? 0), y: clientY - (r?.top ?? 0) });
-  };
+  const worldAt = (clientX: number, clientY: number) => worldAtPointer(layerRef.current, clientX, clientY);
 
   return (
     <div className="absolute" style={{ left: p.x, top: p.y }}>

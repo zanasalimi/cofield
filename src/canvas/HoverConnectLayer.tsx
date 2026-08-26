@@ -12,7 +12,8 @@ import { ArrowUp, ArrowRight, ArrowDown, ArrowLeft } from "@/components/icons";
 import type { Shape, ShapeType, Side } from "@/collab/types";
 import { useUiStore } from "@/store/ui-store";
 import { useBoardStore } from "@/store/board-store";
-import { worldToScreen, screenToWorld } from "./viewport/viewport";
+import { worldToScreen } from "./viewport/viewport";
+import { worldAtPointer } from "./pointer";
 import { hitTestTopmost } from "./geometry/hit-test";
 
 const ARROW = { top: ArrowUp, right: ArrowRight, bottom: ArrowDown, left: ArrowLeft } as const;
@@ -62,6 +63,7 @@ export function HoverConnectLayer() {
   const viewport = useUiStore((s) => s.viewport);
   const shapes = useBoardStore((s) => s.shapes);
   const [over, setOver] = useState<Side | null>(null);
+  const layerRef = useRef<HTMLDivElement | null>(null);
 
   // Prefer the selected shape (stable points that don't vanish as you reach for
   // them); otherwise the hovered shape. Hidden during a move/resize/pan drag.
@@ -73,7 +75,7 @@ export function HoverConnectLayer() {
   if (!shape || shape.type === "connector" || shape.type === "image" || shape.locked) return null;
 
   return (
-    <div className="pointer-events-none absolute inset-0 overflow-hidden">
+    <div ref={layerRef} className="pointer-events-none absolute inset-0 overflow-hidden">
       {over ? <Ghost shape={shape} side={over} viewport={viewport} /> : null}
       {SIDES.map((s) => {
         const off = 14 / viewport.zoom;
@@ -86,6 +88,7 @@ export function HoverConnectLayer() {
             key={s.side}
             shape={shape}
             side={s.side}
+            layerRef={layerRef}
             x={pt.x}
             y={pt.y}
             active={over === s.side}
@@ -137,6 +140,7 @@ function ShapeOutline({ type, w, h }: { type: ShapeType; w: number; h: number })
 function ConnectPoint({
   shape,
   side,
+  layerRef,
   x,
   y,
   active,
@@ -145,6 +149,7 @@ function ConnectPoint({
 }: {
   shape: Shape;
   side: Side;
+  layerRef: React.RefObject<HTMLDivElement | null>;
   x: number;
   y: number;
   active: boolean;
@@ -154,8 +159,7 @@ function ConnectPoint({
   const start = useRef<{ x: number; y: number } | null>(null);
   const dragging = useRef(false);
 
-  const worldAt = (e: React.PointerEvent) =>
-    screenToWorld(useUiStore.getState().viewport, { x: e.clientX, y: e.clientY });
+  const worldAt = (e: React.PointerEvent) => worldAtPointer(layerRef.current, e.clientX, e.clientY);
 
   const onDown = (e: React.PointerEvent) => {
     e.preventDefault();

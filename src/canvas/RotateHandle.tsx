@@ -9,7 +9,8 @@ import { useRef } from "react";
 import { RotateCw } from "@/components/icons";
 import { useUiStore } from "@/store/ui-store";
 import { useBoardStore } from "@/store/board-store";
-import { worldToScreen, screenToWorld } from "./viewport/viewport";
+import { worldToScreen } from "./viewport/viewport";
+import { worldAtPointer } from "./pointer";
 import { applyRotation } from "./geometry/transform";
 
 export function RotateHandle() {
@@ -20,6 +21,7 @@ export function RotateHandle() {
   const viewport = useUiStore((s) => s.viewport);
   const shapes = useBoardStore((s) => s.shapes);
   const rotating = useRef(false);
+  const layerRef = useRef<HTMLDivElement | null>(null);
 
   if (activeTool !== "select" || editingId || (dragging && !rotating.current) || selection.length !== 1) return null;
   const shape = shapes.find((s) => s.id === selection[0]);
@@ -34,7 +36,7 @@ export function RotateHandle() {
     y: shape.y + shape.h / 2 + Math.cos(rot) * off,
   });
 
-  const worldAt = (e: React.PointerEvent) => screenToWorld(useUiStore.getState().viewport, { x: e.clientX, y: e.clientY });
+  const worldAt = (e: React.PointerEvent) => worldAtPointer(layerRef.current, e.clientX, e.clientY);
 
   const onDown = (e: React.PointerEvent) => {
     e.preventDefault();
@@ -62,16 +64,20 @@ export function RotateHandle() {
   };
 
   return (
-    <button
-      type="button"
-      aria-label="Rotate"
-      onPointerDown={onDown}
-      onPointerMove={onMove}
-      onPointerUp={onUp}
-      className="pointer-events-auto absolute grid size-9 -translate-x-1/2 -translate-y-1/2 cursor-grab place-items-center rounded-full border border-hairline bg-chrome text-ink-soft shadow-sm transition-transform duration-100 hover:text-ink active:scale-90"
-      style={{ left: p.x, top: p.y }}
-    >
-      <RotateCw className="size-[18px]" />
-    </button>
+    // The wrapper spans the canvas surface, so its rect is the origin the
+    // viewport transform is expressed in.
+    <div ref={layerRef} className="pointer-events-none absolute inset-0">
+      <button
+        type="button"
+        aria-label="Rotate"
+        onPointerDown={onDown}
+        onPointerMove={onMove}
+        onPointerUp={onUp}
+        className="pointer-events-auto absolute grid size-9 -translate-x-1/2 -translate-y-1/2 cursor-grab place-items-center rounded-full border border-hairline bg-chrome text-ink-soft shadow-sm transition-transform duration-100 hover:text-ink active:scale-90"
+        style={{ left: p.x, top: p.y }}
+      >
+        <RotateCw className="size-[18px]" />
+      </button>
+    </div>
   );
 }
