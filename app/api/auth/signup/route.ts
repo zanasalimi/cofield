@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { createUser, findUserByEmail, createSessionToken, setSessionCookie, publicUser } from "@/auth/server";
 import { rateLimit, clientIp } from "@/auth/rate-limit";
+import { issueCode } from "@/auth/verification";
 
 const Body = z.object({
   email: z.string().email(),
@@ -10,7 +11,12 @@ const Body = z.object({
 });
 
 export async function POST(req: Request) {
-  if (!rateLimit(`signup:${clientIp(req)}`, 5, 60_000)) {
+  if (!rateLimit(`signup:ip:${clientIp(req)}`, 5, 60_000)) {
+    return NextResponse.json({ error: "Too many attempts. Try again in a minute." }, { status: 429 });
+  }
+  // Signup also runs the KDF, and the per-IP key is only as good as the proxy
+  // in front of it, so cap the total as well.
+  if (!rateLimit("signup:all", 100, 60_000)) {
     return NextResponse.json({ error: "Too many attempts. Try again in a minute." }, { status: 429 });
   }
   const parsed = Body.safeParse(await req.json().catch(() => null));
@@ -23,5 +29,10 @@ export async function POST(req: Request) {
   }
   const user = await createUser(email, password, name);
   await setSessionCookie(createSessionToken(user.id));
-  return NextResponse.json({ user: publicUser(user) });
+  // Signing in immediately is deliberate: the account exists, it just cannot do
+  // the one thing that trusts the address yet. Failing to mail must not strand
+  // someone outside their own new account, so the code is offered again on the
+  // verify screen.
+  await issueCode(user);
+  return NextResponse.json({ user: publicUser(user), needsVerification: true });
 }

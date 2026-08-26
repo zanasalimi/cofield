@@ -1,7 +1,7 @@
 /**
  * Per-board invites by email. An invite is pending until the invitee (a user
- * whose account email matches) accepts — which adds the membership the access
- * gate checks — or rejects it. Server-only.
+ * whose account email matches) accepts, which adds the membership the access
+ * gate checks, or rejects it. Server-only.
  */
 import { randomUUID } from "node:crypto";
 import { and, eq } from "drizzle-orm";
@@ -12,7 +12,7 @@ import { addMembership } from "@/boards/server";
 export function createInvite(boardId: string, inviterId: string, inviteeEmail: string): Invite {
   const email = inviteeEmail.toLowerCase();
   const db = getDb();
-  // Re-inviting the same address to the same board is a no-op — return the
+  // Re-inviting the same address to the same board is a no-op, so return the
   // existing pending invite instead of stacking duplicates.
   const existing = db
     .select()
@@ -68,7 +68,7 @@ export interface BoardInvite {
   status: string;
 }
 
-/** Pending invites for a board — people invited who haven't joined yet, one row
+/** Pending invites for a board: people invited who haven't joined yet, one row
  *  per email (re-inviting the same address doesn't duplicate the entry). */
 export function listBoardInvites(boardId: string): BoardInvite[] {
   const rows = getDb()
