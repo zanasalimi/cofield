@@ -26,22 +26,28 @@ export interface UiState {
   guides: SnapGuide[];
   /** open right-click menu position (screen coords in the canvas wrapper), or null */
   contextMenu: { x: number; y: number } | null;
-  /** userId of the presence whose viewport we are following, or null */
-  followingId: string | null;
+  /** Awareness client id of the presence whose viewport we are following, or
+   *  null. Keyed by connection, not user, so following one of someone's two tabs
+   *  tracks that tab. */
+  followingId: number | null;
   /** shape currently hovered (drives the DOM connection-point affordance) */
   hoveredId: string | null;
   /** true while a move/resize/pan drag is in progress (hides hover affordances) */
   dragging: boolean;
   connection: ConnectionState;
+  /** why the transport last failed, or null while healthy */
+  connectionReason: string | null;
+  /** true once the first document exchange with the server has completed */
+  synced: boolean;
   /** the local user's identity, mirrored from presence so comments can attribute authors */
   me: { userId: string; name: string; color: string } | null;
   /** remote presences, mirrored from Awareness so the header avatar stack can render outside the canvas */
   presences: Presence[];
-  /** true while the comment tool is armed — the next canvas click drops a pin */
+  /** true while the comment tool is armed: the next canvas click drops a pin */
   commentMode: boolean;
   /** id of the comment thread currently open, or null */
   openCommentId: string | null;
-  /** component kind armed for insertion — the next canvas click places it, or null */
+  /** component kind armed for insertion: the next canvas click places it, or null */
   pendingInsert: ComponentKind | null;
   /** pen tool mode + brush settings */
   penMode: "pen" | "highlighter" | "eraser";
@@ -57,10 +63,11 @@ export interface UiState {
   setMarquee: (marquee: Rect | null) => void;
   setGuides: (guides: SnapGuide[]) => void;
   setContextMenu: (menu: { x: number; y: number } | null) => void;
-  setFollowing: (userId: string | null) => void;
+  setFollowing: (clientId: number | null) => void;
   setHoveredId: (id: string | null) => void;
   setDragging: (dragging: boolean) => void;
-  setConnection: (state: ConnectionState) => void;
+  setConnection: (connection: ConnectionState, reason?: string) => void;
+  setSynced: (synced: boolean) => void;
   setMe: (me: { userId: string; name: string; color: string } | null) => void;
   setPresences: (presences: Presence[]) => void;
   setCommentMode: (commentMode: boolean) => void;
@@ -85,6 +92,8 @@ export const useUiStore = create<UiState>((set) => ({
   hoveredId: null,
   dragging: false,
   connection: "connecting",
+  connectionReason: null,
+  synced: false,
   me: null,
   presences: [],
   commentMode: false,
@@ -106,7 +115,8 @@ export const useUiStore = create<UiState>((set) => ({
   setFollowing: (followingId) => set({ followingId }),
   setHoveredId: (hoveredId) => set({ hoveredId }),
   setDragging: (dragging) => set({ dragging }),
-  setConnection: (connection) => set({ connection }),
+  setConnection: (connection, reason) => set({ connection, connectionReason: reason ?? null }),
+  setSynced: (synced) => set({ synced }),
   setMe: (me) => set({ me }),
   setPresences: (presences) => set({ presences }),
   setCommentMode: (commentMode) => set({ commentMode }),

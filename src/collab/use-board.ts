@@ -1,13 +1,14 @@
 /**
- * useBoard — owns a board's realtime lifecycle for the canvas page. Creates the
+ * useBoard owns a board's realtime lifecycle for the canvas page. Creates the
  * Y.Doc, connects the websocket provider, binds the document to the board store
  * (so the renderer's shape cache stays in sync), and exposes presence plus
  * throttled cursor/selection publishers.
  */
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import * as Y from "yjs";
+import { toast } from "@embertoast/react";
 import { createBoardDoc, readShapesInOrder, readMeta, readComments } from "./doc";
 import { bindOfflineCache } from "./offline";
 import { createWebsocketProvider, type SyncProvider } from "./provider";
@@ -22,10 +23,9 @@ import {
 } from "./awareness";
 import { useBoardStore } from "@/store/board-store";
 import { useUiStore } from "@/store/ui-store";
-import { CURSOR_COLORS, type ConnectionState, type Point } from "./types";
+import { CURSOR_COLORS, type Point } from "./types";
 
 const WS_URL = process.env.NEXT_PUBLIC_WS_URL ?? "ws://localhost:4321";
-const NAMES = ["Otter", "Heron", "Fox", "Marten", "Wren", "Lynx", "Finch", "Vole"];
 
 export interface LocalIdentity {
   userId: string;
@@ -33,47 +33,24 @@ export interface LocalIdentity {
   color: string;
 }
 
-/** A stable per-browser identity for anonymous/demo visitors, so the name and
- *  colour survive a refresh instead of being re-rolled each session. */
-function guestIdentity(): LocalIdentity {
-  const KEY = "cofield:guest-identity";
-  try {
-    const saved = JSON.parse(localStorage.getItem(KEY) ?? "null");
-    if (saved && saved.userId && saved.name) return saved as LocalIdentity;
-  } catch {
-    /* ignore corrupt storage */
-  }
-  const seed = Math.floor(Math.random() * 1e9);
-  const identity: LocalIdentity = {
-    userId: `guest-${seed.toString(36)}`,
-    name: `${NAMES[seed % NAMES.length]!} ${(seed % 90) + 10}`,
-    color: CURSOR_COLORS[seed % CURSOR_COLORS.length]!,
-  };
-  try {
-    localStorage.setItem(KEY, JSON.stringify(identity));
-  } catch {
-    /* ignore */
-  }
-  return identity;
-}
-
-export function useBoard(boardId: string, user?: { id: string; name: string; color: string } | null) {
-  // Presence (identity + remote cursors) is an *external* store — Yjs Awareness.
+export function useBoard(boardId: string, user: { id: string; name: string; color: string }) {
+  // Presence (identity + remote cursors) is an *external* store: Yjs Awareness.
   // It's written straight into the UI store rather than React state, so a cursor
   // moving re-renders only the leaves that select it (CursorsLayer, the avatar
-  // stack), never the whole canvas tree.
-  const [connection, setConnection] = useState<ConnectionState>("connecting");
+  // stack), never the whole canvas tree. Connection state rides along for the
+  // same reason: only ConnectionStatus subscribes to it.
   const providerRef = useRef<SyncProvider | null>(null);
   const lastCursorAt = useRef(0);
 
   useEffect(() => {
     const doc = new Y.Doc();
     const board = createBoardDoc(doc);
-    const offline = bindOfflineCache(doc, boardId); // instant load + offline edits
+    const offline = bindOfflineCache(doc, boardId, () => {
+      toast.warning("Offline editing is off. This browser is blocking local storage.");
+    });
     const provider = createWebsocketProvider({ url: WS_URL, room: boardId, doc });
     providerRef.current = provider;
 
-    // Bind the document to the renderer's shape cache.
     const store = useBoardStore.getState();
     store.bindDoc(board);
     const refresh = () => useBoardStore.getState()._setShapes(readShapesInOrder(board));
@@ -89,21 +66,25 @@ export function useBoard(boardId: string, user?: { id: string; name: string; col
     board.comments.observeDeep(refreshComments);
     refreshComments();
 
-    // Presence identity: the signed-in user (stable name across refresh) when
-    // available; otherwise a generated handle persisted per-browser so a guest
-    // keeps the same name/colour across refreshes too.
+    // Presence identity comes from the session, so a name and colour are stable
+    // across refreshes and machines.
     const cid = provider.awareness.clientID;
-    const identity: LocalIdentity = user
-      ? { userId: user.id, name: user.name, color: user.color || CURSOR_COLORS[cid % CURSOR_COLORS.length]! }
-      : guestIdentity();
+    const identity: LocalIdentity = {
+      userId: user.id,
+      name: user.name,
+      color: user.color || CURSOR_COLORS[cid % CURSOR_COLORS.length]!,
+    };
     setLocalIdentity(provider.awareness, identity);
     const ui = useUiStore.getState();
     ui.setMe(identity);
 
     const offPresence = onPresenceChange(provider.awareness, ui.setPresences);
-    const offState = provider.onStateChange(setConnection);
+    const offState = provider.onStateChange((state, reason) => {
+      useUiStore.getState().setConnection(state, reason);
+    });
+    const offSync = provider.onSyncChange((synced) => useUiStore.getState().setSynced(synced));
     ui.setPresences(readPresenceStates(provider.awareness));
-    setConnection(provider.state);
+    ui.setConnection(provider.state, provider.reason);
 
     return () => {
       board.shapes.unobserveDeep(refresh);
@@ -112,9 +93,12 @@ export function useBoard(boardId: string, user?: { id: string; name: string; col
       board.comments.unobserveDeep(refreshComments);
       offPresence();
       offState();
+      offSync();
       const ui2 = useUiStore.getState();
       ui2.setPresences([]);
       ui2.setMe(null);
+      ui2.setConnection("connecting");
+      ui2.setSynced(false);
       useBoardStore.getState().unbindDoc();
       provider.destroy();
       offline.destroy();
@@ -122,7 +106,7 @@ export function useBoard(boardId: string, user?: { id: string; name: string; col
       providerRef.current = null;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [boardId, user?.id, user?.name]);
+  }, [boardId, user.id, user.name]);
 
   const publishCursor = useCallback((cursor: Point | null) => {
     const p = providerRef.current;
@@ -143,5 +127,5 @@ export function useBoard(boardId: string, user?: { id: string; name: string; col
     if (p) setLocalViewport(p.awareness, vp);
   }, []);
 
-  return { connection, publishCursor, publishSelection, publishViewport };
+  return { publishCursor, publishSelection, publishViewport };
 }

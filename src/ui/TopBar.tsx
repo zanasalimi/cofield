@@ -1,15 +1,17 @@
 /**
  * The full-width app header (BrainScape layout): brand mark + wordmark, a
- * breadcrumb to the editable board name, then the room's quick actions —
- * apps / search / settings (board menu) — the live avatar stack, and Share.
+ * breadcrumb to the editable board name, then the room's status: transport
+ * health, the board menu, the live avatar stack, and Share.
  */
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { toast } from "@embertoast/react";
 import { Settings, Download, Maximize, Home, Undo2, Redo2 } from "@/components/icons";
 import { useBoardStore } from "@/store/board-store";
 import { AvatarStack } from "@/presence/AvatarStack";
+import { ConnectionStatus } from "@/ui/ConnectionStatus";
 import { ShareButton } from "@/components/boards/ShareButton";
 
 function fire(name: string) {
@@ -30,31 +32,63 @@ function HeaderButton({ label, onClick, children }: { label: string; onClick?: (
   );
 }
 
-export function TopBar({ boardId, canShare }: { boardId: string; canShare: boolean }) {
+export function TopBar({ boardId, canShare, initialName }: { boardId: string; canShare: boolean; initialName: string }) {
   const meta = useBoardStore((s) => s.meta);
-  const name = (meta.name as string | undefined) ?? "";
+  // The name lives in two places on purpose: the Yjs document so a rename is
+  // live for everyone in the room, and SQLite because the dashboard, invites and
+  // share panel all read it server-side. The document wins once it has a value;
+  // until then the row created at `POST /api/boards` is what to show, which is
+  // why a freshly named board used to open as "Untitled".
+  const docName = meta.name as string | undefined;
+  const name = docName ?? initialName;
   const [menu, setMenu] = useState(false);
+
+  const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => () => { if (saveTimer.current) clearTimeout(saveTimer.current); }, []);
+
+  const rename = (next: string) => {
+    useBoardStore.getState().setMeta({ name: next });
+    if (saveTimer.current) clearTimeout(saveTimer.current);
+    saveTimer.current = setTimeout(() => {
+      void (async () => {
+        try {
+          const res = await fetch(`/api/boards/${boardId}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ name: next }),
+          });
+          // The room already shows the new name; only the dashboard would go
+          // stale, so say so rather than letting it drift unannounced.
+          if (!res.ok) toast.error("Renamed here, but couldn't save it to your boards list.");
+        } catch {
+          toast.error("Renamed here, but couldn't reach the server to save it.");
+        }
+      })();
+    }, 700);
+  };
 
   return (
     <header className="relative z-30 flex h-16 shrink-0 items-center justify-between gap-2 border-b border-hairline bg-chrome px-3 sm:px-5">
-      {/* Wordmark + breadcrumb */}
-      <div className="flex min-w-0 items-center gap-2 sm:gap-2.5">
-        <Link href="/boards" className="shrink-0 select-none text-lg font-bold leading-9 tracking-tight text-ink">
+      {/* Wordmark + breadcrumb. The wordmark costs 69px of a 360px header and
+          the board name is what you actually need there, so on phones it gives
+          way; "All boards" in the board menu is still the way back. */}
+      <div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-2.5">
+        <Link href="/boards" className="hidden shrink-0 select-none text-lg font-bold leading-9 tracking-tight text-ink sm:block">
           Cofield
         </Link>
-        <span className="shrink-0 select-none text-lg font-light leading-9 text-ink-soft/40">/</span>
+        <span className="hidden shrink-0 select-none text-lg font-light leading-9 text-ink-soft/40 sm:block">/</span>
         <input
           value={name}
-          onChange={(e) => useBoardStore.getState().setMeta({ name: e.target.value })}
+          onChange={(e) => rename(e.target.value)}
           placeholder="Untitled board"
           aria-label="Board name"
-          className="h-9 min-w-0 max-w-[42ch] flex-1 truncate rounded-lg bg-transparent px-2 py-0 text-base font-medium leading-9 text-ink outline-none transition-colors placeholder:text-ink-soft hover:bg-ink/5 focus:bg-ink/5"
-          size={Math.max(10, name.length + 2)}
+          className="h-9 w-full min-w-0 max-w-[42ch] flex-1 truncate rounded-lg bg-transparent px-2 py-0 text-base font-medium leading-9 text-ink outline-none transition-colors placeholder:text-ink-soft hover:bg-ink/5 focus:bg-ink/5"
         />
       </div>
 
       {/* Actions */}
-      <div className="flex items-center gap-2">
+      <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
+        <ConnectionStatus />
         <div className="relative">
           <HeaderButton label="Board menu" onClick={() => setMenu((m) => !m)}>
             <Settings />
