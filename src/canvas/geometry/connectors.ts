@@ -33,9 +33,42 @@ export function geoAnchor(s: Shape, other: Shape): { p: Point; dir: Point } {
 export type Routing = "straight" | "elbow" | "curved";
 
 /**
+ * How far an elbow travels straight out of a shape before it is allowed to
+ * turn. Without it the first segment can run flush along the very edge it just
+ * left, which reads as the line being stuck to the box rather than leaving it.
+ */
+const ELBOW_STUB = 20;
+
+/**
+ * Drop points that add nothing: an exact repeat of the previous one, or a turn
+ * that does not turn. Anchors that already line up would otherwise produce a
+ * straight run described by five points, and zero-length segments confuse
+ * hit-testing and the direction the arrowhead is derived from.
+ */
+function simplify(points: number[]): number[] {
+  const out: number[] = [];
+  const push = (x: number, y: number) => {
+    if (out.length >= 2 && out[out.length - 2] === x && out[out.length - 1] === y) return;
+    if (out.length >= 4) {
+      const [px, py] = [out[out.length - 2]!, out[out.length - 1]!];
+      const [qx, qy] = [out[out.length - 4]!, out[out.length - 3]!];
+      // Every elbow segment is axis-aligned, so collinear means a shared x or y
+      // across all three points.
+      if ((qx === px && px === x) || (qy === py && py === y)) {
+        out.length -= 2;
+      }
+    }
+    out.push(x, y);
+  };
+  for (let i = 0; i < points.length; i += 2) push(points[i]!, points[i + 1]!);
+  return out;
+}
+
+/**
  * Resolve the flat point list for a connector under a routing mode. `curved`
  * returns a cubic bezier [A, cp1, cp2, B] (each shape left perpendicular to its
- * side); `straight` a 2-point line [A, B]; `elbow` an orthogonal 4-point path.
+ * side); `straight` a 2-point line [A, B]; `elbow` an orthogonal path that
+ * leaves and arrives perpendicular to the sides it is anchored to.
  */
 export function connectorPath(
   from: Shape,
@@ -48,20 +81,30 @@ export function connectorPath(
   const b = toSide ? sideAnchor(to, toSide) : geoAnchor(to, from);
   if (routing === "straight") return [a.p.x, a.p.y, b.p.x, b.p.y];
   if (routing === "elbow") {
-    if (Math.abs(b.p.x - a.p.x) >= Math.abs(b.p.y - a.p.y)) {
-      const mx = (a.p.x + b.p.x) / 2;
-      return [a.p.x, a.p.y, mx, a.p.y, mx, b.p.y, b.p.x, b.p.y];
+    // Route between the stub ends, not the anchors: which axis to turn on is
+    // decided by the sides the connector is attached to, never by whichever
+    // delta happens to be larger.
+    const s = { x: a.p.x + a.dir.x * ELBOW_STUB, y: a.p.y + a.dir.y * ELBOW_STUB };
+    const e = { x: b.p.x + b.dir.x * ELBOW_STUB, y: b.p.y + b.dir.y * ELBOW_STUB };
+    const aHorizontal = a.dir.x !== 0;
+    const bHorizontal = b.dir.x !== 0;
+
+    let mid: number[];
+    if (aHorizontal && bHorizontal) {
+      const mx = (s.x + e.x) / 2;
+      mid = [mx, s.y, mx, e.y];
+    } else if (!aHorizontal && !bHorizontal) {
+      const my = (s.y + e.y) / 2;
+      mid = [s.x, my, e.x, my];
+    } else if (aHorizontal) {
+      mid = [e.x, s.y];
+    } else {
+      mid = [s.x, e.y];
     }
-    const my = (a.p.y + b.p.y) / 2;
-    return [a.p.x, a.p.y, a.p.x, my, b.p.x, my, b.p.x, b.p.y];
+    return simplify([a.p.x, a.p.y, s.x, s.y, ...mid, e.x, e.y, b.p.x, b.p.y]);
   }
   const k = Math.max(40, Math.min(160, Math.hypot(b.p.x - a.p.x, b.p.y - a.p.y) * 0.45));
   return [a.p.x, a.p.y, a.p.x + a.dir.x * k, a.p.y + a.dir.y * k, b.p.x + b.dir.x * k, b.p.y + b.dir.y * k, b.p.x, b.p.y];
-}
-
-/** Back-compat alias: the default (curved) connector curve. */
-export function connectorCurve(from: Shape, fromSide: Side | undefined, to: Shape, toSide: Side | undefined): number[] {
-  return connectorPath(from, fromSide, to, toSide, "curved");
 }
 
 /** Flatten a connector to on-curve points for hit-testing. Only a *curved*

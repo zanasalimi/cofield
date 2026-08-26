@@ -15,7 +15,7 @@ import {
 } from "@/canvas/viewport/viewport";
 import { cullToViewport } from "@/canvas/viewport/culling";
 import { rectsIntersect, shapeContainsPoint, hitTestTopmost, unionBounds } from "@/canvas/geometry/hit-test";
-import { sampleConnector } from "@/canvas/geometry/connectors";
+import { connectorPath, sampleConnector } from "@/canvas/geometry/connectors";
 import type { Shape, Rect } from "@/collab/types";
 
 function shape(id: string, x: number, y: number, w = 10, h = 10): Shape {
@@ -111,7 +111,7 @@ describe("unionBounds", () => {
 });
 
 describe("connector flattening (hit-test must match the drawn line)", () => {
-  // [A, cp1, cp2, B] — 8 numbers. Only a *curved* connector is a bezier.
+  // [A, cp1, cp2, B], 8 numbers. Only a *curved* connector is a bezier.
   const eight = [0, 0, 10, 20, 30, 20, 40, 0];
 
   it("samples a curved connector into many on-curve points", () => {
@@ -152,5 +152,55 @@ describe("culling", () => {
     expect(ids).toContain("touching-boundary");
     expect(ids).not.toContain("far-right");
     expect(ids).not.toContain("above");
+  });
+});
+
+describe("elbow connector routing", () => {
+  const box = (id: string, x: number, y: number): Shape => ({
+    id,
+    type: "rect",
+    x,
+    y,
+    w: 120,
+    h: 80,
+    rotation: 0,
+    style: { fill: "transparent", stroke: "#1A1A1A", strokeWidth: 2 },
+    createdBy: "u",
+  });
+
+  /** The polyline as [x, y] pairs, which is easier to reason about than a flat list. */
+  const pairs = (flat: number[]) => {
+    const out: [number, number][] = [];
+    for (let i = 0; i < flat.length; i += 2) out.push([flat[i]!, flat[i + 1]!]);
+    return out;
+  };
+
+  it("leaves and arrives perpendicular to the sides it is anchored to", () => {
+    // Anchored top-to-bottom, but offset far horizontally: the old router chose
+    // its axis from the larger delta and set off sideways along the shape's edge.
+    const p = pairs(connectorPath(box("a", 0, 400), "top", box("b", 600, 0), "bottom", "elbow"));
+    const [start, afterStart] = [p[0]!, p[1]!];
+    const [beforeEnd, end] = [p[p.length - 2]!, p[p.length - 1]!];
+
+    expect(afterStart[0]).toBe(start[0]);
+    expect(afterStart[1]).toBeLessThan(start[1]);
+    expect(beforeEnd[0]).toBe(end[0]);
+    expect(beforeEnd[1]).toBeGreaterThan(end[1]);
+  });
+
+  it("keeps every segment axis-aligned", () => {
+    const p = pairs(connectorPath(box("a", 0, 0), "right", box("b", 400, 260), "top", "elbow"));
+    for (let i = 1; i < p.length; i++) {
+      const [px, py] = p[i - 1]!;
+      const [x, y] = p[i]!;
+      expect(px === x || py === y).toBe(true);
+    }
+  });
+
+  it("collapses the redundant turns when the anchors already line up", () => {
+    const p = pairs(connectorPath(box("a", 0, 0), "right", box("b", 300, 0), "left", "elbow"));
+    const ys = new Set(p.map(([, y]) => y));
+    expect(ys.size).toBe(1); // a straight run, not a detour
+    expect(p.length).toBe(2);
   });
 });
