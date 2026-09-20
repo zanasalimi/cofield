@@ -5,6 +5,8 @@ Cofield is an infinite collaborative canvas where several people draw on the sam
 [![CI](https://github.com/zanasalimi/cofield/actions/workflows/ci.yml/badge.svg)](https://github.com/zanasalimi/cofield/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-black)](LICENSE)
 
+[Case study](https://www.zanastack.com/projects/cofield) · why the server is not allowed to decide who wins.
+
 ![Two people building the same service diagram on one Cofield board: boxes and connectors appear from both sides while the other person's cursor moves across the canvas.](docs/media/hero.gif)
 
 Two signed-in accounts, two browsers, one board. Half of what appears on that canvas arrives over the websocket from the other session, moving cursor included.
